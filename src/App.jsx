@@ -254,6 +254,13 @@ function PartnerModal({ onClose }) {
           ) : (
             <>
               <button onClick={()=>setType(null)} style={{background:C.light,border:"none",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",fontSize:"12px",color:C.muted,marginBottom:"16px"}}>← Retour</button>
+              <div style={{background:"#FBF3EC",border:"1px solid #D97757",borderLeft:"4px solid #D97757",borderRadius:"8px",padding:"14px 16px",marginBottom:"16px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
+  <span style={{fontSize:"18px",flexShrink:0}}>⚠️</span>
+  <div>
+    <p style={{fontFamily:"'Playfair Display',serif",fontWeight:600,fontSize:"13px",color:"#3D2B1F",margin:"0 0 4px 0"}}>Avant de publier votre annonce</p>
+    <p style={{fontSize:"12px",lineHeight:1.5,color:"#5A4636",margin:0}}>Assurez-vous que toutes les informations sont exactes et vérifiables (titre de propriété, photos réelles, prix conforme). DiasporaImmo peut suspendre toute annonce signalée par la communauté ou jugée non conforme. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
+  </div>
+</div>
               {[{label:"Prénom et nom *",key:"name",ph:"Votre nom complet"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"},{label:"Téléphone WhatsApp",key:"phone",ph:"+33 6 ..."}].map(f=>(
                 <div key={f.key} style={{marginBottom:"12px"}}>
                   <label style={{fontSize:"12px",fontWeight:700,color:C.dark,display:"block",marginBottom:"5px"}}>{f.label}</label>
