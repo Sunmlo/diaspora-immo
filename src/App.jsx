@@ -346,7 +346,7 @@ function PartnerModal({ onClose, user }) {
 }
 
 // ─── PROPERTY CARD ────────────────────────────────
-function PropertyCard({ p, onClick, compact }) {
+function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const [hov, setHov] = useState(false);
   const shareWA = (e) => {
     e.stopPropagation();
@@ -367,13 +367,16 @@ function PropertyCard({ p, onClick, compact }) {
   return (
     <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"border-color 0.2s"}}>
-      <div style={{height:130,background:p.bg,position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
+      <div style={{height:110,background:p.bg,position:"relative",display:"flex",alignItems:"flex-end",padding:"8px"}}>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
-        {p.demo&&<div style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"9px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
-        {p.verified&&<div style={{position:"absolute",top:8,right:8,background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F}}>Vérifié</div>}
+        {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"9px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
+        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F}}>Vérifié</div>}
         <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
           <span style={{background:typeColor(p.type),color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 8px",borderRadius:"3px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
-          <span style={{marginLeft:"auto",background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={shareWA}>{Icon.wa}</span>
+          <div style={{marginLeft:"auto",display:"flex",gap:"5px"}}>
+            <span onClick={e=>{e.stopPropagation();onSave&&onSave(p);}} style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"13px"}}>{saved?"❤️":"🤍"}</span>
+            <span style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={shareWA}>{Icon.wa}</span>
+          </div>
         </div>
       </div>
       <div style={{padding:"12px"}}>
@@ -396,7 +399,7 @@ function PropertyCard({ p, onClick, compact }) {
 }
 
 // ─── PROPERTY MODAL ───────────────────────────────
-function PropertyModal({ p, onClose }) {
+function PropertyModal({ p, onClose, onSaveFromModal }) {
   if (!p) return null;
   const shareWA = () => {
     const txt = `${p.title}\n${p.neighborhood}, ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\nDiasporaImmo`;
@@ -446,8 +449,8 @@ function PropertyModal({ p, onClose }) {
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"7px"}}>
-            <button style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Contacter</button>
-            <button style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
+            <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent('Bonjour, je suis intéressé(e) par votre annonce : '+p.title+' - '+p.city+', '+p.country)}`,'_blank')} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Contacter</button>
+            <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
             <button onClick={shareWA} style={{background:"#25D366",color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>WhatsApp</button>
           </div>
         </div>
@@ -521,6 +524,7 @@ export default function App() {
   const [showPartner, setShowPartner] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [savedProps, setSavedProps] = useState([]);
   const [animIn, setAnimIn] = useState(true);
 
   const types = ["Tous","Vente","Location","Terrain","Commercial"];
@@ -550,6 +554,10 @@ export default function App() {
   filtered=[...filtered].sort((a,b)=>sortBy==="price_asc"?a.price_eur-b.price_eur:sortBy==="price_desc"?b.price_eur-a.price_eur:sortBy==="surface_asc"?(a.surface||0)-(b.surface||0):sortBy==="surface_desc"?(b.surface||0)-(a.surface||0):b.id-a.id);
 
   const switchTab = t=>{setAnimIn(false);setTimeout(()=>{setTab(t);setAnimIn(true);},150);};
+  const handleSave = (p) => {
+    if (!user) { setShowLogin(true); return; }
+    setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
+  };
 
   const NAV = [
     {id:"accueil",label:"Accueil",icon:Icon.home},
@@ -563,7 +571,7 @@ export default function App() {
   const chipBase = (active) => ({background:active?C.forest:C.white,color:active?C.white:C.dark,border:`1px solid ${active?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:active?700:500,cursor:"pointer",fontFamily:F,transition:"all 0.15s"});
 
   return (
-    <div style={{minHeight:"100vh",background:C.cream,fontFamily:F}}>
+    <div style={{minHeight:"100vh",background:C.cream,fontFamily:F,overflowX:"hidden"}}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
       {/* HEADER */}
@@ -577,24 +585,24 @@ export default function App() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-            <nav style={{display:"flex",gap:"2px"}}>
+            {/* Nav desktop uniquement */}
+            <nav style={{display:"flex",gap:"2px",visibility:"hidden",position:"absolute"}} className="desktop-nav">
               {NAV.map(n=>(
                 <button key={n.id} onClick={()=>switchTab(n.id)} style={{background:tab===n.id?"rgba(255,255,255,0.12)":"transparent",border:"none",color:tab===n.id?C.white:"rgba(255,255,255,0.5)",padding:"6px 10px",borderRadius:"7px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <span style={{color:tab===n.id?C.white:"rgba(255,255,255,0.5)"}}>{n.icon}</span>
                 </button>
               ))}
             </nav>
-            <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.15)",margin:"0 4px"}}/>
-            <button onClick={()=>setShowPartner(true)} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.25)",color:C.white,borderRadius:"7px",padding:"6px 12px",fontWeight:600,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Publier</button>
+            <button onClick={()=>setShowPartner(true)} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.25)",color:C.white,borderRadius:"7px",padding:"6px 12px",fontWeight:600,fontSize:"11px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Publier</button>
             {user?(
-              <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 12px 4px 4px",cursor:"pointer"}}>
-                <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700,color:C.white,fontFamily:F}}>
+              <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
                   {user.name?.slice(0,2).toUpperCase()}
                 </div>
-                <span style={{fontSize:"11px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"70px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
+                <span style={{fontSize:"11px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
               </div>
             ):(
-              <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"6px 14px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Connexion</button>
+              <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"6px 14px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
             )}
           </div>
         </div>
@@ -649,7 +657,7 @@ export default function App() {
               <span onClick={()=>switchTab("biens")} style={{fontSize:"11px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px",marginBottom:"24px"}}>
-              {PROPERTIES.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp}/>)}
+              {PROPERTIES.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
 
             {/* CTA */}
@@ -771,7 +779,7 @@ export default function App() {
             </div>
 
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px"}}>
-              {filtered.map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp}/>)}
+              {filtered.map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
               {filtered.length===0&&(
                 <div style={{textAlign:"center",padding:"48px 20px",color:C.sub,gridColumn:"1/-1"}}>
                   <div style={{fontSize:"32px",marginBottom:"8px",opacity:0.4}}>○</div>
@@ -851,8 +859,29 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{display:"grid",gap:"7px"}}>
-                  {[{label:"Biens sauvegardés",value:"Aucun pour le moment"},{label:"Messages agents",value:"Aucun message"},{label:"Mes alertes email",value:"Aucune alerte active"},{label:"Mes annonces",value:"Publiez votre premier bien"},{label:"Pays suivis",value:"16 pays francophones"},{label:"Paramètres",value:"Langue, notifications"}].map(item=>(
-                    <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`,cursor:"pointer"}}>
+                                      {/* Biens sauvegardés */}
+                    <div style={{background:C.white,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${C.sand}`}}>
+                      <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"8px"}}>Biens sauvegardés <span style={{color:C.sub,fontWeight:400}}>({savedProps.length})</span></div>
+                      {savedProps.length===0?(
+                        <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>Aucun bien sauvegardé — cliquez sur ❤️ sur une annonce</div>
+                      ):(
+                        <div style={{display:"grid",gap:"6px"}}>
+                          {savedProps.map(p=>(
+                            <div key={p.id} style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>setSelectedProp(p)}>
+                              <div style={{width:40,height:40,borderRadius:"6px",background:p.bg,flexShrink:0}}/>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div>
+                                <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}</div>
+                              </div>
+                              <span onClick={e=>{e.stopPropagation();handleSave(p);}} style={{fontSize:"14px",cursor:"pointer"}}>❤️</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {/* Autres items */}
+                    {[{label:"Messages agents",value:"Fonctionnalité à venir"},{label:"Mes alertes",value:"Fonctionnalité à venir"},{label:"Mes annonces",value:"Fonctionnalité à venir"}].map(item=>(
+                    <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
                       <div>
                         <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F}}>{item.label}</div>
                         <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{item.value}</div>
@@ -860,6 +889,17 @@ export default function App() {
                       <span style={{color:C.sub,fontSize:"14px"}}>›</span>
                     </div>
                   ))}
+                    {/* Contact / Support */}
+                    <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
+                      <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
+                      <a href="mailto:contact@diasporaimmo.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
+                        <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px"}}>✉️</div>
+                        <div>
+                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@diasporaimmo.com</div>
+                          <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Réponse sous 24h</div>
+                        </div>
+                      </a>
+                    </div>
                 </div>
                 <button onClick={()=>setShowPartner(true)} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
                 <button onClick={()=>setUser(null)} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
@@ -880,7 +920,7 @@ export default function App() {
       </nav>
 
       {/* MODALS */}
-      <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)}/>
+      <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user}/>}
