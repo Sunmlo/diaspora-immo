@@ -874,3 +874,241 @@ export default function App() {
                 );
               })}
             </div>
+
+      </div>
+        )}
+
+        {/* ── BIENS ── */}
+        {tab==="biens"&&(
+          <div style={{paddingTop:"20px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
+              <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark,margin:0}}>Trouver un bien</h2>
+              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
+            </div>
+
+            <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
+              <input type="text" placeholder="Rechercher par ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"7px",padding:"9px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",marginBottom:"10px",fontFamily:F}}/>
+              <div style={{marginBottom:"8px"}}>
+                <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Région</div>
+                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                  {["Tous","Afrique de l'Ouest","Afrique Centrale"].map(r=><button key={r} onClick={()=>setFilterRegion(r)} style={chipBase(filterRegion===r)}>{r}</button>)}
+                </div>
+              </div>
+              <div style={{marginBottom:"8px"}}>
+                <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pays</div>
+                <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
+                  <button onClick={()=>setFilterCountry("Tous")} style={chipBase(filterCountry==="Tous")}>Tous</button>
+                  {filteredCountries.map(c=><button key={c.name} onClick={()=>setFilterCountry(c.name)} style={{...chipBase(filterCountry===c.name),background:filterCountry===c.name?C.terra:C.white,borderColor:filterCountry===c.name?C.terra:C.sand}}>{c.flag} {c.name}</button>)}
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Type</div>
+                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                  {types.map(t=><button key={t} onClick={()=>setFilterType(t)} style={{...chipBase(filterType===t),background:filterType===t?C.terra:C.white,borderColor:filterType===t?C.terra:C.sand}}>{t}</button>)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:"7px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
+              <button onClick={()=>setShowFilters(!showFilters)} style={{...chipBase(showFilters),display:"flex",alignItems:"center",gap:"4px"}}>
+                Filtres avancés {activeFiltersCount>0&&<span style={{background:showFilters?"rgba(255,255,255,0.3)":C.terra,color:C.white,borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{activeFiltersCount}</span>}
+              </button>
+              <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 10px",fontSize:"11px",color:C.dark,fontFamily:F,fontWeight:500,cursor:"pointer",background:C.white}}>
+                {sorts.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+              {activeFiltersCount>0&&<button onClick={resetFilters} style={{background:"#FEE2E2",color:"#DC2626",border:"none",borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer",fontFamily:F}}>✕ Réinitialiser</button>}
+            </div>
+
+            {showFilters&&(
+              <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"12px",marginBottom:"12px"}}>
+                  <div>
+                    <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Budget (€)</label>
+                    <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
+                      <input type="number" placeholder="Min" value={filterPriceMin} onChange={e=>setFilterPriceMin(e.target.value)} style={{...inputBase,flex:1}}/>
+                      <span style={{color:C.sub,fontSize:"12px"}}>—</span>
+                      <input type="number" placeholder="Max" value={filterPriceMax} onChange={e=>setFilterPriceMax(e.target.value)} style={{...inputBase,flex:1}}/>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Surface (m²)</label>
+                    <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
+                      <input type="number" placeholder="Min" value={filterSurfaceMin} onChange={e=>setFilterSurfaceMin(e.target.value)} style={{...inputBase,flex:1}}/>
+                      <span style={{color:C.sub,fontSize:"12px"}}>—</span>
+                      <input type="number" placeholder="Max" value={filterSurfaceMax} onChange={e=>setFilterSurfaceMax(e.target.value)} style={{...inputBase,flex:1}}/>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pièces</label>
+                    <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
+                      {rooms.map(r=><button key={r} onClick={()=>setFilterRooms(r)} style={{...chipBase(filterRooms===r),padding:"4px 9px",borderRadius:"5px"}}>{r}</button>)}
+                    </div>
+                  </div>
+                </div>
+                <div style={{marginBottom:"10px"}}>
+                  <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Équipements</label>
+                  <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                    {EQUIPEMENTS.map(eq=><button key={eq} onClick={()=>toggleEquipement(eq)} style={{...chipBase(filterEquipements.includes(eq)),background:filterEquipements.includes(eq)?C.terra:C.white,borderColor:filterEquipements.includes(eq)?C.terra:C.sand,borderRadius:"5px"}}>{filterEquipements.includes(eq)?"✓ ":""}{eq}</button>)}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:"7px"}}>
+                  <button onClick={()=>setFilterVerified(!filterVerified)} style={{width:18,height:18,borderRadius:"3px",border:`1.5px solid ${filterVerified?C.terra:C.sand}`,background:filterVerified?C.terra:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontSize:"11px"}}>{filterVerified?"✓":""}</button>
+                  <span style={{fontSize:"12px",color:C.dark,fontWeight:500,cursor:"pointer",fontFamily:F}} onClick={()=>setFilterVerified(!filterVerified)}>Biens vérifiés uniquement</span>
+                </div>
+              </div>
+            )}
+
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+              <p style={{color:C.sub,fontSize:"11px",margin:0,fontFamily:F}}>{filtered.length} bien{filtered.length>1?"s":""} trouvé{filtered.length>1?"s":""}</p>
+              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"10px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px"}}>
+              {filtered.map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
+              {filtered.length===0&&(
+                <div style={{textAlign:"center",padding:"48px 20px",color:C.sub,gridColumn:"1/-1"}}>
+                  <div style={{fontSize:"32px",marginBottom:"8px",opacity:0.4}}>○</div>
+                  <p style={{fontFamily:F,fontSize:"13px"}}>Aucun bien ne correspond à votre recherche.</p>
+                  <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TONTINE ── */}
+        {tab==="tontine"&&(
+          <div style={{paddingTop:"20px"}}>
+            <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark,margin:"0 0 4px"}}>Tontines DiasporaImmo</h2>
+            <p style={{color:C.sub,fontSize:"12px",margin:"0 0 4px",fontFamily:F}}>Épargne collective · Virements directs entre membres</p>
+            <ComingSoon title="La Tontine Digitale arrive bientôt" desc="Système d'épargne collective sécurisé pour la diaspora africaine francophone."/>
+            <h3 style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.dark,margin:"20px 0 12px"}}>Aperçu des tontines prévues</h3>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"10px"}}>
+              {TONTINES.map(t=><TontineCard key={t.id} t={t}/>)}
+            </div>
+          </div>
+        )}
+
+        {/* ── SERVICES ── */}
+        {tab==="services"&&(
+          <div style={{paddingTop:"20px"}}>
+            <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark,margin:"0 0 6px"}}>Nos services</h2>
+            <ComingSoon title="Nos services arrivent bientôt" desc="Accompagnement juridique, transfert d'argent, suivi de construction, gestion locative."/>
+            <div style={{display:"grid",gap:"8px"}}>
+              {[
+                {title:"Vérification juridique",desc:"Contrôle des titres fonciers, conseils notariaux.",tags:["Titre foncier","Notaire","Contrat"]},
+                {title:"Transfert d'argent",desc:"Wave, Orange Money, Mobile Money selon les pays.",tags:["Wave","Orange Money","Mobile Money"]},
+                {title:"Suivi de construction",desc:"Photos hebdomadaires, rapport de chantier.",tags:["Rapport hebdo","Photos","MOE"]},
+                {title:"Accompagnement agricole",desc:"Agronomes locaux, suivi et rentabilité.",tags:["Agronome","Suivi","Rentabilité"]},
+                {title:"Gestion locative",desc:"Loyers virés chaque mois.",tags:["Loyers garantis","Entretien"]},
+                {title:"Voyage d'investissement",desc:"Séjours organisés dans 16 pays.",tags:["Sur mesure","16 pays"]},
+              ].map(s=>(
+                <div key={s.title} style={{background:C.white,borderRadius:"10px",padding:"14px",border:`1px solid ${C.sand}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px"}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}>
+                      <h3 style={{margin:0,fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F}}>{s.title}</h3>
+                      <span style={{background:"#FFF8E1",color:"#8B6914",fontSize:"9px",fontWeight:700,padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Bientôt</span>
+                    </div>
+                    <p style={{margin:"0 0 7px",fontSize:"11px",color:C.sub,fontFamily:F}}>{s.desc}</p>
+                    <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
+                      {s.tags.map(t=><span key={t} style={{background:C.cream,color:C.muted,fontSize:"10px",padding:"2px 7px",borderRadius:"3px",fontWeight:500,fontFamily:F}}>{t}</span>)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── COMPTE ── */}
+        {tab==="compte"&&(
+          <div style={{paddingTop:"20px"}}>
+            {!user?(
+              <div style={{textAlign:"center",padding:"48px 20px"}}>
+                <div style={{width:56,height:56,borderRadius:"50%",background:C.cream,border:`1px solid ${C.sand}`,margin:"0 auto 16px",display:"flex",alignItems:"center",justifyContent:"center",color:C.sub}}>{Icon.person}</div>
+                <h2 style={{fontFamily:FT,fontSize:"20px",color:C.dark,margin:"0 0 8px"}}>Votre espace personnel</h2>
+                <p style={{color:C.sub,fontSize:"13px",margin:"0 0 24px",fontFamily:F}}>Connectez-vous pour accéder à vos favoris, alertes et annonces.</p>
+                <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"13px 32px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,marginBottom:"10px",display:"block",width:"100%"}}>Se connecter</button>
+                <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"8px",padding:"12px 32px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,display:"block",width:"100%"}}>Créer un compte gratuit</button>
+              </div>
+            ):(
+              <>
+                <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"14px"}}>
+                  <div style={{width:48,height:48,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",fontWeight:700,color:C.white,fontFamily:F}}>
+                    {user.name?.slice(0,2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"16px"}}>{user.name}</h2>
+                    <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>{user.email}</p>
+                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"10px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre DiasporaImmo</span>
+                  </div>
+                </div>
+                <div style={{display:"grid",gap:"7px"}}>
+                                      {/* Biens sauvegardés */}
+                    <div style={{background:C.white,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${C.sand}`}}>
+                      <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"8px"}}>Biens sauvegardés <span style={{color:C.sub,fontWeight:400}}>({savedProps.length})</span></div>
+                      {savedProps.length===0?(
+                        <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>Aucun bien sauvegardé — cliquez sur ❤️ sur une annonce</div>
+                      ):(
+                        <div style={{display:"grid",gap:"6px"}}>
+                          {savedProps.map(p=>(
+                            <div key={p.id} style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>setSelectedProp(p)}>
+                              <div style={{width:40,height:40,borderRadius:"6px",background:p.bg,flexShrink:0}}/>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div>
+                                <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}</div>
+                              </div>
+                              <span onClick={e=>{e.stopPropagation();handleSave(p);}} style={{fontSize:"14px",cursor:"pointer"}}>❤️</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {/* Autres items */}
+                    {[{label:"Messages agents",value:"Fonctionnalité à venir"},{label:"Mes alertes",value:"Fonctionnalité à venir"},{label:"Mes annonces",value:"Fonctionnalité à venir"}].map(item=>(
+                    <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
+                      <div>
+                        <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F}}>{item.label}</div>
+                        <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{item.value}</div>
+                      </div>
+                      <span style={{color:C.sub,fontSize:"14px"}}>›</span>
+                    </div>
+                  ))}
+                    {/* Contact / Support */}
+                    <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
+                      <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
+                      <a href="mailto:contact@diasporaimmo.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
+                        <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px"}}>✉️</div>
+                        <div>
+                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@diasporaimmo.com</div>
+                          <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Réponse sous 24h</div>
+                        </div>
+                      </a>
+                    </div>
+                </div>
+                <button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
+                <button onClick={()=>setUser(null)} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
+              </>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* BOTTOM NAV */}
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -2px 12px rgba(0,0,0,0.06)"}}>
+        {NAV.map(n=>(
+          <button key={n.id} onClick={()=>switchTab(n.id)} style={{flex:1,background:"none",border:"none",padding:"8px 4px 7px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px"}}>
+            <span style={{color:tab===n.id?C.terra:C.sub}}>{n.icon}</span>
+            <span style={{fontSize:"9px",fontWeight:tab===n.id?700:400,color:tab===n.id?C.terra:C.sub,fontFamily:F}}>{n.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* MODALS */}
+      <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave}/>
+      {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
+      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
+      {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType}/>}
+    </div>
+  );
+}
