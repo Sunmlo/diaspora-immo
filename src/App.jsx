@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const C = {
   terra: "#C4622D", gold: "#D4A017", earth: "#8B5E3C",
@@ -15,33 +15,92 @@ const SUPABASE_URL = "https://nhyejaubfxjmmuvetayw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWVqYXViZnhqbW11dmV0YXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDIzODgsImV4cCI6MjA5NjQxODM4OH0.yIaB8nBbnBVufudtt-FsmoWPlSqOU2uYzLLQjtiTdR4";
 
 const PHONE_CODES = [
-  {code:"+33",label:"🇫🇷 France (+33)"},{code:"+32",label:"🇧🇪 Belgique (+32)"},{code:"+41",label:"🇨🇭 Suisse (+41)"},
-  {code:"+1",label:"🇨🇦 Canada (+1)"},{code:"+44",label:"🇬🇧 Royaume-Uni (+44)"},{code:"+49",label:"🇩🇪 Allemagne (+49)"},
-  {code:"+39",label:"🇮🇹 Italie (+39)"},{code:"+34",label:"🇪🇸 Espagne (+34)"},{code:"+31",label:"🇳🇱 Pays-Bas (+31)"},
-  {code:"+351",label:"🇵🇹 Portugal (+351)"},{code:"+221",label:"🇸🇳 Sénégal (+221)"},
-  {code:"+225",label:"🇨🇮 Côte d'Ivoire (+225)"},{code:"+237",label:"🇨🇲 Cameroun (+237)"},
-  {code:"+223",label:"🇲🇱 Mali (+223)"},{code:"+226",label:"🇧🇫 Burkina Faso (+226)"},
-  {code:"+224",label:"🇬🇳 Guinée (+224)"},{code:"+229",label:"🇧🇯 Bénin (+229)"},
-  {code:"+228",label:"🇹🇬 Togo (+228)"},{code:"+227",label:"🇳🇪 Niger (+227)"},
-  {code:"+222",label:"🇲🇷 Mauritanie (+222)"},{code:"+245",label:"🇬🇼 Guinée-Bissau (+245)"},
-  {code:"+242",label:"🇨🇬 Congo (+242)"},{code:"+243",label:"🇨🇩 RD Congo (+243)"},
-  {code:"+241",label:"🇬🇦 Gabon (+241)"},{code:"+236",label:"🇨🇫 Centrafrique (+236)"},
-  {code:"+235",label:"🇹🇩 Tchad (+235)"},{code:"+212",label:"🇲🇦 Maroc (+212)"},
-  {code:"+213",label:"🇩🇿 Algérie (+213)"},{code:"+216",label:"🇹🇳 Tunisie (+216)"},
-  {code:"+234",label:"🇳🇬 Nigeria (+234)"},{code:"+233",label:"🇬🇭 Ghana (+233)"},
-  {code:"+27",label:"🇿🇦 Afrique du Sud (+27)"},{code:"+971",label:"🇦🇪 Émirats (+971)"},
-  {code:"+1",label:"🇺🇸 États-Unis (+1)"},{code:"+55",label:"🇧🇷 Brésil (+55)"},
+  // Classement alphabétique par pays
+  {code:"+27",label:"🇿🇦 Afrique du Sud (+27)"},{code:"+49",label:"🇩🇪 Allemagne (+49)"},
+  {code:"+213",label:"🇩🇿 Algérie (+213)"},{code:"+966",label:"🇸🇦 Arabie Saoudite (+966)"},
+  {code:"+54",label:"🇦🇷 Argentine (+54)"},{code:"+61",label:"🇦🇺 Australie (+61)"},
+  {code:"+43",label:"🇦🇹 Autriche (+43)"},{code:"+973",label:"🇧🇭 Bahreïn (+973)"},
+  {code:"+32",label:"🇧🇪 Belgique (+32)"},{code:"+229",label:"🇧🇯 Bénin (+229)"},
+  {code:"+267",label:"🇧🇼 Botswana (+267)"},{code:"+55",label:"🇧🇷 Brésil (+55)"},
+  {code:"+226",label:"🇧🇫 Burkina Faso (+226)"},{code:"+257",label:"🇧🇮 Burundi (+257)"},
+  {code:"+237",label:"🇨🇲 Cameroun (+237)"},{code:"+1",label:"🇨🇦 Canada (+1)"},
+  {code:"+238",label:"🇨🇻 Cap-Vert (+238)"},{code:"+236",label:"🇨🇫 Centrafrique (+236)"},
+  {code:"+56",label:"🇨🇱 Chili (+56)"},{code:"+86",label:"🇨🇳 Chine (+86)"},
+  {code:"+57",label:"🇨🇴 Colombie (+57)"},{code:"+269",label:"🇰🇲 Comores (+269)"},
+  {code:"+242",label:"🇨🇬 Congo (+242)"},{code:"+82",label:"🇰🇷 Corée du Sud (+82)"},
+  {code:"+225",label:"🇨🇮 Côte d'Ivoire (+225)"},{code:"+45",label:"🇩🇰 Danemark (+45)"},
+  {code:"+253",label:"🇩🇯 Djibouti (+253)"},{code:"+20",label:"🇪🇬 Égypte (+20)"},
+  {code:"+971",label:"🇦🇪 Émirats Arabes Unis (+971)"},{code:"+291",label:"🇪🇷 Érythrée (+291)"},
+  {code:"+34",label:"🇪🇸 Espagne (+34)"},{code:"+268",label:"🇸🇿 Eswatini (+268)"},
+  {code:"+251",label:"🇪🇹 Éthiopie (+251)"},{code:"+1",label:"🇺🇸 États-Unis (+1)"},
+  {code:"+358",label:"🇫🇮 Finlande (+358)"},{code:"+33",label:"🇫🇷 France (+33)"},
+  {code:"+241",label:"🇬🇦 Gabon (+241)"},{code:"+220",label:"🇬🇲 Gambie (+220)"},
+  {code:"+233",label:"🇬🇭 Ghana (+233)"},{code:"+30",label:"🇬🇷 Grèce (+30)"},
+  {code:"+224",label:"🇬🇳 Guinée (+224)"},{code:"+245",label:"🇬🇼 Guinée-Bissau (+245)"},
+  {code:"+240",label:"🇬🇶 Guinée Équatoriale (+240)"},{code:"+62",label:"🇮🇩 Indonésie (+62)"},
+  {code:"+353",label:"🇮🇪 Irlande (+353)"},{code:"+972",label:"🇮🇱 Israël (+972)"},
+  {code:"+39",label:"🇮🇹 Italie (+39)"},{code:"+81",label:"🇯🇵 Japon (+81)"},
+  {code:"+962",label:"🇯🇴 Jordanie (+962)"},{code:"+254",label:"🇰🇪 Kenya (+254)"},
+  {code:"+965",label:"🇰🇼 Koweït (+965)"},{code:"+961",label:"🇱🇧 Liban (+961)"},
+  {code:"+231",label:"🇱🇷 Liberia (+231)"},{code:"+218",label:"🇱🇾 Libye (+218)"},
+  {code:"+266",label:"🇱🇸 Lesotho (+266)"},{code:"+352",label:"🇱🇺 Luxembourg (+352)"},
+  {code:"+261",label:"🇲🇬 Madagascar (+261)"},{code:"+60",label:"🇲🇾 Malaisie (+60)"},
+  {code:"+223",label:"🇲🇱 Mali (+223)"},{code:"+212",label:"🇲🇦 Maroc (+212)"},
+  {code:"+230",label:"🇲🇺 Maurice (+230)"},{code:"+222",label:"🇲🇷 Mauritanie (+222)"},
+  {code:"+52",label:"🇲🇽 Mexique (+52)"},{code:"+258",label:"🇲🇿 Mozambique (+258)"},
+  {code:"+264",label:"🇳🇦 Namibie (+264)"},{code:"+227",label:"🇳🇪 Niger (+227)"},
+  {code:"+234",label:"🇳🇬 Nigeria (+234)"},{code:"+47",label:"🇳🇴 Norvège (+47)"},
+  {code:"+64",label:"🇳🇿 Nouvelle-Zélande (+64)"},{code:"+968",label:"🇴🇲 Oman (+968)"},
+  {code:"+256",label:"🇺🇬 Ouganda (+256)"},{code:"+31",label:"🇳🇱 Pays-Bas (+31)"},
+  {code:"+51",label:"🇵🇪 Pérou (+51)"},{code:"+63",label:"🇵🇭 Philippines (+63)"},
+  {code:"+48",label:"🇵🇱 Pologne (+48)"},{code:"+351",label:"🇵🇹 Portugal (+351)"},
+  {code:"+974",label:"🇶🇦 Qatar (+974)"},{code:"+243",label:"🇨🇩 RD Congo (+243)"},
+  {code:"+420",label:"🇨🇿 République tchèque (+420)"},{code:"+44",label:"🇬🇧 Royaume-Uni (+44)"},
+  {code:"+7",label:"🇷🇺 Russie (+7)"},{code:"+250",label:"🇷🇼 Rwanda (+250)"},
+  {code:"+239",label:"🇸🇹 São Tomé (+239)"},{code:"+221",label:"🇸🇳 Sénégal (+221)"},
+  {code:"+248",label:"🇸🇨 Seychelles (+248)"},{code:"+232",label:"🇸🇱 Sierra Leone (+232)"},
+  {code:"+65",label:"🇸🇬 Singapour (+65)"},{code:"+252",label:"🇸🇴 Somalie (+252)"},
+  {code:"+249",label:"🇸🇩 Soudan (+249)"},{code:"+46",label:"🇸🇪 Suède (+46)"},
+  {code:"+41",label:"🇨🇭 Suisse (+41)"},{code:"+255",label:"🇹🇿 Tanzanie (+255)"},
+  {code:"+235",label:"🇹🇩 Tchad (+235)"},{code:"+66",label:"🇹🇭 Thaïlande (+66)"},
+  {code:"+228",label:"🇹🇬 Togo (+228)"},{code:"+216",label:"🇹🇳 Tunisie (+216)"},
+  {code:"+84",label:"🇻🇳 Vietnam (+84)"},{code:"+260",label:"🇿🇲 Zambie (+260)"},
+  {code:"+263",label:"🇿🇼 Zimbabwe (+263)"},
 ];
 
 const COUNTRIES = [
-  {name:"Sénégal",flag:"🇸🇳",region:"Ouest"},{name:"Côte d'Ivoire",flag:"🇨🇮",region:"Ouest"},
-  {name:"Mali",flag:"🇲🇱",region:"Ouest"},{name:"Burkina Faso",flag:"🇧🇫",region:"Ouest"},
-  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Bénin",flag:"🇧🇯",region:"Ouest"},
-  {name:"Togo",flag:"🇹🇬",region:"Ouest"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},
-  {name:"Mauritanie",flag:"🇲🇷",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Ouest"},
-  {name:"Cameroun",flag:"🇨🇲",region:"Centrale"},{name:"Congo",flag:"🇨🇬",region:"Centrale"},
-  {name:"RD Congo",flag:"🇨🇩",region:"Centrale"},{name:"Gabon",flag:"🇬🇦",region:"Centrale"},
-  {name:"Centrafrique",flag:"🇨🇫",region:"Centrale"},{name:"Tchad",flag:"🇹🇩",region:"Centrale"},
+  // Afrique de l'Ouest — ordre alphabétique
+  {name:"Bénin",flag:"🇧🇯",region:"Ouest"},{name:"Burkina Faso",flag:"🇧🇫",region:"Ouest"},
+  {name:"Cap-Vert",flag:"🇨🇻",region:"Ouest"},{name:"Côte d'Ivoire",flag:"🇨🇮",region:"Ouest"},
+  {name:"Gambie",flag:"🇬🇲",region:"Ouest"},{name:"Ghana",flag:"🇬🇭",region:"Ouest"},
+  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Ouest"},
+  {name:"Liberia",flag:"🇱🇷",region:"Ouest"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
+  {name:"Mauritanie",flag:"🇲🇷",region:"Ouest"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},
+  {name:"Nigeria",flag:"🇳🇬",region:"Ouest"},{name:"Sénégal",flag:"🇸🇳",region:"Ouest"},
+  {name:"Sierra Leone",flag:"🇸🇱",region:"Ouest"},{name:"Togo",flag:"🇹🇬",region:"Ouest"},
+  // Afrique Centrale — ordre alphabétique
+  {name:"Burundi",flag:"🇧🇮",region:"Centrale"},{name:"Cameroun",flag:"🇨🇲",region:"Centrale"},
+  {name:"Centrafrique",flag:"🇨🇫",region:"Centrale"},{name:"Congo",flag:"🇨🇬",region:"Centrale"},
+  {name:"Gabon",flag:"🇬🇦",region:"Centrale"},{name:"Guinée Équatoriale",flag:"🇬🇶",region:"Centrale"},
+  {name:"RD Congo",flag:"🇨🇩",region:"Centrale"},{name:"Rwanda",flag:"🇷🇼",region:"Centrale"},
+  {name:"São Tomé",flag:"🇸🇹",region:"Centrale"},{name:"Tchad",flag:"🇹🇩",region:"Centrale"},
+  // Afrique de l'Est
+  {name:"Djibouti",flag:"🇩🇯",region:"Est"},{name:"Érythrée",flag:"🇪🇷",region:"Est"},
+  {name:"Éthiopie",flag:"🇪🇹",region:"Est"},{name:"Kenya",flag:"🇰🇪",region:"Est"},
+  {name:"Somalie",flag:"🇸🇴",region:"Est"},{name:"Tanzanie",flag:"🇹🇿",region:"Est"},
+  {name:"Ouganda",flag:"🇺🇬",region:"Est"},
+  // Afrique Australe
+  {name:"Afrique du Sud",flag:"🇿🇦",region:"Australe"},{name:"Botswana",flag:"🇧🇼",region:"Australe"},
+  {name:"Eswatini",flag:"🇸🇿",region:"Australe"},{name:"Lesotho",flag:"🇱🇸",region:"Australe"},
+  {name:"Madagascar",flag:"🇲🇬",region:"Australe"},{name:"Maurice",flag:"🇲🇺",region:"Australe"},
+  {name:"Mozambique",flag:"🇲🇿",region:"Australe"},{name:"Namibie",flag:"🇳🇦",region:"Australe"},
+  {name:"Seychelles",flag:"🇸🇨",region:"Australe"},{name:"Zambie",flag:"🇿🇲",region:"Australe"},
+  {name:"Zimbabwe",flag:"🇿🇼",region:"Australe"},
+  // Maghreb
+  {name:"Algérie",flag:"🇩🇿",region:"Maghreb"},{name:"Comores",flag:"🇰🇲",region:"Maghreb"},
+  {name:"Égypte",flag:"🇪🇬",region:"Maghreb"},{name:"Libye",flag:"🇱🇾",region:"Maghreb"},
+  {name:"Maroc",flag:"🇲🇦",region:"Maghreb"},{name:"Soudan",flag:"🇸🇩",region:"Maghreb"},
+  {name:"Tunisie",flag:"🇹🇳",region:"Maghreb"},
 ];
 
 const PROPERTIES = [
@@ -143,11 +202,7 @@ function LoginModal({ onClose, onLogin }) {
     setLoading(false);
   };
 
-  const handleSocial = (p) => {
-    window.open(`${SUPABASE_URL}/auth/v1/authorize?provider=${p}&redirect_to=${window.location.origin}`,"_blank");
-    onLogin({email:`user@${p}.com`,name:`Utilisateur ${p}`,token:"demo"});
-    onClose();
-  };
+  
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
@@ -161,18 +216,7 @@ function LoginModal({ onClose, onLogin }) {
           <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"12px",fontFamily:F}}>DiasporaImmo · 16 pays francophones</p>
         </div>
         <div style={{padding:"20px"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"16px"}}>
-            {[{p:"google",label:"Google",svg:<svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>},
-              {p:"facebook",label:"Facebook",svg:<svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>}
-            ].map(({p,label,svg})=>(
-              <button key={p} onClick={()=>handleSocial(p)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"7px",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px",background:C.white,cursor:"pointer",fontFamily:F,fontWeight:600,fontSize:"13px",color:C.dark}}>
-                {svg} {label}
-              </button>
-            ))}
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"16px"}}>
-            <div style={{flex:1,height:"1px",background:C.sand}}/><span style={{fontSize:"11px",color:C.sub,fontFamily:F}}>ou avec email</span><div style={{flex:1,height:"1px",background:C.sand}}/>
-          </div>
+
           {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
           <div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:mode==="signup"?"10px":"16px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Mot de passe</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>
@@ -247,9 +291,9 @@ function AlertModal({ onClose, filters, user }) {
 }
 
 // ─── PARTNER MODAL ────────────────────────────────
-function PartnerModal({ onClose, user }) {
-  const [type, setType] = useState(null);
-  const [form, setForm] = useState({name:user?.name||"",email:user?.email||"",phoneCode:"+33",phone:"",country:"Sénégal",description:""});
+function PartnerModal({ onClose, user, defaultType }) {
+  const [type, setType] = useState(defaultType||null);
+  const [form, setForm] = useState({name:user?.name||"",email:user?.email||"",phoneCode:"+33",phone:"",country:"Sénégal",type:"",title:"",city:"",neighborhood:"",price_eur:"",price_xof:"",surface:"",rooms:"",bathrooms:"",features:[],description:""});
   const [photos, setPhotos] = useState([]);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -260,7 +304,21 @@ function PartnerModal({ onClose, user }) {
   const handleSubmit = async () => {
     if (!form.name||!form.email) return;
     setLoading(true);
-    try { await fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`Type: ${type} | Pays: ${form.country} | ${form.description}`,status:"nouveau"})}); } catch(e){}
+    try {
+      // Sauvegarder dans properties avec status en_attente
+      await fetch(`${SUPABASE_URL}/rest/v1/properties`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({
+        user_email:form.email, user_name:form.name, user_phone:`${form.phoneCode}${form.phone}`,
+        title:form.title||`${form.type} - ${form.city}`, type:form.type||type,
+        country:form.country, city:form.city, neighborhood:form.neighborhood,
+        description:form.description, price_eur:parseInt(form.price_eur)||null,
+        price_xof:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
+        rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
+        features:form.features||[], status:"en_attente", advertiser_type:type,
+        agency_name:form.agency||null,
+      })});
+      // Notifier dans leads aussi
+      await fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | Type: ${type} | ${form.type} | ${form.country} - ${form.city} | Prix: ${form.price_eur}€ | ${form.description}`,status:"annonce_en_attente"})});
+    } catch(e){}
     setLoading(false); setSent(true);
   };
 
@@ -322,9 +380,80 @@ function PartnerModal({ onClose, user }) {
                   {COUNTRIES.map(c=><option key={c.name}>{c.flag} {c.name}</option>)}
                 </select>
               </div>
+              {/* Type de bien */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Type de bien *</label>
+                <select value={form.type||""} onChange={e=>set("type",e.target.value)} style={{...inputStyle}}>
+                  <option value="">Sélectionner...</option>
+                  {["Vente","Location","Terrain","Commercial","Agricole"].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </div>
+              {/* Titre */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
+                <input placeholder="Ex: Villa 4 pièces avec piscine à Cocody" value={form.title||""} onChange={e=>set("title",e.target.value)} style={inputStyle}/>
+              </div>
+              {/* Ville + Quartier */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Ville *</label>
+                  <input placeholder="Ex: Abidjan" value={form.city||""} onChange={e=>set("city",e.target.value)} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Quartier</label>
+                  <input placeholder="Ex: Cocody" value={form.neighborhood||""} onChange={e=>set("neighborhood",e.target.value)} style={inputStyle}/>
+                </div>
+              </div>
+              {/* Prix */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prix</label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                  <div style={{position:"relative"}}>
+                    <input type="number" placeholder="Prix en €" value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...inputStyle,paddingRight:"28px"}}/>
+                    <span style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",fontSize:"11px",color:C.sub,fontFamily:F}}>€</span>
+                  </div>
+                  <div style={{position:"relative"}}>
+                    <input type="number" placeholder="Prix en FCFA" value={form.price_xof||""} onChange={e=>{set("price_xof",e.target.value);set("price_eur",Math.round(e.target.value/655.957));}} style={{...inputStyle,paddingRight:"40px"}}/>
+                    <span style={{position:"absolute",right:"8px",top:"50%",transform:"translateY(-50%)",fontSize:"10px",color:C.sub,fontFamily:F}}>FCFA</span>
+                  </div>
+                </div>
+                {form.price_eur&&<div style={{fontSize:"10px",color:C.terra,marginTop:"4px",fontFamily:F}}>≈ {new Intl.NumberFormat("fr-FR").format(Math.round(form.price_eur*655.957))} FCFA · {new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(form.price_eur)}</div>}
+              </div>
+              {/* Surface + Pièces + SDB */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"10px"}}>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface m²</label>
+                  <input type="number" placeholder="Ex: 150" value={form.surface||""} onChange={e=>set("surface",e.target.value)} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pièces</label>
+                  <select value={form.rooms||""} onChange={e=>set("rooms",e.target.value)} style={{...inputStyle}}>
+                    <option value="">—</option>
+                    {[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>S. de bain</label>
+                  <select value={form.bathrooms||""} onChange={e=>set("bathrooms",e.target.value)} style={{...inputStyle}}>
+                    <option value="">—</option>
+                    {[1,2,3,4,5].map(n=><option key={n}>{n}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Équipements */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</label>
+                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                  {["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse","Gardien","Groupe électrogène","Eau courante","Climatisation"].map(eq=>{
+                    const selected=(form.features||[]).includes(eq);
+                    return <button key={eq} type="button" onClick={()=>set("features",selected?(form.features||[]).filter(f=>f!==eq):[...(form.features||[]),eq])} style={{background:selected?C.terra:C.cream,color:selected?C.white:C.dark,border:`1px solid ${selected?C.terra:C.sand}`,borderRadius:"5px",padding:"4px 9px",fontSize:"10px",fontWeight:selected?700:500,cursor:"pointer",fontFamily:F}}>{selected?"✓ ":""}{eq}</button>
+                  })}
+                </div>
+              </div>
+              {/* Description */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
-                <textarea placeholder="Type, localisation, prix, surface..." value={form.description} onChange={e=>set("description",e.target.value)} rows={3} style={{...inputStyle,resize:"vertical"}}/>
+                <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...inputStyle,resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos</label>
@@ -503,6 +632,70 @@ function TontineCard({ t }) {
   );
 }
 
+
+// ─── HERO CARROUSEL ───────────────────────────────
+const SLIDES = [
+  {url:"https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&q=80",label:"🌍 Dakar, Sénégal"},
+  {url:"https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",label:"🏙️ Abidjan, Côte d'Ivoire"},
+  {url:"https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0?w=800&q=80",label:"🌴 Terrain agricole, Mali"},
+  {url:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",label:"🏡 Villa moderne, Cameroun"},
+];
+
+function HeroCarousel({ search, setSearch, onSearch }) {
+  const [current, setCurrent] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setCurrent(c => (c + 1) % SLIDES.length);
+        setFade(true);
+      }, 500);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div style={{position:"relative",height:"280px",overflow:"hidden"}}>
+      {/* Image de fond */}
+      <div style={{
+        position:"absolute",inset:0,
+        backgroundImage:`url('${SLIDES[current].url}')`,
+        backgroundSize:"cover",backgroundPosition:"center",
+        opacity:fade?1:0,
+        transition:"opacity 0.5s ease",
+      }}/>
+      {/* Overlay */}
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,rgba(8,20,12,0.78) 0%,rgba(26,60,46,0.7) 50%,rgba(196,98,45,0.3) 100%)"}}/>
+      {/* Ligne dorée bas */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#D4A017 30%,#D4A017 70%,transparent)",zIndex:2}}/>
+      {/* Label pays */}
+      <div style={{position:"absolute",top:12,right:12,background:"rgba(0,0,0,0.35)",backdropFilter:"blur(4px)",color:"rgba(255,255,255,0.85)",fontSize:"9px",padding:"3px 8px",borderRadius:"3px",fontFamily:F,zIndex:2}}>{SLIDES[current].label}</div>
+      {/* Dots */}
+      <div style={{position:"absolute",bottom:14,right:14,display:"flex",gap:"5px",zIndex:2}}>
+        {SLIDES.map((_,i)=>(
+          <button key={i} onClick={()=>{setCurrent(i);setFade(true);}} style={{width:i===current?18:6,height:6,borderRadius:i===current?"3px":"50%",background:i===current?C.gold:"rgba(255,255,255,0.4)",border:"none",cursor:"pointer",transition:"all 0.3s",padding:0}}/>
+        ))}
+      </div>
+      {/* Contenu */}
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"20px 18px 22px",zIndex:1}}>
+        <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique francophone & anglophone</div>
+        <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(20px,5vw,32px)",fontWeight:800,lineHeight:1.2,textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>
+          Votre patrimoine en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
+        </h1>
+        <div style={{background:"rgba(255,255,255,0.97)",borderRadius:"8px",display:"flex",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 12px",minWidth:0}}>
+            <span style={{color:C.sub,flexShrink:0}}>{Icon.searchSm}</span>
+            <input type="text" placeholder="Ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:"12px",color:C.dark,background:"transparent",fontFamily:F,padding:"11px 0",minWidth:0}}/>
+          </div>
+          <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",padding:"0 16px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap"}}>Chercher</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("accueil");
@@ -524,6 +717,7 @@ export default function App() {
   const [showPartner, setShowPartner] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [partnerType, setPartnerType] = useState(null);
   const [savedProps, setSavedProps] = useState([]);
   const [animIn, setAnimIn] = useState(true);
 
@@ -593,7 +787,7 @@ export default function App() {
                 </button>
               ))}
             </nav>
-            <button onClick={()=>setShowPartner(true)} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.25)",color:C.white,borderRadius:"7px",padding:"6px 12px",fontWeight:600,fontSize:"11px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Publier</button>
+
             {user?(
               <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
                 <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
@@ -613,25 +807,8 @@ export default function App() {
         {/* ── ACCUEIL ── */}
         {tab==="accueil"&&(
           <div>
-            {/* Hero */}
-            <div style={{background:C.forest,borderRadius:"0 0 20px 20px",padding:"30px 20px 24px",marginBottom:"1px"}}>
-              <div style={{fontSize:"10px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · 16 pays francophones</div>
-              <h1 style={{margin:"0 0 18px",color:C.white,fontFamily:FT,fontSize:"clamp(22px,4vw,34px)",fontWeight:800,lineHeight:1.2}}>
-                Votre patrimoine en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
-              </h1>
-              <div style={{background:C.white,borderRadius:"8px",display:"flex",overflow:"hidden"}}>
-                <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 14px"}}>
-                  <span style={{color:C.sub}}>{Icon.searchSm}</span>
-                  <input type="text" placeholder="Ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:"13px",color:C.dark,background:"transparent",fontFamily:F,padding:"11px 0"}}/>
-                </div>
-                <div style={{width:"1px",height:"20px",background:C.sand,alignSelf:"center"}}/>
-                <select value={filterCountry} onChange={e=>setFilterCountry(e.target.value)} style={{border:"none",outline:"none",fontSize:"12px",color:C.sub,fontFamily:F,padding:"0 12px",background:"transparent",cursor:"pointer"}}>
-                  <option value="Tous">Tous les pays</option>
-                  {COUNTRIES.map(c=><option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
-                </select>
-                <button onClick={()=>switchTab("biens")} style={{background:C.terra,color:C.white,border:"none",padding:"0 20px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Rechercher</button>
-              </div>
-            </div>
+            {/* Hero Carrousel */}
+            <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
 
             {/* Filtres rapides */}
             <div style={{background:C.white,borderBottom:`1px solid ${C.sand}`,padding:"10px 20px",display:"flex",gap:"7px",overflowX:"auto",marginBottom:"1px"}}>
@@ -667,8 +844,8 @@ export default function App() {
                 <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>Particulier ou professionnel · +4 millions de membres diaspora</p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
-                <button onClick={()=>user?setShowPartner(true):setShowLogin(true)} style={{background:C.gold,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Particulier</button>
-                <button onClick={()=>user?setShowPartner(true):setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
+                <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.gold,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Particulier</button>
+                <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
               </div>
             </div>
 
@@ -901,7 +1078,7 @@ export default function App() {
                       </a>
                     </div>
                 </div>
-                <button onClick={()=>setShowPartner(true)} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
+                <button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
                 <button onClick={()=>setUser(null)} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
               </>
             )}
@@ -923,7 +1100,7 @@ export default function App() {
       <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
-      {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user}/>}
+      {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType}/>}
     </div>
   );
 }
