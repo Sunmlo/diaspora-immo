@@ -72,12 +72,8 @@ const COUNTRIES = [
   // Afrique de l'Ouest — ordre alphabétique
   {name:"Bénin",flag:"🇧🇯",region:"Ouest"},{name:"Burkina Faso",flag:"🇧🇫",region:"Ouest"},
   {name:"Cap-Vert",flag:"🇨🇻",region:"Ouest"},{name:"Côte d'Ivoire",flag:"🇨🇮",region:"Ouest"},
-  {name:"Gambie",flag:"🇬🇲",region:"Ouest"},{name:"Ghana",flag:"🇬🇭",region:"Ouest"},
-  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Ouest"},
-  {name:"Liberia",flag:"🇱🇷",region:"Ouest"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
-  {name:"Mauritanie",flag:"🇲🇷",region:"Ouest"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},
-  {name:"Nigeria",flag:"🇳🇬",region:"Ouest"},{name:"Sénégal",flag:"🇸🇳",region:"Ouest"},
-  {name:"Sierra Leone",flag:"🇸🇱",region:"Ouest"},{name:"Togo",flag:"🇹🇬",region:"Ouest"},
+  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Ouest"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
+  {name:"Mauritanie",flag:"🇲🇷",region:"Ouest"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},{name:"Sénégal",flag:"🇸🇳",region:"Ouest"},{name:"Togo",flag:"🇹🇬",region:"Ouest"},
   // Afrique Centrale — ordre alphabétique
   {name:"Burundi",flag:"🇧🇮",region:"Centrale"},{name:"Cameroun",flag:"🇨🇲",region:"Centrale"},
   {name:"Centrafrique",flag:"🇨🇫",region:"Centrale"},{name:"Congo",flag:"🇨🇬",region:"Centrale"},
@@ -331,7 +327,7 @@ function PartnerModal({ onClose, user, defaultType }) {
         <div style={{background:C.terra,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publier une annonce</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"11px",fontFamily:F}}>Gratuit · +4 millions de membres diaspora</p>
+          <p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"11px",fontFamily:F}}>Gratuit · Afrique de l'Ouest & Centrale</p>
         </div>
         <div style={{padding:"20px"}}>
           {sent?(<div style={{textAlign:"center",padding:"16px 0"}}>
@@ -824,7 +820,7 @@ export default function App() {
 
             {/* Stats */}
             <div style={{display:"flex",background:C.white,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px"}}>
-              {[[PROPERTIES.length+"+","Biens"],["16+","Pays"],["4","Tontines"],["+4M","Diaspora"]].map(([v,l],i)=>(
+              {[[PROPERTIES.length+"+","Biens"],["16+","Pays"],["4","Tontines"],["Gratuit","Publication"]].map(([v,l],i)=>(
                 <div key={l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
                   <div style={{fontSize:"17px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
                   <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{l}</div>
@@ -845,7 +841,7 @@ export default function App() {
             <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"16px",flexWrap:"wrap"}}>
               <div>
                 <h3 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"16px"}}>Publiez votre bien gratuitement</h3>
-                <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>Particulier ou professionnel · +4 millions de membres diaspora</p>
+                <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
                 <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.gold,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Particulier</button>
@@ -856,12 +852,12 @@ export default function App() {
             {/* Pays couverts — Option B fond vert sombre */}
             <div style={{background:"linear-gradient(135deg,#1A3C2E,#0F2318)",padding:"20px 16px"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
-                <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,margin:0}}>Nos destinations</h2>
+                <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,margin:0}}>Pays couverts</h2>
                 <span style={{background:C.gold,color:C.white,fontSize:"11px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",fontFamily:F}}>50+ pays</span>
               </div>
               <div style={{fontSize:"11px",color:"rgba(255,255,255,0.45)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
-              {["Afrique de l'Ouest","Afrique Centrale","Afrique de l'Est","Afrique Australe","Maghreb"].map(region=>{
-                const regionKey = region==="Afrique de l'Ouest"?"Ouest":region==="Afrique Centrale"?"Centrale":region==="Afrique de l'Est"?"Est":region==="Afrique Australe"?"Australe":"Maghreb";
+              {["Afrique de l'Ouest","Afrique Centrale"].map(region=>{
+                const regionKey = region==="Afrique de l'Ouest"?"Ouest":"Centrale";
                 const pays = COUNTRIES.filter(c=>c.region===regionKey);
                 if(!pays.length) return null;
                 return(
@@ -883,7 +879,7 @@ export default function App() {
             <div style={{margin:"16px",borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center"}}>
               <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
               <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
-              <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez +4 millions de membres de la diaspora africaine</div>
+              <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
               <a href="mailto:contact@sokile.com?subject=Demande publicit%C3%A9 Sokil%C3%A9" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
             </div>
           </div>
@@ -994,7 +990,7 @@ export default function App() {
             {/* Hero Pro */}
             <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,padding:"20px 16px 16px"}}>
               <div style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
-              <div style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez +4 millions de membres de la diaspora africaine</div>
+              <div style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez notre communauté en Afrique de l'Ouest et Centrale</div>
               <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                 {/* Déposer une annonce pro */}
                 <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
@@ -1065,7 +1061,7 @@ export default function App() {
               <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
                 <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
                 <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
-                <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez +4 millions de membres de la diaspora africaine</div>
+                <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
                 <a href="mailto:contact@sokile.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
               </div>
 
@@ -1171,7 +1167,7 @@ export default function App() {
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowAbout(false)}>
           <div style={{background:C.white,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:"480px",maxHeight:"90vh",overflowY:"auto",padding:"24px 20px 40px"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
-              <div style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark}}>So<span style={{color:C.gold}}>ki</span>lé</div>
+              <div style={{fontFamily:FT,fontSize:"26px",fontWeight:800,color:C.dark,letterSpacing:"-0.02em"}}>So<span style={{color:C.gold}}>ki</span>lé</div>
               <button onClick={()=>setShowAbout(false)} style={{background:"none",border:"none",fontSize:"20px",cursor:"pointer",color:C.sub}}>✕</button>
             </div>
             <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,borderRadius:"12px",padding:"20px",marginBottom:"16px"}}>
