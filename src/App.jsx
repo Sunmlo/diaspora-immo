@@ -103,6 +103,9 @@ const COUNTRIES = [
   {name:"Tunisie",flag:"🇹🇳",region:"Maghreb"},
 ];
 
+// Pays disponibles pour les ANNONCES (Ouest + Centrale uniquement)
+const COUNTRIES_ANNONCES = COUNTRIES.filter(c=>["Ouest","Centrale"].includes(c.region));
+
 const PROPERTIES = [
   {id:1,title:"Villa moderne Almadies",type:"Vente",country:"Sénégal",city:"Dakar",neighborhood:"Almadies",price:95000000,price_eur:145000,surface:280,rooms:5,bathrooms:3,verified:true,agent_name:"Mamadou Diallo",tags:["Piscine","Titre foncier"],bg:"linear-gradient(160deg,#1A3C2E,#2D6A4F)",description:"Magnifique villa contemporaine aux Almadies, 5 min de la mer.",demo:true,features:["Piscine","Jardin","Parking"]},
   {id:2,title:"Appartement standing Plateau",type:"Location",country:"Sénégal",city:"Dakar",neighborhood:"Plateau",price:850000,price_eur:1295,surface:120,rooms:3,bathrooms:2,verified:true,agent_name:"Fatou Ndiaye",tags:["Climatisé","Parking"],bg:"linear-gradient(160deg,#2C2822,#1A1A2E)",description:"Appartement haut standing au cœur du Plateau.",demo:true,features:["Meublé","Parking"]},
@@ -213,7 +216,7 @@ function LoginModal({ onClose, onLogin }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill={C.forest}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </div>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{mode==="login"?"Connexion":"Créer un compte"}</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"12px",fontFamily:F}}>DiasporaImmo · 16 pays francophones</p>
+          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"12px",fontFamily:F}}>Sokilé · 16 pays francophones</p>
         </div>
         <div style={{padding:"20px"}}>
 
@@ -356,7 +359,7 @@ function PartnerModal({ onClose, user, defaultType }) {
                 <span style={{fontSize:"16px",flexShrink:0}}>⚠️</span>
                 <div>
                   <p style={{fontFamily:FT,fontWeight:600,fontSize:"12px",color:"#3D2B1F",margin:"0 0 3px"}}>Avant de publier votre annonce</p>
-                  <p style={{fontSize:"11px",lineHeight:1.5,color:"#5A4636",margin:0,fontFamily:F}}>Assurez-vous que toutes les informations sont exactes et vérifiables. DiasporaImmo peut suspendre toute annonce signalée. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
+                  <p style={{fontSize:"11px",lineHeight:1.5,color:"#5A4636",margin:0,fontFamily:F}}>Assurez-vous que toutes les informations sont exactes et vérifiables. Sokilé peut suspendre toute annonce signalée. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
                 </div>
               </div>
               {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
@@ -479,7 +482,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const [hov, setHov] = useState(false);
   const shareWA = (e) => {
     e.stopPropagation();
-    const txt = `${p.title}\n${p.neighborhood}, ${p.city} ${countryFlag(p.country)}\n${fmtEUR(p.price_eur)}\nDiasporaImmo`;
+    const txt = `${p.title}\n${p.neighborhood}, ${p.city} ${countryFlag(p.country)}\n${fmtEUR(p.price_eur)}\nSokilé`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   if (compact) return (
@@ -531,7 +534,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
 function PropertyModal({ p, onClose, onSaveFromModal }) {
   if (!p) return null;
   const shareWA = () => {
-    const txt = `${p.title}\n${p.neighborhood}, ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\nDiasporaImmo`;
+    const txt = `${p.title}\n${p.neighborhood}, ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\nSokilé`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   return (
@@ -574,7 +577,7 @@ function PropertyModal({ p, onClose, onSaveFromModal }) {
             </div>
             <div>
               <div style={{fontSize:"12px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.agent_name}</div>
-              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Agent certifié DiasporaImmo</div>
+              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Agent certifié Sokilé</div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"7px"}}>
@@ -638,7 +641,7 @@ const SLIDES = [
   {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/prix-construction-maison-senegal-HUB-CEPHAS.webp",label:"🏡 Villa moderne, Dakar"},
   {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/photo%20baobab.webp",label:"🌳 Terres agricoles, Afrique"},
   {url:"https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&q=80",label:"🌍 Dakar, Sénégal"},
-  {url:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",label:"🏙️ Immobilier Afrique"},
+  {url:"https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",label:"🏠 Immobilier Afrique"},
 ];
 
 function HeroCarousel({ search, setSearch, onSearch }) {
@@ -680,9 +683,9 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       </div>
       {/* Contenu */}
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"20px 18px 22px",zIndex:1}}>
-        <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique francophone & anglophone</div>
+        <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
         <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(20px,5vw,32px)",fontWeight:800,lineHeight:1.2,textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>
-          Votre patrimoine en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
+          Votre bien en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
         </h1>
         <div style={{background:"rgba(255,255,255,0.97)",borderRadius:"8px",display:"flex",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
           <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 12px",minWidth:0}}>
@@ -718,6 +721,8 @@ export default function App() {
   const [showFilters, setShowFilters] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [partnerType, setPartnerType] = useState(null);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [savedProps, setSavedProps] = useState([]);
   const [animIn, setAnimIn] = useState(true);
 
@@ -756,8 +761,7 @@ export default function App() {
   const NAV = [
     {id:"accueil",label:"Accueil",icon:Icon.home},
     {id:"biens",label:"Biens",icon:Icon.search},
-    {id:"tontine",label:"Tontine",icon:Icon.group},
-    {id:"services",label:"Services",icon:Icon.star},
+    {id:"prestataires",label:"Prestataires",icon:Icon.group},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
 
@@ -774,8 +778,8 @@ export default function App() {
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div style={{width:7,height:7,borderRadius:"50%",background:C.gold}}/>
             <div>
-              <div style={{fontSize:"16px",fontWeight:700,color:C.white,fontFamily:FT,lineHeight:1}}>DiasporaImmo</div>
-              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:F}}>16 pays · Afrique francophone</div>
+              <div style={{fontSize:"16px",fontWeight:700,color:C.white,fontFamily:FT,lineHeight:1}}>Sokilé</div>
+              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:F}}>L'immobilier en Afrique</div>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
@@ -820,7 +824,7 @@ export default function App() {
 
             {/* Stats */}
             <div style={{display:"flex",background:C.white,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px"}}>
-              {[[PROPERTIES.length+"+","Biens"],["16","Pays"],["4","Tontines"],["+4M","Diaspora"]].map(([v,l],i)=>(
+              {[[PROPERTIES.length+"+","Biens"],["16+","Pays"],["4","Tontines"],["+4M","Diaspora"]].map(([v,l],i)=>(
                 <div key={l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
                   <div style={{fontSize:"17px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
                   <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{l}</div>
@@ -876,6 +880,15 @@ export default function App() {
             </div>
 
       </div>
+
+            {/* Encart publicitaire — Option A */}
+            <div style={{margin:"16px",borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center"}}>
+              <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
+              <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
+              <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez +4 millions de membres de la diaspora africaine</div>
+              <a href="mailto:contact@sokilé.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
+            </div>
+          </div>
         )}
 
         {/* ── BIENS ── */}
@@ -977,46 +990,93 @@ export default function App() {
         )}
 
         {/* ── TONTINE ── */}
-        {tab==="tontine"&&(
-          <div style={{paddingTop:"20px"}}>
-            <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark,margin:"0 0 4px"}}>Tontines DiasporaImmo</h2>
-            <p style={{color:C.sub,fontSize:"12px",margin:"0 0 4px",fontFamily:F}}>Épargne collective · Virements directs entre membres</p>
-            <ComingSoon title="La Tontine Digitale arrive bientôt" desc="Système d'épargne collective sécurisé pour la diaspora africaine francophone."/>
-            <h3 style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.dark,margin:"20px 0 12px"}}>Aperçu des tontines prévues</h3>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"10px"}}>
-              {TONTINES.map(t=><TontineCard key={t.id} t={t}/>)}
-            </div>
-          </div>
-        )}
+        {tab==="prestataires"&&(
+          <div style={{paddingBottom:"80px"}}>
 
-        {/* ── SERVICES ── */}
-        {tab==="services"&&(
-          <div style={{paddingTop:"20px"}}>
-            <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark,margin:"0 0 6px"}}>Nos services</h2>
-            <ComingSoon title="Nos services arrivent bientôt" desc="Accompagnement juridique, transfert d'argent, suivi de construction, gestion locative."/>
-            <div style={{display:"grid",gap:"8px"}}>
+            {/* Hero Pro */}
+            <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,padding:"20px 16px 16px"}}>
+              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
+              <div style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez +4 millions de membres de la diaspora africaine</div>
+              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                {/* Déposer une annonce pro */}
+                <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>🏠</div>
+                  <div>
+                    <div style={{fontSize:"13px",fontWeight:700,color:C.white,fontFamily:F}}>Déposer une annonce</div>
+                    <div style={{fontSize:"10px",color:"rgba(255,255,255,0.7)",fontFamily:F}}>Agence ou promoteur immobilier</div>
+                  </div>
+                </button>
+                {/* Proposer un service */}
+                <button onClick={()=>setShowServiceForm(true)} style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>🛠️</div>
+                  <div>
+                    <div style={{fontSize:"13px",fontWeight:700,fontFamily:F}}>Proposer mes services</div>
+                    <div style={{fontSize:"10px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Géomètre, notaire, architecte, BTP...</div>
+                  </div>
+                </button>
+                {/* Publicité */}
+                <a href="mailto:contact@sokilé.com?subject=Demande publicité Sokilé" style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>📢</div>
+                  <div>
+                    <div style={{fontSize:"13px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
+                    <div style={{fontSize:"10px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Bannières et encarts sponsorisés</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            {/* Annuaire prestataires */}
+            <div style={{padding:"16px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
+                <h2 style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.dark,margin:0}}>Annuaire prestataires</h2>
+                <span style={{fontSize:"11px",color:C.terra,fontWeight:700,fontFamily:F}}>Bientôt disponible</span>
+              </div>
+
+              {/* Filtres spécialité */}
+              <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"14px",paddingBottom:"2px"}}>
+                {["Tous","Géomètre","Notaire","Architecte","BTP","Vérification","Juridique","Financement"].map(s=>(
+                  <button key={s} style={{background:s==="Tous"?C.forest:"white",color:s==="Tous"?C.white:C.dark,border:`1px solid ${s==="Tous"?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 11px",fontSize:"10px",fontWeight:s==="Tous"?700:600,whiteSpace:"nowrap",cursor:"pointer",fontFamily:F}}>{s}</button>
+                ))}
+              </div>
+
+              {/* Fiches démo */}
               {[
-                {title:"Vérification juridique",desc:"Contrôle des titres fonciers, conseils notariaux.",tags:["Titre foncier","Notaire","Contrat"]},
-                {title:"Transfert d'argent",desc:"Wave, Orange Money, Mobile Money selon les pays.",tags:["Wave","Orange Money","Mobile Money"]},
-                {title:"Suivi de construction",desc:"Photos hebdomadaires, rapport de chantier.",tags:["Rapport hebdo","Photos","MOE"]},
-                {title:"Accompagnement agricole",desc:"Agronomes locaux, suivi et rentabilité.",tags:["Agronome","Suivi","Rentabilité"]},
-                {title:"Gestion locative",desc:"Loyers virés chaque mois.",tags:["Loyers garantis","Entretien"]},
-                {title:"Voyage d'investissement",desc:"Séjours organisés dans 16 pays.",tags:["Sur mesure","16 pays"]},
-              ].map(s=>(
-                <div key={s.title} style={{background:C.white,borderRadius:"10px",padding:"14px",border:`1px solid ${C.sand}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px"}}>
-                  <div style={{flex:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}>
-                      <h3 style={{margin:0,fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F}}>{s.title}</h3>
-                      <span style={{background:"#FFF8E1",color:"#8B6914",fontSize:"9px",fontWeight:700,padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Bientôt</span>
+                {emoji:"🏗️",name:"Cabinet Diallo & Associés",spec:"Géomètre · Vérification terrain",pays:"🇸🇳 Sénégal · 🇨🇮 Côte d'Ivoire",desc:"Vérification de titres fonciers, bornage et plans de situation. +15 ans d'expérience."},
+                {emoji:"⚖️",name:"Me Koné — Notaire",spec:"Notaire · Juridique",pays:"🇨🇮 Côte d'Ivoire",desc:"Actes de vente, succession, donation immobilière. Consultations à distance disponibles."},
+                {emoji:"🏛️",name:"Archi Dakar Studio",spec:"Architecte · Maîtrise d'œuvre",pays:"🇸🇳 Sénégal",desc:"Conception et suivi de chantier pour la diaspora. Plans 3D et devis gratuits."},
+              ].map((p,i)=>(
+                <div key={i} style={{background:C.white,borderRadius:"10px",border:`1px solid ${C.sand}`,padding:"12px",marginBottom:"8px",cursor:"pointer"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:"10px",marginBottom:"8px"}}>
+                    <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>{p.emoji}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:FT,fontSize:"13px",fontWeight:700,color:C.dark}}>{p.name}</div>
+                      <div style={{fontSize:"10px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.spec}</div>
+                      <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays}</div>
                     </div>
-                    <p style={{margin:"0 0 7px",fontSize:"11px",color:C.sub,fontFamily:F}}>{s.desc}</p>
-                    <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
-                      {s.tags.map(t=><span key={t} style={{background:C.cream,color:C.muted,fontSize:"10px",padding:"2px 7px",borderRadius:"3px",fontWeight:500,fontFamily:F}}>{t}</span>)}
-                    </div>
+                    <span style={{background:"rgba(46,125,50,0.1)",color:"#2E7D32",fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0,whiteSpace:"nowrap"}}>✓ Vérifié</span>
+                  </div>
+                  <div style={{fontSize:"11px",color:"#7A7060",fontFamily:F,lineHeight:1.4,marginBottom:"8px"}}>{p.desc}</div>
+                  <div style={{display:"flex",gap:"6px"}}>
+                    <button style={{background:"#25D366",color:C.white,border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontWeight:700,fontFamily:F,cursor:"pointer"}}>💬 WhatsApp</button>
+                    <button style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontWeight:700,fontFamily:F,cursor:"pointer"}}>Voir la fiche →</button>
                   </div>
                 </div>
               ))}
+
+              {/* Encart pub Option A */}
+              <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
+                <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
+                <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
+                <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez +4 millions de membres de la diaspora africaine</div>
+                <a href="mailto:contact@sokilé.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
+              </div>
+
+              {/* Bouton rejoindre annuaire */}
+              <button onClick={()=>setShowServiceForm(true)} style={{width:"100%",marginTop:"12px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>
+                Rejoindre l'annuaire prestataires
+              </button>
             </div>
+
           </div>
         )}
 
@@ -1040,7 +1100,7 @@ export default function App() {
                   <div>
                     <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"16px"}}>{user.name}</h2>
                     <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>{user.email}</p>
-                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"10px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre DiasporaImmo</span>
+                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"10px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre Sokilé</span>
                   </div>
                 </div>
                 <div style={{display:"grid",gap:"7px"}}>
@@ -1077,10 +1137,10 @@ export default function App() {
                     {/* Contact / Support */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
                       <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
-                      <a href="mailto:contact@diasporaimmo.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
+                      <a href="mailto:contact@sokilé.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
                         <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px"}}>✉️</div>
                         <div>
-                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@diasporaimmo.com</div>
+                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@sokilé.com</div>
                           <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Réponse sous 24h</div>
                         </div>
                       </a>
@@ -1109,6 +1169,41 @@ export default function App() {
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType}/>}
+      {showAbout&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowAbout(false)}>
+          <div style={{background:C.white,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:"480px",maxHeight:"90vh",overflowY:"auto",padding:"24px 20px 40px"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
+              <div style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark}}>So<span style={{color:C.gold}}>ki</span>lé</div>
+              <button onClick={()=>setShowAbout(false)} style={{background:"none",border:"none",fontSize:"20px",cursor:"pointer",color:C.sub}}>✕</button>
+            </div>
+            <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,borderRadius:"12px",padding:"20px",marginBottom:"16px"}}>
+              <div style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.white,marginBottom:"8px"}}>L'immobilier en Afrique de l'Ouest & Centrale</div>
+              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:F,lineHeight:1.6}}>Sokilé connecte acheteurs, vendeurs et prestataires immobiliers — que vous viviez en Afrique ou dans la diaspora.</div>
+            </div>
+            <div style={{marginBottom:"16px"}}>
+              <div style={{fontSize:"12px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F,marginBottom:"8px"}}>Notre mission</div>
+              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.7}}>Rendre l'immobilier africain accessible, fiable et transparent — pour ceux qui vivent sur place comme pour la diaspora qui veut investir au pays en toute confiance.</div>
+            </div>
+            <div style={{marginBottom:"16px"}}>
+              <div style={{fontSize:"12px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F,marginBottom:"8px"}}>Le nom Sokilé</div>
+              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.7,marginBottom:"10px"}}>Sokilé réunit trois mots qui signifient "maison" dans les langues du cœur de l'Afrique de l'Ouest :</div>
+              {[["So","Maison en bambara","Mali, Burkina Faso, Côte d'Ivoire"],["Ki","Maison en wolof","Sénégal, Gambie"],["Lé","Maison en yoruba","Nigeria, Bénin"]].map(([mot,def,pays])=>(
+                <div key={mot} style={{display:"flex",gap:"12px",alignItems:"center",marginBottom:"8px"}}>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:C.gold,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.white,flexShrink:0}}>{mot}</div>
+                  <div>
+                    <div style={{fontSize:"12px",fontWeight:700,color:C.dark,fontFamily:F}}>{def}</div>
+                    <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>{pays}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"16px"}}>
+              <div style={{fontSize:"12px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F,marginBottom:"8px"}}>Nous contacter</div>
+              <a href="mailto:contact@sokile.com" style={{fontSize:"13px",color:C.terra,fontFamily:F,fontWeight:600,textDecoration:"none"}}>contact@sokile.com</a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
