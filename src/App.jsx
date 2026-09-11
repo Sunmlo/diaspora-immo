@@ -879,14 +879,12 @@ export default function App() {
               })}
             </div>
 
-      </div>
-
             {/* Encart publicitaire — Option A */}
             <div style={{margin:"16px",borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center"}}>
               <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
               <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
               <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez +4 millions de membres de la diaspora africaine</div>
-              <a href="mailto:contact@sokilé.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
+              <a href="mailto:contact@sokile.com?subject=Demande publicit%C3%A9 Sokil%C3%A9" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
             </div>
           </div>
         )}
@@ -1015,7 +1013,7 @@ export default function App() {
                   </div>
                 </button>
                 {/* Publicité */}
-                <a href="mailto:contact@sokilé.com?subject=Demande publicité Sokilé" style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
+                <a href="mailto:contact@sokile.com?subject=Demande publicité Sokilé" style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>📢</div>
                   <div>
                     <div style={{fontSize:"13px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
@@ -1068,7 +1066,7 @@ export default function App() {
                 <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
                 <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
                 <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez +4 millions de membres de la diaspora africaine</div>
-                <a href="mailto:contact@sokilé.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
+                <a href="mailto:contact@sokile.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
               </div>
 
               {/* Bouton rejoindre annuaire */}
@@ -1137,10 +1135,10 @@ export default function App() {
                     {/* Contact / Support */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
                       <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
-                      <a href="mailto:contact@sokilé.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
+                      <a href="mailto:contact@sokile.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
                         <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px"}}>✉️</div>
                         <div>
-                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@sokilé.com</div>
+                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@sokile.com</div>
                           <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Réponse sous 24h</div>
                         </div>
                       </a>
