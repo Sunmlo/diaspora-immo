@@ -71,15 +71,15 @@ const PHONE_CODES = [
 const COUNTRIES = [
   // Afrique de l'Ouest — ordre alphabétique
   {name:"Bénin",flag:"🇧🇯",region:"Ouest"},{name:"Burkina Faso",flag:"🇧🇫",region:"Ouest"},
-  {name:"Cap-Vert",flag:"🇨🇻",region:"Ouest"},{name:"Côte d'Ivoire",flag:"🇨🇮",region:"Ouest"},
-  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Ouest"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
+  {name:"Cap-Vert",flag:"🇨🇻",region:"Autres"},{name:"Côte d'Ivoire",flag:"🇨🇮",region:"Ouest"},
+  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Autres"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
   {name:"Mauritanie",flag:"🇲🇷",region:"Ouest"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},{name:"Sénégal",flag:"🇸🇳",region:"Ouest"},{name:"Togo",flag:"🇹🇬",region:"Ouest"},
   // Afrique Centrale — ordre alphabétique
   {name:"Burundi",flag:"🇧🇮",region:"Centrale"},{name:"Cameroun",flag:"🇨🇲",region:"Centrale"},
   {name:"Centrafrique",flag:"🇨🇫",region:"Centrale"},{name:"Congo",flag:"🇨🇬",region:"Centrale"},
-  {name:"Gabon",flag:"🇬🇦",region:"Centrale"},{name:"Guinée Équatoriale",flag:"🇬🇶",region:"Centrale"},
+  {name:"Gabon",flag:"🇬🇦",region:"Centrale"},{name:"Guinée Équatoriale",flag:"🇬🇶",region:"Autres"},
   {name:"RD Congo",flag:"🇨🇩",region:"Centrale"},{name:"Rwanda",flag:"🇷🇼",region:"Centrale"},
-  {name:"São Tomé",flag:"🇸🇹",region:"Centrale"},{name:"Tchad",flag:"🇹🇩",region:"Centrale"},
+  {name:"São Tomé",flag:"🇸🇹",region:"Autres"},{name:"Tchad",flag:"🇹🇩",region:"Centrale"},
   // Afrique de l'Est
   {name:"Djibouti",flag:"🇩🇯",region:"Est"},{name:"Érythrée",flag:"🇪🇷",region:"Est"},
   {name:"Éthiopie",flag:"🇪🇹",region:"Est"},{name:"Kenya",flag:"🇰🇪",region:"Est"},
@@ -124,14 +124,6 @@ const PROPERTIES = [
   {id:19,title:"Villa Niamey Plateau",type:"Vente",country:"Niger",city:"Niamey",neighborhood:"Plateau",price:50000000,price_eur:76250,surface:180,rooms:4,bathrooms:2,verified:true,agent_name:"Niger Immo",tags:["Résidentiel","Titre foncier"],bg:"linear-gradient(160deg,#2C1C10,#1C1008)",description:"Belle villa 4 pièces au Plateau.",demo:true,features:["Jardin","Parking","Titre foncier"]},
   {id:20,title:"Villa Miskine Bangui",type:"Vente",country:"Centrafrique",city:"Bangui",neighborhood:"Miskine",price:35000000,price_eur:53375,surface:150,rooms:3,bathrooms:2,verified:false,agent_name:"RCA Immo",tags:["Résidentiel","Titre foncier"],bg:"linear-gradient(160deg,#2A1E10,#1A1208)",description:"Villa 3 pièces à Miskine.",demo:true,features:["Jardin","Titre foncier"]},
   {id:21,title:"Villa Chagoua N'Djamena",type:"Vente",country:"Tchad",city:"N'Djamena",neighborhood:"Chagoua",price:40000000,price_eur:61000,surface:160,rooms:3,bathrooms:2,verified:false,agent_name:"Tchad Immo",tags:["Résidentiel","Titre foncier"],bg:"linear-gradient(160deg,#281C10,#181008)",description:"Villa 3 pièces à Chagoua.",demo:true,features:["Jardin","Titre foncier"]},
-  {id:22,title:"Villa Bairro Militar Bissau",type:"Vente",country:"Guinée-Bissau",city:"Bissau",neighborhood:"Bairro Militar",price:25000000,price_eur:38125,surface:130,rooms:3,bathrooms:2,verified:false,agent_name:"GB Immo",tags:["Calme","Titre foncier"],bg:"linear-gradient(160deg,#1A2A1A,#101810)",description:"Villa 3 pièces dans un quartier calme.",demo:true,features:["Jardin","Titre foncier"]},
-];
-
-const TONTINES = [
-  {id:1,name:"Tontine Dakar Almadies",goal:"Achat terrain Saly",monthly_amount:500,members_count:8,max_members:10,cycle_months:10,country:"Sénégal"},
-  {id:2,name:"Tontine Abidjan Cocody",goal:"Construction villa",monthly_amount:800,members_count:6,max_members:8,cycle_months:8,country:"Côte d'Ivoire"},
-  {id:3,name:"Tontine Terrain Thiès",goal:"Achat terrain résidentiel",monthly_amount:300,members_count:5,max_members:12,cycle_months:12,country:"Sénégal"},
-  {id:4,name:"Tontine Douala Diaspora",goal:"Construction maison familiale",monthly_amount:600,members_count:4,max_members:10,cycle_months:10,country:"Cameroun"},
 ];
 
 const EQUIPEMENTS = ["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse"];
@@ -212,7 +204,7 @@ function LoginModal({ onClose, onLogin }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill={C.forest}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </div>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{mode==="login"?"Connexion":"Créer un compte"}</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"12px",fontFamily:F}}>Sokilé · 16 pays francophones</p>
+          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"12px",fontFamily:F}}>Sokilé · 17 pays francophones</p>
         </div>
         <div style={{padding:"20px"}}>
 
@@ -301,7 +293,7 @@ function PartnerModal({ onClose, user, defaultType }) {
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
 
   const handleSubmit = async () => {
-    if (!form.name||!form.email) return;
+    if (!form.name||!form.email||(type==="pro"&&!form.agency)) return;
     setLoading(true);
     try {
       // Sauvegarder dans properties avec status en_attente
@@ -358,6 +350,12 @@ function PartnerModal({ onClose, user, defaultType }) {
                   <p style={{fontSize:"11px",lineHeight:1.5,color:"#5A4636",margin:0,fontFamily:F}}>Assurez-vous que toutes les informations sont exactes et vérifiables. Sokilé peut suspendre toute annonce signalée. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
                 </div>
               </div>
+              {type==="pro"&&(
+                <div style={{marginBottom:"10px"}}>
+                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
+                  <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={inputStyle}/>
+                </div>
+              )}
               {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
                 <div key={f.key} style={{marginBottom:"10px"}}>
                   <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
@@ -376,7 +374,7 @@ function PartnerModal({ onClose, user, defaultType }) {
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
                 <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...inputStyle}}>
-                  {COUNTRIES.map(c=><option key={c.name}>{c.flag} {c.name}</option>)}
+                  {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
                 </select>
               </div>
               {/* Type de bien */}
@@ -509,6 +507,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       </div>
       <div style={{padding:"12px"}}>
         <div style={{fontSize:"10px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · {countryFlag(p.country)} {p.country}</div>
+        {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
         <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
           {p.rooms&&<span style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
@@ -573,7 +572,7 @@ function PropertyModal({ p, onClose, onSaveFromModal }) {
             </div>
             <div>
               <div style={{fontSize:"12px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.agent_name}</div>
-              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Agent certifié Sokilé</div>
+              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.advertiser_type==="pro"?"Professionnel":p.advertiser_type==="particulier"?"Particulier":"Agent certifié Sokilé"}</div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"7px"}}>
@@ -599,44 +598,205 @@ function ComingSoon({ title, desc }) {
   );
 }
 
-function TontineCard({ t }) {
-  const pct = Math.round((t.members_count/t.max_members)*100);
+
+
+
+// ─── PRESTATAIRES : ANNUAIRE + FORMULAIRES ────────
+const SPECIALITES = ["Géomètre","Notaire","Architecte","BTP / Construction","Vérification terrain","Juridique","Financement","Déménagement"];
+
+// Fiches d'exemple (remplacées par les vrais prestataires une fois validés)
+const PRESTATAIRES_DEMO = [
+  {id:1,emoji:"📐",name:"Cabinet Diallo & Associés",specs:["Géomètre","Vérification terrain"],pays:["Sénégal","Côte d'Ivoire"],desc:"Vérification de titres fonciers, bornage et levés topographiques avant achat.",zones:"Dakar, Thiès, Mbour, Abidjan",tarifs:"Vérification de titre à partir de 150 000 FCFA"},
+  {id:2,emoji:"⚖️",name:"Me Koné, notaire",specs:["Notaire","Juridique"],pays:["Côte d'Ivoire"],desc:"Actes de vente, successions et donations immobilières. Rendez-vous à distance pour la diaspora.",zones:"Abidjan et environs",tarifs:"Selon barème notarial"},
+  {id:3,emoji:"🏛️",name:"Archi Dakar Studio",specs:["Architecte","BTP / Construction"],pays:["Sénégal"],desc:"Conception de plans et suivi de chantier avec compte rendu photo hebdomadaire.",zones:"Tout le Sénégal",tarifs:"Plans à partir de 800 000 FCFA"},
+  {id:4,emoji:"🚚",name:"Transit Sahel Déménagement",specs:["Déménagement"],pays:["Mali","Burkina Faso","Niger"],desc:"Déménagement et transport de mobilier entre l'Europe et l'Afrique de l'Ouest.",zones:"Bamako, Ouagadougou, Niamey",tarifs:"Sur devis"},
+];
+
+const lbl = {fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"};
+const inp = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
+
+function sendLead(payload) {
+  return fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify(payload)});
+}
+
+function ModalShell({ title, subtitle, color, onClose, children }) {
   return (
-    <div style={{background:C.white,borderRadius:"10px",padding:"16px",border:`1px solid ${C.sand}`,opacity:0.8}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"8px"}}>
-        <div>
-          <h3 style={{margin:"0 0 2px",fontSize:"13px",fontWeight:700,fontFamily:FT,color:C.dark}}>{t.name}</h3>
-          <p style={{margin:0,fontSize:"11px",color:C.sub,fontFamily:F}}>{t.goal} · {countryFlag(t.country)}</p>
+    <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
+      <div style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:color||C.forest,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{title}</h2>
+          {subtitle&&<p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"11px",fontFamily:F}}>{subtitle}</p>}
         </div>
-        <span style={{background:"#FFF8E1",color:"#8B6914",fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>Bientôt</span>
-      </div>
-      <div style={{marginBottom:"10px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
-          <span style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{t.members_count}/{t.max_members} membres</span>
-          <span style={{fontSize:"10px",fontWeight:700,color:C.dark,fontFamily:F}}>{pct}%</span>
-        </div>
-        <div style={{background:C.cream,borderRadius:"4px",height:"5px",overflow:"hidden"}}>
-          <div style={{width:`${pct}%`,height:"100%",background:C.terra,borderRadius:"4px"}}/>
-        </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"5px"}}>
-        {[[fmtEUR(t.monthly_amount)+"/mois","Cotisation"],[fmtEUR(t.monthly_amount*t.max_members),"Cagnotte"],[t.cycle_months+" mois","Durée"]].map(([v,l])=>(
-          <div key={l} style={{background:C.cream,borderRadius:"6px",padding:"7px",textAlign:"center"}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.terra,fontFamily:F}}>{v}</div>
-            <div style={{fontSize:"9px",color:C.sub,fontFamily:F}}>{l}</div>
-          </div>
-        ))}
+        <div style={{padding:"20px"}}>{children}</div>
       </div>
     </div>
   );
 }
 
+function SentMessage({ title, text, onClose }) {
+  return (
+    <div style={{textAlign:"center",padding:"16px 0"}}>
+      <div style={{fontSize:"40px",marginBottom:"10px"}}>✅</div>
+      <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"16px"}}>{title}</h3>
+      <p style={{color:C.sub,fontSize:"12px",fontFamily:F,lineHeight:1.5}}>{text}</p>
+      <button onClick={onClose} style={{marginTop:"14px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
+    </div>
+  );
+}
+
+function ServiceFormModal({ onClose }) {
+  const [f, setF] = useState({name:"",spec:"",pays:[],email:"",phoneCode:"+221",phone:"",site:"",zones:"",tarifs:"",desc:""});
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const set = (k,v) => setF(p=>({...p,[k]:v}));
+  const togglePays = n => set("pays", f.pays.includes(n)?f.pays.filter(x=>x!==n):[...f.pays,n]);
+  const ok = f.name && f.spec && f.email && f.pays.length>0;
+  const submit = async () => {
+    if (!ok) return;
+    setLoading(true);
+    try {
+      await sendLead({name:f.name,email:f.email,phone:`${f.phoneCode}${f.phone}`,status:"prestataire",
+        message:`DEMANDE PRESTATAIRE | Spécialité: ${f.spec} | Pays: ${f.pays.join(", ")} | Zones: ${f.zones} | Tarifs: ${f.tarifs} | Site: ${f.site} | ${f.desc}`});
+    } catch(e){}
+    setLoading(false); setSent(true);
+  };
+  return (
+    <ModalShell title="Rejoindre l'annuaire" subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
+      {sent ? <SentMessage title="Demande envoyée" text="Nous vérifions votre profil et revenons vers vous sous 48 h." onClose={onClose}/> : (<>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Nom ou société *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Spécialité *</label>
+          <select style={inp} value={f.spec} onChange={e=>set("spec",e.target.value)}>
+            <option value="">Choisir…</option>
+            {SPECIALITES.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Pays d'intervention *</label>
+          <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+            {COUNTRIES_ANNONCES.map(c=>{const on=f.pays.includes(c.name);return(
+              <button key={c.name} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",fontFamily:F}}>{c.flag} {c.name}</button>);})}
+          </div>
+        </div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Villes ou zones couvertes</label><input style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Ex : Dakar, Thiès, Mbour"/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Email *</label><input type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)} placeholder="contact@exemple.com"/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Téléphone / WhatsApp</label>
+          <div style={{display:"flex",gap:"6px"}}>
+            <select value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
+              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{p.label}</option>)}
+            </select>
+            <input type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)} placeholder="77 123 45 67"/>
+          </div>
+        </div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Site web</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Tarifs indicatifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Ex : à partir de 150 000 FCFA"/></div>
+        <div style={{marginBottom:"14px"}}><label style={lbl}>Présentation</label><textarea rows={4} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Vos services, votre expérience, vos références…"/></div>
+        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
+      </>)}
+    </ModalShell>
+  );
+}
+
+function PubFormModal({ onClose }) {
+  const FORMATS = ["Bannière page d'accueil","Encart sous les pays couverts","Encart dans l'annuaire prestataires","Je ne sais pas encore"];
+  const [f, setF] = useState({name:"",company:"",email:"",phoneCode:"+221",phone:"",format:"",message:""});
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const set = (k,v) => setF(p=>({...p,[k]:v}));
+  const ok = f.name && f.email && f.format;
+  const submit = async () => {
+    if (!ok) return;
+    setLoading(true);
+    try {
+      await sendLead({name:f.name,email:f.email,phone:`${f.phoneCode}${f.phone}`,status:"publicite",
+        message:`DEMANDE PUBLICITÉ | Société: ${f.company} | Format: ${f.format} | ${f.message}`});
+    } catch(e){}
+    setLoading(false); setSent(true);
+  };
+  return (
+    <ModalShell title="Faire de la publicité" subtitle="Présentez votre activité aux acheteurs et vendeurs" color={C.gold} onClose={onClose}>
+      {sent ? <SentMessage title="Demande envoyée" text="Nous vous recontactons avec nos formats et tarifs." onClose={onClose}/> : (<>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Nom *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)}/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Société</label><input style={inp} value={f.company} onChange={e=>set("company",e.target.value)}/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Email *</label><input type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)}/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Téléphone / WhatsApp</label>
+          <div style={{display:"flex",gap:"6px"}}>
+            <select value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
+              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{p.label}</option>)}
+            </select>
+            <input type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)}/>
+          </div>
+        </div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Format souhaité *</label>
+          <select style={inp} value={f.format} onChange={e=>set("format",e.target.value)}>
+            <option value="">Choisir…</option>
+            {FORMATS.map(x=><option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:"14px"}}><label style={lbl}>Votre message</label><textarea rows={3} style={{...inp,resize:"vertical"}} value={f.message} onChange={e=>set("message",e.target.value)} placeholder="Votre activité, votre budget, la période souhaitée…"/></div>
+        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.gold:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
+      </>)}
+    </ModalShell>
+  );
+}
+
+function Annuaire() {
+  const [spec, setSpec] = useState("Tous");
+  const [pays, setPays] = useState("Tous");
+  const [sel, setSel] = useState(null);
+  const list = PRESTATAIRES_DEMO.filter(p=>(spec==="Tous"||p.specs.includes(spec))&&(pays==="Tous"||p.pays.includes(pays)));
+  const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
+  return (
+    <>
+      <h2 style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2>
+      <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"8px",paddingBottom:"2px"}}>
+        {["Tous",...SPECIALITES].map(s=><button key={s} onClick={()=>setSpec(s)} style={chip(spec===s)}>{s}</button>)}
+      </div>
+      <select value={pays} onChange={e=>setPays(e.target.value)} style={{...inp,marginBottom:"12px",fontSize:"12px",padding:"8px 12px"}}>
+        <option value="Tous">Tous les pays</option>
+        {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+      </select>
+      <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>Fiches d'exemple, en attendant les premiers prestataires vérifiés.</div>
+      {list.length===0&&(
+        <div style={{background:C.white,border:`1px dashed ${C.sand}`,borderRadius:"10px",padding:"16px",textAlign:"center",fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"8px"}}>
+          Aucun prestataire pour ce choix. Vous exercez dans ce domaine ? Rejoignez l'annuaire ci-dessous.
+        </div>
+      )}
+      {list.map(p=>(
+        <div key={p.id} onClick={()=>setSel(p)} style={{background:C.white,borderRadius:"10px",border:`1px solid ${C.sand}`,padding:"12px",marginBottom:"8px",cursor:"pointer"}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:"10px",marginBottom:"6px"}}>
+            <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>{p.emoji}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:FT,fontSize:"13px",fontWeight:700,color:C.dark}}>{p.name}</div>
+              <div style={{fontSize:"10px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
+              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays.map(n=>`${countryFlag(n)} ${n}`).join("  ")}</div>
+            </div>
+            <span style={{background:"rgba(0,0,0,0.06)",color:C.sub,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>Exemple</span>
+          </div>
+          <div style={{fontSize:"11px",color:C.muted,fontFamily:F,lineHeight:1.4}}>{p.desc}</div>
+        </div>
+      ))}
+      {sel&&(
+        <ModalShell title={sel.name} subtitle={sel.specs.join(", ")} onClose={()=>setSel(null)}>
+          <div style={{fontSize:"13px",color:C.dark,fontFamily:F,lineHeight:1.6,marginBottom:"14px"}}>{sel.desc}</div>
+          {[["Pays",sel.pays.map(n=>`${countryFlag(n)} ${n}`).join(", ")],["Zones couvertes",sel.zones],["Tarifs",sel.tarifs]].map(([k,v])=>(
+            <div key={k} style={{marginBottom:"10px"}}>
+              <div style={{fontSize:"11px",fontWeight:700,color:C.sub,fontFamily:F}}>{k}</div>
+              <div style={{fontSize:"13px",color:C.dark,fontFamily:F}}>{v}</div>
+            </div>
+          ))}
+          <div style={{background:C.cream,borderRadius:"8px",padding:"12px",fontSize:"11px",color:C.sub,fontFamily:F,lineHeight:1.5}}>
+            Fiche d'exemple. Pour les prestataires vérifiés, vous trouverez ici leur WhatsApp, leur email et leur site web.
+          </div>
+        </ModalShell>
+      )}
+    </>
+  );
+}
 
 // ─── HERO CARROUSEL ───────────────────────────────
 const SLIDES = [
   {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/prix-construction-maison-senegal-HUB-CEPHAS.webp",label:"🏡 Villa moderne, Dakar"},
   {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/photo%20baobab.webp",label:"🌳 Terres agricoles, Afrique"},
-  {url:"https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&q=80",label:"🌍 Dakar, Sénégal"},
   {url:"https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",label:"🏠 Immobilier Afrique"},
 ];
 
@@ -681,7 +841,7 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"20px 18px 22px",zIndex:1}}>
         <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
         <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(20px,5vw,32px)",fontWeight:800,lineHeight:1.2,textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>
-          Votre bien en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
+          Votre patrimoine en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
         </h1>
         <div style={{background:"rgba(255,255,255,0.97)",borderRadius:"8px",display:"flex",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
           <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 12px",minWidth:0}}>
@@ -721,6 +881,17 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [savedProps, setSavedProps] = useState([]);
   const [animIn, setAnimIn] = useState(true);
+  const [showPub, setShowPub] = useState(false);
+  const [dbProps, setDbProps] = useState([]);
+
+  // Annonces réelles validées (status = validee)
+  useEffect(()=>{
+    fetch(`${SUPABASE_URL}/rest/v1/properties?status=eq.validee&select=id,title,type,country,city,neighborhood,description,price_eur,price_xof,surface,rooms,bathrooms,features,advertiser_type,agency_name`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+      .then(r=>r.ok?r.json():[])
+      .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price_xof||0,features:r.features||[],tags:r.features||[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:false,agent_name:r.agency_name||"Particulier"}))); })
+      .catch(()=>{});
+  },[]);
+  const ALL_PROPS = [...dbProps, ...PROPERTIES];
 
   const types = ["Tous","Vente","Location","Terrain","Commercial"];
   const rooms = ["Tous","1+","2+","3+","4+","5+"];
@@ -732,7 +903,7 @@ export default function App() {
   const activeFiltersCount = [filterCountry!=="Tous",filterType!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0,filterVerified].filter(Boolean).length;
   const filteredCountries = filterRegion==="Tous"?COUNTRIES:COUNTRIES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
 
-  let filtered = PROPERTIES.filter(p=>{
+  let filtered = ALL_PROPS.filter(p=>{
     const mc=filterCountry==="Tous"||p.country===filterCountry;
     const mr=filterRegion==="Tous"||filteredCountries.map(c=>c.name).includes(p.country);
     const mt=filterType==="Tous"||p.type===filterType;
@@ -772,11 +943,7 @@ export default function App() {
       <header style={{background:C.forest,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
         <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"56px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:C.gold}}/>
-            <div>
-              <div style={{fontSize:"16px",fontWeight:700,color:C.white,fontFamily:FT,lineHeight:1}}>Sokilé</div>
-              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:F}}>L'immobilier en Afrique</div>
-            </div>
+            <img src="https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/logos/sokile_logo_horizontal.png" alt="Sokilé" style={{height:"40px",width:"auto",maxWidth:"190px",display:"block"}}/>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
             {/* Nav desktop uniquement */}
@@ -820,7 +987,7 @@ export default function App() {
 
             {/* Stats */}
             <div style={{display:"flex",background:C.white,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px"}}>
-              {[[PROPERTIES.length+"+","Biens"],["16+","Pays"],["4","Tontines"],["Gratuit","Publication"]].map(([v,l],i)=>(
+              {[[ALL_PROPS.length+"+","Biens"],["17","Pays"],["100%","Annonces modérées"],["Gratuit","Publication"]].map(([v,l],i)=>(
                 <div key={l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
                   <div style={{fontSize:"17px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
                   <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{l}</div>
@@ -834,7 +1001,7 @@ export default function App() {
               <span onClick={()=>switchTab("biens")} style={{fontSize:"11px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px",marginBottom:"24px"}}>
-              {PROPERTIES.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
+              {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
 
             {/* CTA */}
@@ -880,7 +1047,7 @@ export default function App() {
               <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
               <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
               <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-              <a href="mailto:contact@sokile.com?subject=Demande publicit%C3%A9 Sokil%C3%A9" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
+              <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
             </div>
           </div>
         )}
@@ -983,7 +1150,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ── TONTINE ── */}
+        {/* ── PRESTATAIRES ── */}
         {tab==="prestataires"&&(
           <div style={{paddingBottom:"80px"}}>
 
@@ -1009,60 +1176,26 @@ export default function App() {
                   </div>
                 </button>
                 {/* Publicité */}
-                <a href="mailto:contact@sokile.com?subject=Demande publicité Sokilé" style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
+                <button onClick={()=>setShowPub(true)} style={{width:"100%",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>📢</div>
                   <div>
                     <div style={{fontSize:"13px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
                     <div style={{fontSize:"10px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Bannières et encarts sponsorisés</div>
                   </div>
-                </a>
+                </button>
               </div>
             </div>
 
             {/* Annuaire prestataires */}
             <div style={{padding:"16px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-                <h2 style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.dark,margin:0}}>Annuaire prestataires</h2>
-                <span style={{fontSize:"11px",color:C.terra,fontWeight:700,fontFamily:F}}>Bientôt disponible</span>
-              </div>
-
-              {/* Filtres spécialité */}
-              <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"14px",paddingBottom:"2px"}}>
-                {["Tous","Géomètre","Notaire","Architecte","BTP","Vérification","Juridique","Financement"].map(s=>(
-                  <button key={s} style={{background:s==="Tous"?C.forest:"white",color:s==="Tous"?C.white:C.dark,border:`1px solid ${s==="Tous"?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 11px",fontSize:"10px",fontWeight:s==="Tous"?700:600,whiteSpace:"nowrap",cursor:"pointer",fontFamily:F}}>{s}</button>
-                ))}
-              </div>
-
-              {/* Fiches démo */}
-              {[
-                {emoji:"🏗️",name:"Cabinet Diallo & Associés",spec:"Géomètre · Vérification terrain",pays:"🇸🇳 Sénégal · 🇨🇮 Côte d'Ivoire",desc:"Vérification de titres fonciers, bornage et plans de situation. +15 ans d'expérience."},
-                {emoji:"⚖️",name:"Me Koné — Notaire",spec:"Notaire · Juridique",pays:"🇨🇮 Côte d'Ivoire",desc:"Actes de vente, succession, donation immobilière. Consultations à distance disponibles."},
-                {emoji:"🏛️",name:"Archi Dakar Studio",spec:"Architecte · Maîtrise d'œuvre",pays:"🇸🇳 Sénégal",desc:"Conception et suivi de chantier pour la diaspora. Plans 3D et devis gratuits."},
-              ].map((p,i)=>(
-                <div key={i} style={{background:C.white,borderRadius:"10px",border:`1px solid ${C.sand}`,padding:"12px",marginBottom:"8px",cursor:"pointer"}}>
-                  <div style={{display:"flex",alignItems:"flex-start",gap:"10px",marginBottom:"8px"}}>
-                    <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>{p.emoji}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:FT,fontSize:"13px",fontWeight:700,color:C.dark}}>{p.name}</div>
-                      <div style={{fontSize:"10px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.spec}</div>
-                      <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays}</div>
-                    </div>
-                    <span style={{background:"rgba(46,125,50,0.1)",color:"#2E7D32",fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0,whiteSpace:"nowrap"}}>✓ Vérifié</span>
-                  </div>
-                  <div style={{fontSize:"11px",color:"#7A7060",fontFamily:F,lineHeight:1.4,marginBottom:"8px"}}>{p.desc}</div>
-                  <div style={{display:"flex",gap:"6px"}}>
-                    <button style={{background:"#25D366",color:C.white,border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontWeight:700,fontFamily:F,cursor:"pointer"}}>💬 WhatsApp</button>
-                    <button style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontWeight:700,fontFamily:F,cursor:"pointer"}}>Voir la fiche →</button>
-                  </div>
-                </div>
-              ))}
+              <Annuaire/>
 
               {/* Encart pub Option A */}
               <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
                 <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
                 <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
                 <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-                <a href="mailto:contact@sokile.com?subject=Demande publicité Sokilé" style={{display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</a>
+                <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
               </div>
 
               {/* Bouton rejoindre annuaire */}
@@ -1163,11 +1296,13 @@ export default function App() {
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType}/>}
+      {showServiceForm&&<ServiceFormModal onClose={()=>setShowServiceForm(false)}/>}
+      {showPub&&<PubFormModal onClose={()=>setShowPub(false)}/>}
       {showAbout&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowAbout(false)}>
           <div style={{background:C.white,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:"480px",maxHeight:"90vh",overflowY:"auto",padding:"24px 20px 40px"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
-              <div style={{fontFamily:FT,fontSize:"26px",fontWeight:800,color:C.dark,letterSpacing:"-0.02em"}}>So<span style={{color:C.gold}}>ki</span>lé</div>
+              <img src="https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/logos/sokile_logo_principal%20(1).png" alt="Sokilé" style={{height:"56px",width:"auto",display:"block"}}/>
               <button onClick={()=>setShowAbout(false)} style={{background:"none",border:"none",fontSize:"20px",cursor:"pointer",color:C.sub}}>✕</button>
             </div>
             <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,borderRadius:"12px",padding:"20px",marginBottom:"16px"}}>
