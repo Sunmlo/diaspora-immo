@@ -131,9 +131,18 @@ const fmtXOF = n => new Intl.NumberFormat("fr-FR").format(n)+" FCFA";
 const fmtEUR = n => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
 const typeColor = t => t==="Vente"?C.terra:t==="Location"?C.forest:t==="Terrain"?C.earth:t==="Commercial"?"#444":C.earth;
 const countryFlag = name => COUNTRIES.find(c=>c.name===name)?.flag||"🌍";
+// Drapeaux en image (Windows n'affiche pas les emojis drapeaux)
+const isoOf = f => f?[...f].map(ch=>String.fromCharCode(ch.codePointAt(0)-0x1F1E6+97)).join(""):"";
+const noFlag = s => s.replace(/[\u{1F1E6}-\u{1F1FF}]{2}\s*/gu,"");
+function Flag({ name, flag, size=16 }) {
+  const f = flag || COUNTRIES.find(c=>c.name===name)?.flag;
+  if (!f) return null;
+  return <img src={`https://flagcdn.com/w40/${isoOf(f)}.png`} alt="" width={size} height={Math.round(size*0.75)} style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",objectFit:"cover",marginRight:"5px"}}/>;
+}
 
 // ─── ICONS ───────────────────────────────────────
 const Icon = {
+  briefcase: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4h4a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3V6a2 2 0 0 1 2-2zm0 2v1h4V6h-4z"/></svg>,
   home: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
   search: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
   group: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>,
@@ -144,10 +153,10 @@ const Icon = {
 };
 
 // ─── AUTH ─────────────────────────────────────────
-async function signUp(email, password, name) {
+async function signUp(email, password, meta) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
-    body:JSON.stringify({email,password,data:{name}}),
+    body:JSON.stringify({email,password,data:meta}),
   });
   return res.json();
 }
@@ -167,6 +176,8 @@ function LoginModal({ onClose, onLogin }) {
   const [name, setName] = useState("");
   const [phoneCode, setPhoneCode] = useState("+33");
   const [phone, setPhone] = useState("");
+  const [accountType, setAccountType] = useState("particulier");
+  const [agency, setAgency] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -175,19 +186,20 @@ function LoginModal({ onClose, onLogin }) {
 
   const handleSubmit = async () => {
     if (!email||!password) return;
+    if (mode==="signup"&&accountType==="pro"&&!agency) { setError("Indiquez le nom de votre agence ou société"); return; }
     setLoading(true); setError("");
     try {
       if (mode==="signup") {
-        const d = await signUp(email, password, name);
+        const d = await signUp(email, password, {name, phone:phone?`${phoneCode} ${phone}`:"", account_type:accountType, agency:accountType==="pro"?agency:""});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
         else setSuccess("Compte créé ! Vérifiez votre email.");
       } else {
         const d = await signIn(email, password);
         if (d.error) setError("Email ou mot de passe incorrect");
-        else { onLogin({email,name:d.user?.user_metadata?.name||email.split("@")[0],token:d.access_token}); onClose(); }
+        else { const m=d.user?.user_metadata||{}; onLogin({email,name:m.name||email.split("@")[0],account_type:m.account_type||"particulier",agency:m.agency||"",phone:m.phone||"",token:d.access_token}); onClose(); }
       }
     } catch(e) {
-      onLogin({email,name:name||email.split("@")[0],token:"demo"});
+      onLogin({email,name:name||email.split("@")[0],account_type:accountType,agency,token:"demo"});
       onClose();
     }
     setLoading(false);
@@ -204,10 +216,22 @@ function LoginModal({ onClose, onLogin }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill={C.forest}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </div>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{mode==="login"?"Connexion":"Créer un compte"}</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"12px",fontFamily:F}}>Sokilé · 17 pays francophones</p>
-        </div>
+                  </div>
         <div style={{padding:"20px"}}>
 
+{mode==="signup"&&(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}}>
+              {[["particulier","Particulier","Je cherche ou je vends un bien"],["pro","Professionnel","Agence, promoteur ou prestataire"]].map(([id,ti,de])=>(
+                <button key={id} type="button" onClick={()=>setAccountType(id)} style={{border:`1.5px solid ${accountType===id?C.terra:C.sand}`,background:accountType===id?"#FBF3EC":C.white,borderRadius:"10px",padding:"10px",textAlign:"left",cursor:"pointer",fontFamily:F}}>
+                  <div style={{fontSize:"13px",fontWeight:700,color:C.dark}}>{ti}</div>
+                  <div style={{fontSize:"10px",color:C.sub,marginTop:"2px",lineHeight:1.3}}>{de}</div>
+                </button>
+              ))}
+            </div>
+          )}
+          {mode==="signup"&&accountType==="pro"&&(
+            <div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence ou de la société *</label><input placeholder="Ex : Teranga Immobilier" value={agency} onChange={e=>setAgency(e.target.value)} style={inputStyle}/></div>
+          )}
           {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
           <div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:mode==="signup"?"10px":"16px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Mot de passe</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>
@@ -216,7 +240,7 @@ function LoginModal({ onClose, onLogin }) {
               <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone (optionnel)</label>
               <div style={{display:"flex",gap:"6px"}}>
                 <select value={phoneCode} onChange={e=>setPhoneCode(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 8px",fontSize:"11px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
-                  {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{p.label}</option>)}
+                  {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                 </select>
                 <input type="tel" placeholder="6 12 34 56 78" value={phone} onChange={e=>setPhone(e.target.value)} style={{...inputStyle,flex:1}}/>
               </div>
@@ -224,7 +248,7 @@ function LoginModal({ onClose, onLogin }) {
           )}
           {error&&<div style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"12px",fontFamily:F}}>{error}</div>}
           {success&&<div style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"12px",fontFamily:F}}>{success}</div>}
-          <button onClick={handleSubmit} disabled={!email||!password||loading} style={{width:"100%",background:email&&password?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:email&&password?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
+          <button onClick={handleSubmit} disabled={!email||!password||loading||(mode==="signup"&&accountType==="pro"&&!agency)} style={{width:"100%",background:email&&password?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:email&&password?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
             {loading?"...":(mode==="login"?"Se connecter":"Créer mon compte")}
           </button>
           <div style={{textAlign:"center",fontSize:"12px",color:C.sub,fontFamily:F}}>
@@ -283,8 +307,8 @@ function AlertModal({ onClose, filters, user }) {
 
 // ─── PARTNER MODAL ────────────────────────────────
 function PartnerModal({ onClose, user, defaultType }) {
-  const [type, setType] = useState(defaultType||null);
-  const [form, setForm] = useState({name:user?.name||"",email:user?.email||"",phoneCode:"+33",phone:"",country:"Sénégal",type:"",title:"",city:"",neighborhood:"",price_eur:"",price_xof:"",surface:"",rooms:"",bathrooms:"",features:[],description:""});
+  const [type, setType] = useState(defaultType||user?.account_type||null);
+  const [form, setForm] = useState({agency:user?.agency||"",name:user?.name||"",email:user?.email||"",phoneCode:"+33",phone:"",country:"Sénégal",type:"",title:"",city:"",neighborhood:"",price_eur:"",price_xof:"",surface:"",rooms:"",bathrooms:"",features:[],description:""});
   const [photos, setPhotos] = useState([]);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -366,7 +390,7 @@ function PartnerModal({ onClose, user, defaultType }) {
                 <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone WhatsApp</label>
                 <div style={{display:"flex",gap:"6px"}}>
                   <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"11px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
-                    {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{p.label}</option>)}
+                    {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                   </select>
                   <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...inputStyle,flex:1}}/>
                 </div>
@@ -374,7 +398,7 @@ function PartnerModal({ onClose, user, defaultType }) {
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
                 <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...inputStyle}}>
-                  {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+                  {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               {/* Type de bien */}
@@ -484,7 +508,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"all 0.2s",display:"flex"}}>
       <div style={{width:72,flexShrink:0,background:p.bg}}/>
       <div style={{padding:"10px 12px",flex:1,minWidth:0}}>
-        <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, {countryFlag(p.country)} {p.country}</div>
+        <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
         <div style={{fontSize:"12px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
         <div style={{fontSize:"13px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
       </div>
@@ -506,7 +530,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         </div>
       </div>
       <div style={{padding:"12px"}}>
-        <div style={{fontSize:"10px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · {countryFlag(p.country)} {p.country}</div>
+        <div style={{fontSize:"10px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={14}/>{p.country}</div>
         {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
         <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
@@ -526,7 +550,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
 }
 
 // ─── PROPERTY MODAL ───────────────────────────────
-function PropertyModal({ p, onClose, onSaveFromModal }) {
+function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
   if (!p) return null;
   const shareWA = () => {
     const txt = `${p.title}\n${p.neighborhood}, ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\nSokilé`;
@@ -546,10 +570,10 @@ function PropertyModal({ p, onClose, onSaveFromModal }) {
         <div style={{padding:"18px"}}>
           {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"11px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
           <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.dark}}>{p.title}</h2>
-          <p style={{margin:"0 0 12px",color:C.sub,fontSize:"11px",fontFamily:F}}>{p.neighborhood}, {p.city} — {countryFlag(p.country)} {p.country}</p>
+          <p style={{margin:"0 0 12px",color:C.sub,fontSize:"11px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
           <p style={{margin:"0 0 14px",color:C.dark,fontSize:"12px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
-            {[["Surface",p.surface?`${new Intl.NumberFormat("fr-FR").format(p.surface)} m²`:"—"],["Pièces",p.rooms||"—"],["Salles de bain",p.bathrooms||"—"],["Pays",`${countryFlag(p.country)} ${p.country}`]].map(([l,v])=>(
+            {[["Surface",p.surface?`${new Intl.NumberFormat("fr-FR").format(p.surface)} m²`:"—"],["Pièces",p.rooms||"—"],["Salles de bain",p.bathrooms||"—"],["Pays",<><Flag name={p.country}/>{p.country}</>]].map(([l,v])=>(
               <div key={l} style={{background:C.cream,borderRadius:"7px",padding:"9px"}}>
                 <div style={{fontSize:"10px",color:C.sub,marginBottom:"2px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
                 <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
@@ -580,6 +604,7 @@ function PropertyModal({ p, onClose, onSaveFromModal }) {
             <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
             <button onClick={shareWA} style={{background:"#25D366",color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>WhatsApp</button>
           </div>
+          {onVerify&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
         </div>
       </div>
     </div>
@@ -674,7 +699,7 @@ function ServiceFormModal({ onClose }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Pays d'intervention *</label>
           <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
             {COUNTRIES_ANNONCES.map(c=>{const on=f.pays.includes(c.name);return(
-              <button key={c.name} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",fontFamily:F}}>{c.flag} {c.name}</button>);})}
+              <button key={c.name} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>);})}
           </div>
         </div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Villes ou zones couvertes</label><input style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Ex : Dakar, Thiès, Mbour"/></div>
@@ -682,7 +707,7 @@ function ServiceFormModal({ onClose }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Téléphone / WhatsApp</label>
           <div style={{display:"flex",gap:"6px"}}>
             <select value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
-              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{p.label}</option>)}
+              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
             </select>
             <input type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)} placeholder="77 123 45 67"/>
           </div>
@@ -721,7 +746,7 @@ function PubFormModal({ onClose }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Téléphone / WhatsApp</label>
           <div style={{display:"flex",gap:"6px"}}>
             <select value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
-              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{p.label}</option>)}
+              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
             </select>
             <input type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)}/>
           </div>
@@ -739,9 +764,9 @@ function PubFormModal({ onClose }) {
   );
 }
 
-function Annuaire() {
-  const [spec, setSpec] = useState("Tous");
-  const [pays, setPays] = useState("Tous");
+function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
+  const [spec, setSpec] = useState(initialSpec);
+  const [pays, setPays] = useState(initialPays);
   const [sel, setSel] = useState(null);
   const list = PRESTATAIRES_DEMO.filter(p=>(spec==="Tous"||p.specs.includes(spec))&&(pays==="Tous"||p.pays.includes(pays)));
   const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
@@ -753,7 +778,7 @@ function Annuaire() {
       </div>
       <select value={pays} onChange={e=>setPays(e.target.value)} style={{...inp,marginBottom:"12px",fontSize:"12px",padding:"8px 12px"}}>
         <option value="Tous">Tous les pays</option>
-        {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+        {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
       </select>
       <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>Fiches d'exemple, en attendant les premiers prestataires vérifiés.</div>
       {list.length===0&&(
@@ -768,7 +793,7 @@ function Annuaire() {
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontFamily:FT,fontSize:"13px",fontWeight:700,color:C.dark}}>{p.name}</div>
               <div style={{fontSize:"10px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
-              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays.map(n=>`${countryFlag(n)} ${n}`).join("  ")}</div>
+              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
             </div>
             <span style={{background:"rgba(0,0,0,0.06)",color:C.sub,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>Exemple</span>
           </div>
@@ -778,7 +803,7 @@ function Annuaire() {
       {sel&&(
         <ModalShell title={sel.name} subtitle={sel.specs.join(", ")} onClose={()=>setSel(null)}>
           <div style={{fontSize:"13px",color:C.dark,fontFamily:F,lineHeight:1.6,marginBottom:"14px"}}>{sel.desc}</div>
-          {[["Pays",sel.pays.map(n=>`${countryFlag(n)} ${n}`).join(", ")],["Zones couvertes",sel.zones],["Tarifs",sel.tarifs]].map(([k,v])=>(
+          {[["Pays",sel.pays.map(n=><span key={n} style={{marginRight:"10px",whiteSpace:"nowrap"}}><Flag name={n}/>{n}</span>)],["Zones couvertes",sel.zones],["Tarifs",sel.tarifs]].map(([k,v])=>(
             <div key={k} style={{marginBottom:"10px"}}>
               <div style={{fontSize:"11px",fontWeight:700,color:C.sub,fontFamily:F}}>{k}</div>
               <div style={{fontSize:"13px",color:C.dark,fontFamily:F}}>{v}</div>
@@ -830,7 +855,6 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       {/* Ligne dorée bas */}
       <div style={{position:"absolute",bottom:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#D4A017 30%,#D4A017 70%,transparent)",zIndex:2}}/>
       {/* Label pays */}
-      <div style={{position:"absolute",top:12,right:12,background:"rgba(0,0,0,0.35)",backdropFilter:"blur(4px)",color:"rgba(255,255,255,0.85)",fontSize:"9px",padding:"3px 8px",borderRadius:"3px",fontFamily:F,zIndex:2}}>{SLIDES[current].label}</div>
       {/* Dots */}
       <div style={{position:"absolute",bottom:14,right:14,display:"flex",gap:"5px",zIndex:2}}>
         {SLIDES.map((_,i)=>(
@@ -878,11 +902,12 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
   const [savedProps, setSavedProps] = useState([]);
   const [animIn, setAnimIn] = useState(true);
   const [showPub, setShowPub] = useState(false);
   const [dbProps, setDbProps] = useState([]);
+  const [annFilter, setAnnFilter] = useState({spec:"Tous",pays:"Tous"});
+  const openAnnuaire = (spec="Tous",pays="Tous") => { setAnnFilter({spec,pays}); setSelectedProp(null); switchTab("prestataires"); };
 
   // Annonces réelles validées (status = validee)
   useEffect(()=>{
@@ -929,6 +954,7 @@ export default function App() {
     {id:"accueil",label:"Accueil",icon:Icon.home},
     {id:"biens",label:"Biens",icon:Icon.search},
     {id:"prestataires",label:"Prestataires",icon:Icon.group},
+    {id:"pro",label:"Espace pro",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
 
@@ -943,7 +969,10 @@ export default function App() {
       <header style={{background:C.forest,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
         <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"56px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-            <img src="https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/logos/sokile_logo_horizontal.png" alt="Sokilé" style={{height:"40px",width:"auto",maxWidth:"190px",display:"block"}}/>
+            <div>
+              <div style={{fontSize:"22px",fontWeight:800,color:C.white,fontFamily:FT,lineHeight:1}}>Sokilé</div>
+              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:F,marginTop:"3px"}}>L'immobilier en Afrique</div>
+            </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
             {/* Nav desktop uniquement */}
@@ -954,6 +983,7 @@ export default function App() {
                 </button>
               ))}
             </nav>
+            <a href="/about.html" style={{color:"rgba(255,255,255,0.8)",fontSize:"11px",fontWeight:600,fontFamily:F,textDecoration:"none",marginRight:"6px",whiteSpace:"nowrap"}}>Qui sommes-nous</a>
 
             {user?(
               <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
@@ -1016,13 +1046,18 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pays couverts — Option B fond vert sombre */}
-            <div style={{background:"linear-gradient(135deg,#1A3C2E,#0F2318)",padding:"20px 16px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
-                <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,margin:0}}>Pays couverts</h2>
-                <span style={{background:C.gold,color:C.white,fontSize:"11px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",fontFamily:F}}>50+ pays</span>
+            {/* Accès annuaire */}
+            <div onClick={()=>openAnnuaire()} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"16px 18px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",cursor:"pointer",flexWrap:"wrap"}}>
+              <div>
+                <h3 style={{margin:"0 0 4px",color:C.dark,fontFamily:FT,fontSize:"16px"}}>Besoin d'un géomètre, d'un notaire, d'un architecte ?</h3>
+                <p style={{margin:0,color:C.sub,fontSize:"11px",fontFamily:F}}>Des professionnels vérifiés dans le pays de votre projet</p>
               </div>
-              <div style={{fontSize:"11px",color:"rgba(255,255,255,0.45)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
+              <button style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F,flexShrink:0}}>Trouver un prestataire</button>
+            </div>
+
+            {/* Pays — Option B fond vert sombre */}
+            <div style={{background:"linear-gradient(135deg,#1A3C2E,#0F2318)",padding:"20px 16px"}}>
+              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.8)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
               {["Afrique de l'Ouest","Afrique Centrale"].map(region=>{
                 const regionKey = region==="Afrique de l'Ouest"?"Ouest":"Centrale";
                 const pays = COUNTRIES.filter(c=>c.region===regionKey);
@@ -1033,7 +1068,7 @@ export default function App() {
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
                       {pays.map(p=>(
                         <button key={p.name} onClick={()=>{setFilterCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:600,color:"rgba(255,255,255,0.75)",cursor:"pointer",fontFamily:F}}>
-                          <span style={{fontSize:"13px"}}>{p.flag}</span>{p.name}
+                          <Flag flag={p.flag}/>{p.name}
                         </button>
                       ))}
                     </div>
@@ -1072,7 +1107,7 @@ export default function App() {
                 <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pays</div>
                 <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
                   <button onClick={()=>setFilterCountry("Tous")} style={chipBase(filterCountry==="Tous")}>Tous</button>
-                  {filteredCountries.map(c=><button key={c.name} onClick={()=>setFilterCountry(c.name)} style={{...chipBase(filterCountry===c.name),background:filterCountry===c.name?C.terra:C.white,borderColor:filterCountry===c.name?C.terra:C.sand}}>{c.flag} {c.name}</button>)}
+                  {filteredCountries.map(c=><button key={c.name} onClick={()=>setFilterCountry(c.name)} style={{...chipBase(filterCountry===c.name),background:filterCountry===c.name?C.terra:C.white,borderColor:filterCountry===c.name?C.terra:C.sand}}><Flag flag={c.flag} size={14}/>{c.name}</button>)}
                 </div>
               </div>
               <div>
@@ -1150,10 +1185,25 @@ export default function App() {
           </div>
         )}
 
-        {/* ── PRESTATAIRES ── */}
+        {/* ── PRESTATAIRES (particuliers) ── */}
         {tab==="prestataires"&&(
           <div style={{paddingBottom:"80px"}}>
+            <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,padding:"20px 16px"}}>
+              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
+              <div style={{fontSize:"12px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"560px"}}>Vous achetez ou faites construire à distance ? Faites vérifier un terrain, trouvez un notaire, un géomètre ou un architecte dans le pays de votre projet. Chaque prestataire est vérifié par Sokilé avant d'apparaître dans l'annuaire, et vous le contactez directement.</div>
+            </div>
+            <div style={{padding:"16px"}}>
+              <Annuaire key={`${annFilter.spec}|${annFilter.pays}`} initialSpec={annFilter.spec} initialPays={annFilter.pays}/>
+              <div style={{textAlign:"center",marginTop:"14px",fontSize:"12px",color:C.sub,fontFamily:F}}>
+                Vous êtes prestataire ? <span onClick={()=>switchTab("pro")} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Rejoignez l'annuaire</span>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* ── ESPACE PRO ── */}
+        {tab==="pro"&&(
+          <div style={{paddingBottom:"80px"}}>
             {/* Hero Pro */}
             <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,padding:"20px 16px 16px"}}>
               <div style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
@@ -1186,10 +1236,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Annuaire prestataires */}
             <div style={{padding:"16px"}}>
-              <Annuaire/>
-
               {/* Encart pub Option A */}
               <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
                 <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
@@ -1203,7 +1250,6 @@ export default function App() {
                 Rejoindre l'annuaire prestataires
               </button>
             </div>
-
           </div>
         )}
 
@@ -1279,6 +1325,7 @@ export default function App() {
             )}
           </div>
         )}
+        {tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"12px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
       </main>
 
       {/* BOTTOM NAV */}
@@ -1292,47 +1339,12 @@ export default function App() {
       </nav>
 
       {/* MODALS */}
-      <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave}/>
+      <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType}/>}
       {showServiceForm&&<ServiceFormModal onClose={()=>setShowServiceForm(false)}/>}
       {showPub&&<PubFormModal onClose={()=>setShowPub(false)}/>}
-      {showAbout&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowAbout(false)}>
-          <div style={{background:C.white,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:"480px",maxHeight:"90vh",overflowY:"auto",padding:"24px 20px 40px"}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
-              <img src="https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/logos/sokile_logo_principal%20(1).png" alt="Sokilé" style={{height:"56px",width:"auto",display:"block"}}/>
-              <button onClick={()=>setShowAbout(false)} style={{background:"none",border:"none",fontSize:"20px",cursor:"pointer",color:C.sub}}>✕</button>
-            </div>
-            <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,borderRadius:"12px",padding:"20px",marginBottom:"16px"}}>
-              <div style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.white,marginBottom:"8px"}}>L'immobilier en Afrique de l'Ouest & Centrale</div>
-              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:F,lineHeight:1.6}}>Sokilé connecte acheteurs, vendeurs et prestataires immobiliers — que vous viviez en Afrique ou dans la diaspora.</div>
-            </div>
-            <div style={{marginBottom:"16px"}}>
-              <div style={{fontSize:"12px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F,marginBottom:"8px"}}>Notre mission</div>
-              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.7}}>Rendre l'immobilier africain accessible, fiable et transparent — pour ceux qui vivent sur place comme pour la diaspora qui veut investir au pays en toute confiance.</div>
-            </div>
-            <div style={{marginBottom:"16px"}}>
-              <div style={{fontSize:"12px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F,marginBottom:"8px"}}>Le nom Sokilé</div>
-              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.7,marginBottom:"10px"}}>Sokilé réunit trois mots qui signifient "maison" dans les langues du cœur de l'Afrique de l'Ouest :</div>
-              {[["So","Maison en bambara","Mali, Burkina Faso, Côte d'Ivoire"],["Ki","Maison en wolof","Sénégal, Gambie"],["Lé","Maison en yoruba","Nigeria, Bénin"]].map(([mot,def,pays])=>(
-                <div key={mot} style={{display:"flex",gap:"12px",alignItems:"center",marginBottom:"8px"}}>
-                  <div style={{width:36,height:36,borderRadius:"8px",background:C.gold,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.white,flexShrink:0}}>{mot}</div>
-                  <div>
-                    <div style={{fontSize:"12px",fontWeight:700,color:C.dark,fontFamily:F}}>{def}</div>
-                    <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>{pays}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"16px"}}>
-              <div style={{fontSize:"12px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F,marginBottom:"8px"}}>Nous contacter</div>
-              <a href="mailto:contact@sokile.com" style={{fontSize:"13px",color:C.terra,fontFamily:F,fontWeight:600,textDecoration:"none"}}>contact@sokile.com</a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
