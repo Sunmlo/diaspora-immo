@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 
 const C = {
-  terra: "#C4622D", gold: "#D4A017", earth: "#8B5E3C",
-  forest: "#1A3C2E", forestMid: "#2D6A4F",
-  cream: "#F7F4EF", light: "#FFFFFF", sand: "#EDE6DA",
-  dark: "#1A1A1A", muted: "#7A7060", sub: "#9A8E82", white: "#FFFFFF",
+  // Charte Sokilé (identique à la page Qui sommes-nous)
+  terra: "#B85C3A", gold: "#C9A84C", earth: "#8B5E3C",
+  forest: "#1A3C2E", forestMid: "#2D5E45", forestDark: "#0D2019",
+  cream: "#F5F0E8", light: "#FFFFFF", sand: "#E8DFD0",
+  dark: "#1C1A17", muted: "#7A7264", sub: "#8F8676", white: "#FFFFFF",
   success: "#2E7D32", successBg: "#E8F5E9",
 };
 
-const F = "'Raleway', sans-serif";
-const FT = "'Playfair Display', serif";
+const F = "'DM Sans', sans-serif";
+const FT = "'Fraunces', serif";
 
 const SUPABASE_URL = "https://nhyejaubfxjmmuvetayw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWVqYXViZnhqbW11dmV0YXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDIzODgsImV4cCI6MjA5NjQxODM4OH0.yIaB8nBbnBVufudtt-FsmoWPlSqOU2uYzLLQjtiTdR4";
@@ -342,7 +343,7 @@ function PartnerModal({ onClose, user, defaultType }) {
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:C.terra,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publier une annonce</h2>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publier une annonce{type==="pro"?" · Professionnel":type==="particulier"?" · Particulier":""}</h2>
           <p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"11px",fontFamily:F}}>Gratuit · Afrique de l'Ouest & Centrale</p>
         </div>
         <div style={{padding:"20px"}}>
@@ -365,7 +366,7 @@ function PartnerModal({ onClose, user, defaultType }) {
             </div>
           ):(
             <>
-              <button onClick={()=>setType(null)} style={{background:"transparent",border:"none",color:C.sub,cursor:"pointer",fontSize:"12px",marginBottom:"14px",fontFamily:F,padding:0}}>← Retour</button>
+              {!(defaultType||user?.account_type)&&<button onClick={()=>setType(null)} style={{background:"transparent",border:"none",color:C.sub,cursor:"pointer",fontSize:"12px",marginBottom:"14px",fontFamily:F,padding:0}}>← Retour</button>}
               {/* Message avertissement */}
               <div style={{background:"#FBF3EC",border:"1px solid #D97757",borderLeft:"4px solid #D97757",borderRadius:"8px",padding:"12px 14px",marginBottom:"14px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
                 <span style={{fontSize:"16px",flexShrink:0}}>⚠️</span>
@@ -532,7 +533,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       <div style={{padding:"12px"}}>
         <div style={{fontSize:"10px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={14}/>{p.country}</div>
         {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
-        <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
+        <div style={{fontSize:"13px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
           {p.rooms&&<span style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
           {p.rooms&&p.surface&&<span style={{fontSize:"10px",color:C.sand}}>|</span>}
@@ -569,7 +570,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
         </div>
         <div style={{padding:"18px"}}>
           {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"11px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
-          <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.dark}}>{p.title}</h2>
+          <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.dark}}>{p.title}</h2>
           <p style={{margin:"0 0 12px",color:C.sub,fontSize:"11px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
           <p style={{margin:"0 0 14px",color:C.dark,fontSize:"12px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
@@ -772,7 +773,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
   const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
   return (
     <>
-      <h2 style={{fontFamily:FT,fontSize:"16px",fontWeight:700,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2>
+      <h2 style={{fontFamily:FT,fontSize:"16px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2>
       <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"8px",paddingBottom:"2px"}}>
         {["Tous",...SPECIALITES].map(s=><button key={s} onClick={()=>setSpec(s)} style={chip(spec===s)}>{s}</button>)}
       </div>
@@ -791,7 +792,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
           <div style={{display:"flex",alignItems:"flex-start",gap:"10px",marginBottom:"6px"}}>
             <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>{p.emoji}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:FT,fontSize:"13px",fontWeight:700,color:C.dark}}>{p.name}</div>
+              <div style={{fontFamily:FT,fontSize:"13px",fontWeight:500,color:C.dark}}>{p.name}</div>
               <div style={{fontSize:"10px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
               <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
             </div>
@@ -864,8 +865,8 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       {/* Contenu */}
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"20px 18px 22px",zIndex:1}}>
         <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
-        <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(20px,5vw,32px)",fontWeight:800,lineHeight:1.2,textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>
-          Votre patrimoine en Afrique,<br/><span style={{color:C.gold}}>où que vous soyez</span>
+        <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(26px,6vw,44px)",fontWeight:300,lineHeight:1.1,letterSpacing:"-0.02em",textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>
+          Votre patrimoine en Afrique,<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>où que vous soyez</em>
         </h1>
         <div style={{background:"rgba(255,255,255,0.97)",borderRadius:"8px",display:"flex",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
           <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 12px",minWidth:0}}>
@@ -963,15 +964,15 @@ export default function App() {
 
   return (
     <div style={{minHeight:"100vh",background:C.cream,fontFamily:F,overflowX:"hidden"}}>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
       {/* HEADER */}
-      <header style={{background:C.forest,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
-        <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"56px"}}>
+      <header style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(0,0,0,0.25)",borderBottom:`2px solid ${C.gold}`}}>
+        <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"76px",gap:"10px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div>
-              <div style={{fontSize:"22px",fontWeight:800,color:C.white,fontFamily:FT,lineHeight:1}}>Sokilé</div>
-              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:F,marginTop:"3px"}}>L'immobilier en Afrique</div>
+              <div onClick={()=>switchTab("accueil")} style={{fontSize:"clamp(28px,7vw,38px)",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em",cursor:"pointer"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
+              <div style={{fontSize:"10px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"4px",letterSpacing:"0.02em"}}>L'immobilier en Afrique</div>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
@@ -983,7 +984,7 @@ export default function App() {
                 </button>
               ))}
             </nav>
-            <a href="/about.html" style={{color:"rgba(255,255,255,0.8)",fontSize:"11px",fontWeight:600,fontFamily:F,textDecoration:"none",marginRight:"6px",whiteSpace:"nowrap"}}>Qui sommes-nous</a>
+            <a href="/about.html" style={{background:C.gold,color:C.forestDark,fontSize:"12px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"8px 12px",borderRadius:"7px",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>Qui sommes-nous</a>
 
             {user?(
               <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
@@ -993,7 +994,7 @@ export default function App() {
                 <span style={{fontSize:"11px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
               </div>
             ):(
-              <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"6px 14px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
+              <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.4)",borderRadius:"7px",padding:"6px 14px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
             )}
           </div>
         </div>
@@ -1027,7 +1028,7 @@ export default function App() {
 
             {/* Sélection */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"14px"}}>
-              <h2 style={{fontFamily:FT,fontSize:"17px",fontWeight:700,color:C.dark,margin:0}}>Sélection du moment</h2>
+              <h2 style={{fontFamily:FT,fontSize:"17px",fontWeight:500,color:C.dark,margin:0}}>Sélection du moment</h2>
               <span onClick={()=>switchTab("biens")} style={{fontSize:"11px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px",marginBottom:"24px"}}>
@@ -1056,7 +1057,7 @@ export default function App() {
             </div>
 
             {/* Pays — Option B fond vert sombre */}
-            <div style={{background:"linear-gradient(135deg,#1A3C2E,#0F2318)",padding:"20px 16px"}}>
+            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
               <div style={{fontSize:"13px",color:"rgba(255,255,255,0.8)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
               {["Afrique de l'Ouest","Afrique Centrale"].map(region=>{
                 const regionKey = region==="Afrique de l'Ouest"?"Ouest":"Centrale";
@@ -1080,7 +1081,7 @@ export default function App() {
             {/* Encart publicitaire — Option A */}
             <div style={{margin:"16px",borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center"}}>
               <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
-              <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
+              <div style={{fontFamily:FT,fontSize:"15px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
               <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
               <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
             </div>
@@ -1091,7 +1092,7 @@ export default function App() {
         {tab==="biens"&&(
           <div style={{paddingTop:"20px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
-              <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:700,color:C.dark,margin:0}}>Trouver un bien</h2>
+              <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:500,color:C.dark,margin:0}}>Trouver un bien</h2>
               <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
             </div>
 
@@ -1188,8 +1189,8 @@ export default function App() {
         {/* ── PRESTATAIRES (particuliers) ── */}
         {tab==="prestataires"&&(
           <div style={{paddingBottom:"80px"}}>
-            <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,padding:"20px 16px"}}>
-              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
+            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
+              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
               <div style={{fontSize:"12px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"560px"}}>Vous achetez ou faites construire à distance ? Faites vérifier un terrain, trouvez un notaire, un géomètre ou un architecte dans le pays de votre projet. Chaque prestataire est vérifié par Sokilé avant d'apparaître dans l'annuaire, et vous le contactez directement.</div>
             </div>
             <div style={{padding:"16px"}}>
@@ -1205,8 +1206,8 @@ export default function App() {
         {tab==="pro"&&(
           <div style={{paddingBottom:"80px"}}>
             {/* Hero Pro */}
-            <div style={{background:`linear-gradient(135deg,${C.forest},#0F2318)`,padding:"20px 16px 16px"}}>
-              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:700,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
+            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px 16px"}}>
+              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
               <div style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez notre communauté en Afrique de l'Ouest et Centrale</div>
               <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                 {/* Déposer une annonce pro */}
@@ -1240,7 +1241,7 @@ export default function App() {
               {/* Encart pub Option A */}
               <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
                 <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
-                <div style={{fontFamily:FT,fontSize:"15px",fontWeight:700,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
+                <div style={{fontFamily:FT,fontSize:"15px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
                 <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
                 <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
               </div>
