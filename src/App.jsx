@@ -143,14 +143,14 @@ function Flag({ name, flag, size=16 }) {
 
 // ─── ICONS ───────────────────────────────────────
 const Icon = {
-  briefcase: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4h4a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3V6a2 2 0 0 1 2-2zm0 2v1h4V6h-4z"/></svg>,
-  home: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
-  search: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
-  group: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>,
-  star: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>,
-  person: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
-  searchSm: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  wa: <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
+  briefcase: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4h4a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3V6a2 2 0 0 1 2-2zm0 2v1h4V6h-4z"/></svg>,
+  home: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
+  search: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
+  group: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>,
+  star: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>,
+  person: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
+  searchSm: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  wa: <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
 };
 
 // ─── AUTH ─────────────────────────────────────────
@@ -183,7 +183,7 @@ function LoginModal({ onClose, onLogin }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"11px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
+  const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"11px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
 
   const handleSubmit = async () => {
     if (!email||!password) return;
@@ -212,11 +212,11 @@ function LoginModal({ onClose, onLogin }) {
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"400px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:C.forest,padding:"22px",borderRadius:"16px 16px 0 0",textAlign:"center",position:"relative"}}>
-          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.1)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"14px"}}>✕</button>
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.1)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"16px"}}>✕</button>
           <div style={{width:40,height:40,borderRadius:"50%",background:C.gold,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={C.forest}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </div>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{mode==="login"?"Connexion":"Créer un compte"}</h2>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{mode==="login"?"Connexion":"Créer un compte"}</h2>
                   </div>
         <div style={{padding:"20px"}}>
 
@@ -224,35 +224,35 @@ function LoginModal({ onClose, onLogin }) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}}>
               {[["particulier","Particulier","Je cherche ou je vends un bien"],["pro","Professionnel","Agence, promoteur ou prestataire"]].map(([id,ti,de])=>(
                 <button key={id} type="button" onClick={()=>setAccountType(id)} style={{border:`1.5px solid ${accountType===id?C.terra:C.sand}`,background:accountType===id?"#FBF3EC":C.white,borderRadius:"10px",padding:"10px",textAlign:"left",cursor:"pointer",fontFamily:F}}>
-                  <div style={{fontSize:"13px",fontWeight:700,color:C.dark}}>{ti}</div>
-                  <div style={{fontSize:"10px",color:C.sub,marginTop:"2px",lineHeight:1.3}}>{de}</div>
+                  <div style={{fontSize:"15px",fontWeight:700,color:C.dark}}>{ti}</div>
+                  <div style={{fontSize:"12px",color:C.sub,marginTop:"2px",lineHeight:1.3}}>{de}</div>
                 </button>
               ))}
             </div>
           )}
           {mode==="signup"&&accountType==="pro"&&(
-            <div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence ou de la société *</label><input placeholder="Ex : Teranga Immobilier" value={agency} onChange={e=>setAgency(e.target.value)} style={inputStyle}/></div>
+            <div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence ou de la société *</label><input placeholder="Ex : Teranga Immobilier" value={agency} onChange={e=>setAgency(e.target.value)} style={inputStyle}/></div>
           )}
-          {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
-          <div style={{marginBottom:"10px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>
-          <div style={{marginBottom:mode==="signup"?"10px":"16px"}}><label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Mot de passe</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>
+          {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
+          <div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>
+          <div style={{marginBottom:mode==="signup"?"10px":"16px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Mot de passe</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>
           {mode==="signup"&&(
             <div style={{marginBottom:"16px"}}>
-              <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone (optionnel)</label>
+              <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone (optionnel)</label>
               <div style={{display:"flex",gap:"6px"}}>
-                <select value={phoneCode} onChange={e=>setPhoneCode(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 8px",fontSize:"11px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
+                <select value={phoneCode} onChange={e=>setPhoneCode(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
                   {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                 </select>
                 <input type="tel" placeholder="6 12 34 56 78" value={phone} onChange={e=>setPhone(e.target.value)} style={{...inputStyle,flex:1}}/>
               </div>
             </div>
           )}
-          {error&&<div style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"12px",fontFamily:F}}>{error}</div>}
-          {success&&<div style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"12px",fontFamily:F}}>{success}</div>}
-          <button onClick={handleSubmit} disabled={!email||!password||loading||(mode==="signup"&&accountType==="pro"&&!agency)} style={{width:"100%",background:email&&password?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:email&&password?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
+          {error&&<div style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{error}</div>}
+          {success&&<div style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{success}</div>}
+          <button onClick={handleSubmit} disabled={!email||!password||loading||(mode==="signup"&&accountType==="pro"&&!agency)} style={{width:"100%",background:email&&password?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:email&&password?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
             {loading?"...":(mode==="login"?"Se connecter":"Créer mon compte")}
           </button>
-          <div style={{textAlign:"center",fontSize:"12px",color:C.sub,fontFamily:F}}>
+          <div style={{textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F}}>
             {mode==="login"?<>Pas encore de compte ? <span onClick={()=>{setMode("signup");setError("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>S'inscrire gratuitement</span></>:<>Déjà un compte ? <span onClick={()=>{setMode("login");setError("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Se connecter</span></>}
           </div>
         </div>
@@ -277,25 +277,25 @@ function AlertModal({ onClose, filters, user }) {
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"400px",width:"100%",overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:C.forest,padding:"20px",textAlign:"center"}}>
-          <button onClick={onClose} style={{position:"absolute",marginLeft:"140px",marginTop:"-8px",background:"rgba(255,255,255,0.1)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"17px"}}>Créer une alerte</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>Recevez les nouvelles annonces par email</p>
+          <button onClick={onClose} style={{position:"absolute",marginLeft:"140px",marginTop:"-8px",background:"rgba(255,255,255,0.1)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"19px"}}>Créer une alerte</h2>
+          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Recevez les nouvelles annonces par email</p>
         </div>
         <div style={{padding:"20px"}}>
           {sent?(<div style={{textAlign:"center",padding:"16px 0"}}>
-            <div style={{fontSize:"40px",marginBottom:"10px"}}>✅</div>
-            <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"16px"}}>Alerte créée !</h3>
-            <p style={{color:C.sub,fontSize:"12px",fontFamily:F}}>Vous recevrez un email dès qu'une annonce correspond.</p>
+            <div style={{fontSize:"42px",marginBottom:"10px"}}>✅</div>
+            <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>Alerte créée !</h3>
+            <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Vous recevrez un email dès qu'une annonce correspond.</p>
             <button onClick={onClose} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
           </div>):(
             <>
               {[{label:"Prénom",val:name,set:setName,ph:"Marie"},{label:"Email *",val:email,set:setEmail,ph:"votre@email.com",type:"email"}].map(f=>(
                 <div key={f.label} style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
-                  <input type={f.type||"text"} placeholder={f.ph} value={f.val} onChange={e=>f.set(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F}}/>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
+                  <input type={f.type||"text"} placeholder={f.ph} value={f.val} onChange={e=>f.set(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F}}/>
                 </div>
               ))}
-              <button onClick={handleSubmit} disabled={!email||loading} style={{width:"100%",background:email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"12px",fontWeight:700,fontSize:"13px",cursor:email?"pointer":"not-allowed",fontFamily:F}}>
+              <button onClick={handleSubmit} disabled={!email||loading} style={{width:"100%",background:email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"12px",fontWeight:700,fontSize:"15px",cursor:email?"pointer":"not-allowed",fontFamily:F}}>
                 {loading?"Enregistrement...":"Activer l'alerte email"}
               </button>
             </>
@@ -315,7 +315,7 @@ function PartnerModal({ onClose, user, defaultType }) {
   const [loading, setLoading] = useState(false);
   const fileRef = useRef();
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
+  const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
 
   const handleSubmit = async () => {
     if (!form.name||!form.email||(type==="pro"&&!form.agency)) return;
@@ -342,15 +342,15 @@ function PartnerModal({ onClose, user, defaultType }) {
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:C.terra,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
-          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publier une annonce{type==="pro"?" · Professionnel":type==="particulier"?" · Particulier":""}</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"11px",fontFamily:F}}>Gratuit · Afrique de l'Ouest & Centrale</p>
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>Publier une annonce{type==="pro"?" · Professionnel":type==="particulier"?" · Particulier":""}</h2>
+          <p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"13px",fontFamily:F}}>Gratuit · Afrique de l'Ouest & Centrale</p>
         </div>
         <div style={{padding:"20px"}}>
           {sent?(<div style={{textAlign:"center",padding:"16px 0"}}>
-            <div style={{fontSize:"40px",marginBottom:"10px"}}>🎉</div>
-            <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"16px"}}>Demande envoyée !</h3>
-            <p style={{color:C.sub,fontSize:"12px",fontFamily:F}}>Nous vous contacterons dans les 24h.</p>
+            <div style={{fontSize:"42px",marginBottom:"10px"}}>🎉</div>
+            <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>Demande envoyée !</h3>
+            <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Nous vous contacterons dans les 24h.</p>
             <button onClick={onClose} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
           </div>):!type?(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
@@ -358,53 +358,53 @@ function PartnerModal({ onClose, user, defaultType }) {
                 <div key={t.id} onClick={()=>setType(t.id)} style={{border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"18px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}
                   onMouseEnter={e=>e.currentTarget.style.borderColor=C.terra}
                   onMouseLeave={e=>e.currentTarget.style.borderColor=C.sand}>
-                  <div style={{fontWeight:700,color:C.dark,fontSize:"14px",marginBottom:"4px",fontFamily:F}}>{t.title}</div>
-                  <div style={{fontSize:"11px",color:C.sub,marginBottom:"12px",fontFamily:F}}>{t.desc}</div>
-                  <div style={{background:C.terra,color:C.white,borderRadius:"6px",padding:"6px",fontSize:"11px",fontWeight:700,fontFamily:F}}>Gratuit</div>
+                  <div style={{fontWeight:700,color:C.dark,fontSize:"16px",marginBottom:"4px",fontFamily:F}}>{t.title}</div>
+                  <div style={{fontSize:"13px",color:C.sub,marginBottom:"12px",fontFamily:F}}>{t.desc}</div>
+                  <div style={{background:C.terra,color:C.white,borderRadius:"6px",padding:"6px",fontSize:"13px",fontWeight:700,fontFamily:F}}>Gratuit</div>
                 </div>
               ))}
             </div>
           ):(
             <>
-              {!(defaultType||user?.account_type)&&<button onClick={()=>setType(null)} style={{background:"transparent",border:"none",color:C.sub,cursor:"pointer",fontSize:"12px",marginBottom:"14px",fontFamily:F,padding:0}}>← Retour</button>}
+              {!(defaultType||user?.account_type)&&<button onClick={()=>setType(null)} style={{background:"transparent",border:"none",color:C.sub,cursor:"pointer",fontSize:"14px",marginBottom:"14px",fontFamily:F,padding:0}}>← Retour</button>}
               {/* Message avertissement */}
               <div style={{background:"#FBF3EC",border:"1px solid #D97757",borderLeft:"4px solid #D97757",borderRadius:"8px",padding:"12px 14px",marginBottom:"14px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
-                <span style={{fontSize:"16px",flexShrink:0}}>⚠️</span>
+                <span style={{fontSize:"18px",flexShrink:0}}>⚠️</span>
                 <div>
-                  <p style={{fontFamily:FT,fontWeight:600,fontSize:"12px",color:"#3D2B1F",margin:"0 0 3px"}}>Avant de publier votre annonce</p>
-                  <p style={{fontSize:"11px",lineHeight:1.5,color:"#5A4636",margin:0,fontFamily:F}}>Assurez-vous que toutes les informations sont exactes et vérifiables. Sokilé peut suspendre toute annonce signalée. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
+                  <p style={{fontFamily:FT,fontWeight:600,fontSize:"14px",color:"#3D2B1F",margin:"0 0 3px"}}>Avant de publier votre annonce</p>
+                  <p style={{fontSize:"13px",lineHeight:1.5,color:"#5A4636",margin:0,fontFamily:F}}>Assurez-vous que toutes les informations sont exactes et vérifiables. Sokilé peut suspendre toute annonce signalée. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
                 </div>
               </div>
               {type==="pro"&&(
                 <div style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
                   <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={inputStyle}/>
                 </div>
               )}
               {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
                 <div key={f.key} style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
                   <input type={f.type||"text"} placeholder={f.ph} value={form[f.key]} onChange={e=>set(f.key,e.target.value)} style={inputStyle}/>
                 </div>
               ))}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone WhatsApp</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone WhatsApp</label>
                 <div style={{display:"flex",gap:"6px"}}>
-                  <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"11px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
+                  <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
                     {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                   </select>
                   <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...inputStyle,flex:1}}/>
                 </div>
               </div>
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
                 <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...inputStyle}}>
                   {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               {/* Type de bien */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Type de bien *</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Type de bien *</label>
                 <select value={form.type||""} onChange={e=>set("type",e.target.value)} style={{...inputStyle}}>
                   <option value="">Sélectionner...</option>
                   {["Vente","Location","Terrain","Commercial","Agricole"].map(t=><option key={t}>{t}</option>)}
@@ -412,50 +412,50 @@ function PartnerModal({ onClose, user, defaultType }) {
               </div>
               {/* Titre */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
                 <input placeholder="Ex: Villa 4 pièces avec piscine à Cocody" value={form.title||""} onChange={e=>set("title",e.target.value)} style={inputStyle}/>
               </div>
               {/* Ville + Quartier */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Ville *</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Ville *</label>
                   <input placeholder="Ex: Abidjan" value={form.city||""} onChange={e=>set("city",e.target.value)} style={inputStyle}/>
                 </div>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Quartier</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Quartier</label>
                   <input placeholder="Ex: Cocody" value={form.neighborhood||""} onChange={e=>set("neighborhood",e.target.value)} style={inputStyle}/>
                 </div>
               </div>
               {/* Prix */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prix</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prix</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
                   <div style={{position:"relative"}}>
                     <input type="number" placeholder="Prix en €" value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...inputStyle,paddingRight:"28px"}}/>
-                    <span style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",fontSize:"11px",color:C.sub,fontFamily:F}}>€</span>
+                    <span style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",fontSize:"13px",color:C.sub,fontFamily:F}}>€</span>
                   </div>
                   <div style={{position:"relative"}}>
                     <input type="number" placeholder="Prix en FCFA" value={form.price_xof||""} onChange={e=>{set("price_xof",e.target.value);set("price_eur",Math.round(e.target.value/655.957));}} style={{...inputStyle,paddingRight:"40px"}}/>
-                    <span style={{position:"absolute",right:"8px",top:"50%",transform:"translateY(-50%)",fontSize:"10px",color:C.sub,fontFamily:F}}>FCFA</span>
+                    <span style={{position:"absolute",right:"8px",top:"50%",transform:"translateY(-50%)",fontSize:"12px",color:C.sub,fontFamily:F}}>FCFA</span>
                   </div>
                 </div>
-                {form.price_eur&&<div style={{fontSize:"10px",color:C.terra,marginTop:"4px",fontFamily:F}}>≈ {new Intl.NumberFormat("fr-FR").format(Math.round(form.price_eur*655.957))} FCFA · {new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(form.price_eur)}</div>}
+                {form.price_eur&&<div style={{fontSize:"12px",color:C.terra,marginTop:"4px",fontFamily:F}}>≈ {new Intl.NumberFormat("fr-FR").format(Math.round(form.price_eur*655.957))} FCFA · {new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(form.price_eur)}</div>}
               </div>
               {/* Surface + Pièces + SDB */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"10px"}}>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface m²</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface m²</label>
                   <input type="number" placeholder="Ex: 150" value={form.surface||""} onChange={e=>set("surface",e.target.value)} style={inputStyle}/>
                 </div>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pièces</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pièces</label>
                   <select value={form.rooms||""} onChange={e=>set("rooms",e.target.value)} style={{...inputStyle}}>
                     <option value="">—</option>
                     {[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>S. de bain</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>S. de bain</label>
                   <select value={form.bathrooms||""} onChange={e=>set("bathrooms",e.target.value)} style={{...inputStyle}}>
                     <option value="">—</option>
                     {[1,2,3,4,5].map(n=><option key={n}>{n}</option>)}
@@ -464,28 +464,28 @@ function PartnerModal({ onClose, user, defaultType }) {
               </div>
               {/* Équipements */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</label>
                 <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
                   {["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse","Gardien","Groupe électrogène","Eau courante","Climatisation"].map(eq=>{
                     const selected=(form.features||[]).includes(eq);
-                    return <button key={eq} type="button" onClick={()=>set("features",selected?(form.features||[]).filter(f=>f!==eq):[...(form.features||[]),eq])} style={{background:selected?C.terra:C.cream,color:selected?C.white:C.dark,border:`1px solid ${selected?C.terra:C.sand}`,borderRadius:"5px",padding:"4px 9px",fontSize:"10px",fontWeight:selected?700:500,cursor:"pointer",fontFamily:F}}>{selected?"✓ ":""}{eq}</button>
+                    return <button key={eq} type="button" onClick={()=>set("features",selected?(form.features||[]).filter(f=>f!==eq):[...(form.features||[]),eq])} style={{background:selected?C.terra:C.cream,color:selected?C.white:C.dark,border:`1px solid ${selected?C.terra:C.sand}`,borderRadius:"5px",padding:"4px 9px",fontSize:"12px",fontWeight:selected?700:500,cursor:"pointer",fontFamily:F}}>{selected?"✓ ":""}{eq}</button>
                   })}
                 </div>
               </div>
               {/* Description */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
                 <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...inputStyle,resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos</label>
                 <div onClick={()=>fileRef.current?.click()} style={{border:`1px dashed ${C.sand}`,borderRadius:"8px",padding:"14px",textAlign:"center",cursor:"pointer",background:"#FAFAF8"}}>
-                  <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>Cliquez pour ajouter des photos</div>
+                  <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>Cliquez pour ajouter des photos</div>
                   <input ref={fileRef} type="file" multiple accept="image/*" style={{display:"none"}} onChange={e=>setPhotos([...e.target.files])}/>
                 </div>
-                {photos.length>0&&<div style={{marginTop:"4px",fontSize:"11px",color:C.success,fontWeight:700,fontFamily:F}}>✓ {photos.length} photo{photos.length>1?"s":""} ajoutée{photos.length>1?"s":""}</div>}
+                {photos.length>0&&<div style={{marginTop:"4px",fontSize:"13px",color:C.success,fontWeight:700,fontFamily:F}}>✓ {photos.length} photo{photos.length>1?"s":""} ajoutée{photos.length>1?"s":""}</div>}
               </div>
-              <button onClick={handleSubmit} disabled={!form.name||!form.email||loading} style={{width:"100%",background:form.name&&form.email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:form.name&&form.email?"pointer":"not-allowed",fontFamily:F}}>
+              <button onClick={handleSubmit} disabled={!form.name||!form.email||loading} style={{width:"100%",background:form.name&&form.email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:form.name&&form.email?"pointer":"not-allowed",fontFamily:F}}>
                 {loading?"Envoi en cours...":"Envoyer ma demande"}
               </button>
             </>
@@ -509,9 +509,9 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"all 0.2s",display:"flex"}}>
       <div style={{width:72,flexShrink:0,background:p.bg}}/>
       <div style={{padding:"10px 12px",flex:1,minWidth:0}}>
-        <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
-        <div style={{fontSize:"12px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
-        <div style={{fontSize:"13px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
+        <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
+        <div style={{fontSize:"14px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
+        <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
       </div>
     </div>
   );
@@ -520,30 +520,30 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"border-color 0.2s"}}>
       <div style={{height:110,background:p.bg,position:"relative",display:"flex",alignItems:"flex-end",padding:"8px"}}>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
-        {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"9px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
-        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F}}>Vérifié</div>}
+        {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
+        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F}}>Vérifié</div>}
         <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
-          <span style={{background:typeColor(p.type),color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 8px",borderRadius:"3px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
+          <span style={{background:typeColor(p.type),color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"3px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:"5px"}}>
-            <span onClick={e=>{e.stopPropagation();onSave&&onSave(p);}} style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"13px"}}>{saved?"❤️":"🤍"}</span>
+            <span onClick={e=>{e.stopPropagation();onSave&&onSave(p);}} style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"15px"}}>{saved?"❤️":"🤍"}</span>
             <span style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={shareWA}>{Icon.wa}</span>
           </div>
         </div>
       </div>
       <div style={{padding:"12px"}}>
-        <div style={{fontSize:"10px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={14}/>{p.country}</div>
-        {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
-        <div style={{fontSize:"13px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
+        <div style={{fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={14}/>{p.country}</div>
+        {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
+        <div style={{fontSize:"15px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
-          {p.rooms&&<span style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
-          {p.rooms&&p.surface&&<span style={{fontSize:"10px",color:C.sand}}>|</span>}
-          {p.surface&&<span style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{new Intl.NumberFormat("fr-FR").format(p.surface)} m²</span>}
-          {p.surface&&p.tags?.[0]&&<span style={{fontSize:"10px",color:C.sand}}>|</span>}
-          {p.tags?.[0]&&<span style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.tags[0]}</span>}
+          {p.rooms&&<span style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
+          {p.rooms&&p.surface&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
+          {p.surface&&<span style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{new Intl.NumberFormat("fr-FR").format(p.surface)} m²</span>}
+          {p.surface&&p.tags?.[0]&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
+          {p.tags?.[0]&&<span style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.tags[0]}</span>}
         </div>
         <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"8px"}}>
-          <div style={{fontSize:"14px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
-          <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</div>
+          <div style={{fontSize:"16px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
+          <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</div>
         </div>
       </div>
     </div>
@@ -562,50 +562,50 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"500px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{height:180,background:p.bg,borderRadius:"16px 16px 0 0",position:"relative",display:"flex",alignItems:"flex-end",padding:"14px"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 30%,rgba(0,0,0,0.6) 100%)",borderRadius:"16px 16px 0 0"}}/>
-          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
           <div style={{position:"relative",zIndex:1}}>
-            <span style={{background:typeColor(p.type),color:C.white,fontSize:"10px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
-            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"10px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",fontFamily:F}}>Vérifié</span>}
+            <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
+            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",fontFamily:F}}>Vérifié</span>}
           </div>
         </div>
         <div style={{padding:"18px"}}>
-          {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"11px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
-          <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.dark}}>{p.title}</h2>
-          <p style={{margin:"0 0 12px",color:C.sub,fontSize:"11px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
-          <p style={{margin:"0 0 14px",color:C.dark,fontSize:"12px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
+          {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"13px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
+          <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark}}>{p.title}</h2>
+          <p style={{margin:"0 0 12px",color:C.sub,fontSize:"13px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
+          <p style={{margin:"0 0 14px",color:C.dark,fontSize:"14px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
             {[["Surface",p.surface?`${new Intl.NumberFormat("fr-FR").format(p.surface)} m²`:"—"],["Pièces",p.rooms||"—"],["Salles de bain",p.bathrooms||"—"],["Pays",<><Flag name={p.country}/>{p.country}</>]].map(([l,v])=>(
               <div key={l} style={{background:C.cream,borderRadius:"7px",padding:"9px"}}>
-                <div style={{fontSize:"10px",color:C.sub,marginBottom:"2px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
-                <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
+                <div style={{fontSize:"12px",color:C.sub,marginBottom:"2px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
               </div>
             ))}
           </div>
           {p.features?.length>0&&<div style={{marginBottom:"14px"}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.dark,marginBottom:"7px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</div>
+            <div style={{fontSize:"12px",fontWeight:700,color:C.dark,marginBottom:"7px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</div>
             <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-              {p.features.map(f=><span key={f} style={{background:C.successBg,color:C.success,fontSize:"10px",padding:"3px 9px",borderRadius:"3px",fontWeight:600,fontFamily:F}}>✓ {f}</span>)}
+              {p.features.map(f=><span key={f} style={{background:C.successBg,color:C.success,fontSize:"12px",padding:"3px 9px",borderRadius:"3px",fontWeight:600,fontFamily:F}}>✓ {f}</span>)}
             </div>
           </div>}
           <div style={{background:C.cream,borderRadius:"8px",padding:"12px",marginBottom:"14px",borderLeft:`3px solid ${C.terra}`}}>
-            <div style={{fontSize:"18px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
-            <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</div>
+            <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</div>
           </div>
           <div style={{background:C.cream,borderRadius:"8px",padding:"10px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:34,height:34,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:700,fontSize:"12px",fontFamily:F}}>
+            <div style={{width:34,height:34,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:700,fontSize:"14px",fontFamily:F}}>
               {p.agent_name?.split(" ").map(w=>w[0]).join("").slice(0,2)}
             </div>
             <div>
-              <div style={{fontSize:"12px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.agent_name}</div>
-              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.advertiser_type==="pro"?"Professionnel":p.advertiser_type==="particulier"?"Particulier":"Agent certifié Sokilé"}</div>
+              <div style={{fontSize:"14px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.agent_name}</div>
+              <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.advertiser_type==="pro"?"Professionnel":p.advertiser_type==="particulier"?"Particulier":"Agent certifié Sokilé"}</div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"7px"}}>
-            <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent('Bonjour, je suis intéressé(e) par votre annonce : '+p.title+' - '+p.city+', '+p.country)}`,'_blank')} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Contacter</button>
-            <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
-            <button onClick={shareWA} style={{background:"#25D366",color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F}}>WhatsApp</button>
+            <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent('Bonjour, je suis intéressé(e) par votre annonce : '+p.title+' - '+p.city+', '+p.country)}`,'_blank')} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Contacter</button>
+            <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
+            <button onClick={shareWA} style={{background:"#25D366",color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>WhatsApp</button>
           </div>
-          {onVerify&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
+          {onVerify&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
         </div>
       </div>
     </div>
@@ -615,10 +615,10 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
 function ComingSoon({ title, desc }) {
   return (
     <div style={{background:C.forest,borderRadius:"12px",padding:"36px 24px",textAlign:"center",margin:"16px 0"}}>
-      <h2 style={{margin:"0 0 8px",color:C.white,fontFamily:FT,fontSize:"20px"}}>{title}</h2>
-      <p style={{color:"rgba(255,255,255,0.6)",fontSize:"13px",margin:"0 0 16px",fontFamily:F}}>{desc}</p>
+      <h2 style={{margin:"0 0 8px",color:C.white,fontFamily:FT,fontSize:"23px"}}>{title}</h2>
+      <p style={{color:"rgba(255,255,255,0.6)",fontSize:"15px",margin:"0 0 16px",fontFamily:F}}>{desc}</p>
       <div style={{display:"inline-block",border:`1px solid ${C.gold}`,borderRadius:"20px",padding:"6px 18px"}}>
-        <span style={{color:C.gold,fontSize:"12px",fontWeight:700,fontFamily:F}}>En cours de développement</span>
+        <span style={{color:C.gold,fontSize:"14px",fontWeight:700,fontFamily:F}}>En cours de développement</span>
       </div>
     </div>
   );
@@ -638,8 +638,8 @@ const PRESTATAIRES_DEMO = [
   {id:4,emoji:"🚚",name:"Transit Sahel Déménagement",specs:["Déménagement"],pays:["Mali","Burkina Faso","Niger"],desc:"Déménagement et transport de mobilier entre l'Europe et l'Afrique de l'Ouest.",zones:"Bamako, Ouagadougou, Niamey",tarifs:"Sur devis"},
 ];
 
-const lbl = {fontSize:"11px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"};
-const inp = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
+const lbl = {fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"};
+const inp = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
 
 function sendLead(payload) {
   return fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify(payload)});
@@ -650,9 +650,9 @@ function ModalShell({ title, subtitle, color, onClose, children }) {
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:color||C.forest,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
-          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"13px"}}>✕</button>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{title}</h2>
-          {subtitle&&<p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"11px",fontFamily:F}}>{subtitle}</p>}
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{title}</h2>
+          {subtitle&&<p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"13px",fontFamily:F}}>{subtitle}</p>}
         </div>
         <div style={{padding:"20px"}}>{children}</div>
       </div>
@@ -663,9 +663,9 @@ function ModalShell({ title, subtitle, color, onClose, children }) {
 function SentMessage({ title, text, onClose }) {
   return (
     <div style={{textAlign:"center",padding:"16px 0"}}>
-      <div style={{fontSize:"40px",marginBottom:"10px"}}>✅</div>
-      <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"16px"}}>{title}</h3>
-      <p style={{color:C.sub,fontSize:"12px",fontFamily:F,lineHeight:1.5}}>{text}</p>
+      <div style={{fontSize:"42px",marginBottom:"10px"}}>✅</div>
+      <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>{title}</h3>
+      <p style={{color:C.sub,fontSize:"14px",fontFamily:F,lineHeight:1.5}}>{text}</p>
       <button onClick={onClose} style={{marginTop:"14px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
     </div>
   );
@@ -700,7 +700,7 @@ function ServiceFormModal({ onClose }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Pays d'intervention *</label>
           <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
             {COUNTRIES_ANNONCES.map(c=>{const on=f.pays.includes(c.name);return(
-              <button key={c.name} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>);})}
+              <button key={c.name} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"13px",cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>);})}
           </div>
         </div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Villes ou zones couvertes</label><input style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Ex : Dakar, Thiès, Mbour"/></div>
@@ -716,7 +716,7 @@ function ServiceFormModal({ onClose }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Site web</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Tarifs indicatifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Ex : à partir de 150 000 FCFA"/></div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Présentation</label><textarea rows={4} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Vos services, votre expérience, vos références…"/></div>
-        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
+        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
     </ModalShell>
   );
@@ -759,7 +759,7 @@ function PubFormModal({ onClose }) {
           </select>
         </div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Votre message</label><textarea rows={3} style={{...inp,resize:"vertical"}} value={f.message} onChange={e=>set("message",e.target.value)} placeholder="Votre activité, votre budget, la période souhaitée…"/></div>
-        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.gold:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
+        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.gold:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
     </ModalShell>
   );
@@ -770,47 +770,47 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
   const [pays, setPays] = useState(initialPays);
   const [sel, setSel] = useState(null);
   const list = PRESTATAIRES_DEMO.filter(p=>(spec==="Tous"||p.specs.includes(spec))&&(pays==="Tous"||p.pays.includes(pays)));
-  const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
+  const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
   return (
     <>
-      <h2 style={{fontFamily:FT,fontSize:"16px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2>
+      <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2>
       <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"8px",paddingBottom:"2px"}}>
         {["Tous",...SPECIALITES].map(s=><button key={s} onClick={()=>setSpec(s)} style={chip(spec===s)}>{s}</button>)}
       </div>
-      <select value={pays} onChange={e=>setPays(e.target.value)} style={{...inp,marginBottom:"12px",fontSize:"12px",padding:"8px 12px"}}>
+      <select value={pays} onChange={e=>setPays(e.target.value)} style={{...inp,marginBottom:"12px",fontSize:"14px",padding:"8px 12px"}}>
         <option value="Tous">Tous les pays</option>
         {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
       </select>
-      <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>Fiches d'exemple, en attendant les premiers prestataires vérifiés.</div>
+      <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>Fiches d'exemple, en attendant les premiers prestataires vérifiés.</div>
       {list.length===0&&(
-        <div style={{background:C.white,border:`1px dashed ${C.sand}`,borderRadius:"10px",padding:"16px",textAlign:"center",fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"8px"}}>
+        <div style={{background:C.white,border:`1px dashed ${C.sand}`,borderRadius:"10px",padding:"16px",textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"8px"}}>
           Aucun prestataire pour ce choix. Vous exercez dans ce domaine ? Rejoignez l'annuaire ci-dessous.
         </div>
       )}
       {list.map(p=>(
         <div key={p.id} onClick={()=>setSel(p)} style={{background:C.white,borderRadius:"10px",border:`1px solid ${C.sand}`,padding:"12px",marginBottom:"8px",cursor:"pointer"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:"10px",marginBottom:"6px"}}>
-            <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>{p.emoji}</div>
+            <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>{p.emoji}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:FT,fontSize:"13px",fontWeight:500,color:C.dark}}>{p.name}</div>
-              <div style={{fontSize:"10px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
-              <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
+              <div style={{fontFamily:FT,fontSize:"15px",fontWeight:500,color:C.dark}}>{p.name}</div>
+              <div style={{fontSize:"12px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
+              <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
             </div>
-            <span style={{background:"rgba(0,0,0,0.06)",color:C.sub,fontSize:"9px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>Exemple</span>
+            <span style={{background:"rgba(0,0,0,0.06)",color:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>Exemple</span>
           </div>
-          <div style={{fontSize:"11px",color:C.muted,fontFamily:F,lineHeight:1.4}}>{p.desc}</div>
+          <div style={{fontSize:"13px",color:C.muted,fontFamily:F,lineHeight:1.4}}>{p.desc}</div>
         </div>
       ))}
       {sel&&(
         <ModalShell title={sel.name} subtitle={sel.specs.join(", ")} onClose={()=>setSel(null)}>
-          <div style={{fontSize:"13px",color:C.dark,fontFamily:F,lineHeight:1.6,marginBottom:"14px"}}>{sel.desc}</div>
+          <div style={{fontSize:"15px",color:C.dark,fontFamily:F,lineHeight:1.6,marginBottom:"14px"}}>{sel.desc}</div>
           {[["Pays",sel.pays.map(n=><span key={n} style={{marginRight:"10px",whiteSpace:"nowrap"}}><Flag name={n}/>{n}</span>)],["Zones couvertes",sel.zones],["Tarifs",sel.tarifs]].map(([k,v])=>(
             <div key={k} style={{marginBottom:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:700,color:C.sub,fontFamily:F}}>{k}</div>
-              <div style={{fontSize:"13px",color:C.dark,fontFamily:F}}>{v}</div>
+              <div style={{fontSize:"13px",fontWeight:700,color:C.sub,fontFamily:F}}>{k}</div>
+              <div style={{fontSize:"15px",color:C.dark,fontFamily:F}}>{v}</div>
             </div>
           ))}
-          <div style={{background:C.cream,borderRadius:"8px",padding:"12px",fontSize:"11px",color:C.sub,fontFamily:F,lineHeight:1.5}}>
+          <div style={{background:C.cream,borderRadius:"8px",padding:"12px",fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.5}}>
             Fiche d'exemple. Pour les prestataires vérifiés, vous trouverez ici leur WhatsApp, leur email et leur site web.
           </div>
         </ModalShell>
@@ -864,16 +864,16 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       </div>
       {/* Contenu */}
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"20px 18px 22px",zIndex:1}}>
-        <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
-        <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(26px,6vw,44px)",fontWeight:300,lineHeight:1.1,letterSpacing:"-0.02em",textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>
+        <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
+        <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(28px,6vw,44px)",fontWeight:300,lineHeight:1.1,letterSpacing:"-0.02em",textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>
           Votre patrimoine en Afrique,<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>où que vous soyez</em>
         </h1>
         <div style={{background:"rgba(255,255,255,0.97)",borderRadius:"8px",display:"flex",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
           <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 12px",minWidth:0}}>
             <span style={{color:C.sub,flexShrink:0}}>{Icon.searchSm}</span>
-            <input type="text" placeholder="Ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:"12px",color:C.dark,background:"transparent",fontFamily:F,padding:"11px 0",minWidth:0}}/>
+            <input type="text" placeholder="Ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:"14px",color:C.dark,background:"transparent",fontFamily:F,padding:"11px 0",minWidth:0}}/>
           </div>
-          <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",padding:"0 16px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap"}}>Chercher</button>
+          <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",padding:"0 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap"}}>Chercher</button>
         </div>
       </div>
     </div>
@@ -881,6 +881,53 @@ function HeroCarousel({ search, setSearch, onSearch }) {
 }
 
 // ─── MAIN APP ─────────────────────────────────────
+
+
+// ─── ENCART PUBLICITAIRE ──────────────────────────
+function AdSlot({ onClick, style }) {
+  return (
+    <div style={{borderRadius:"12px",border:`2px solid ${C.gold}`,background:C.cream,padding:"20px 18px",textAlign:"center",...style}}>
+      <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Espace publicitaire</div>
+      <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,marginBottom:"6px"}}>Votre publicité ici</div>
+      <div style={{fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"14px",lineHeight:1.55}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
+      <button onClick={onClick} style={{border:"none",cursor:"pointer",background:C.gold,color:C.white,borderRadius:"9px",padding:"11px 22px",fontSize:"14px",fontWeight:700,fontFamily:F}}>Nous contacter</button>
+    </div>
+  );
+}
+
+// ─── PIED DE PAGE ─────────────────────────────────
+function SiteFooter({ onNav, onPub }) {
+  const link = {color:"rgba(255,255,255,0.72)",fontSize:"14px",fontFamily:F,textDecoration:"none",cursor:"pointer",background:"none",border:"none",padding:0,textAlign:"left",lineHeight:1.9,display:"block"};
+  return (
+    <footer style={{background:`linear-gradient(160deg,${C.forest},${C.forestDark})`,borderTop:`2px solid ${C.gold}`,marginTop:"32px",padding:"34px 20px calc(96px + env(safe-area-inset-bottom))"}}>
+      <div style={{maxWidth:"1200px",margin:"0 auto",display:"flex",flexWrap:"wrap",gap:"30px 48px"}}>
+        <div style={{flex:"1 1 220px",minWidth:0}}>
+          <div style={{fontSize:"30px",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
+          <div style={{fontSize:"14px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"10px",lineHeight:1.65,maxWidth:"320px"}}>
+            L'immobilier en Afrique de l'Ouest &amp; Centrale, où que vous soyez.
+          </div>
+        </div>
+        <div style={{flex:"0 1 150px"}}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Naviguer</div>
+          <a href="/about.html" style={link}>Qui sommes-nous</a>
+          <button onClick={()=>onNav("biens")} style={link}>Voir les annonces</button>
+          <button onClick={()=>onNav("prestataires")} style={link}>Trouver un prestataire</button>
+          <button onClick={onPub} style={link}>Publier un bien</button>
+        </div>
+        <div style={{flex:"0 1 200px"}}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Nous contacter</div>
+          <a href="mailto:contact@diasporaimmo.com" style={{...link,color:"#E8A07E",fontWeight:600,wordBreak:"break-word"}}>contact@diasporaimmo.com</a>
+          <a href="https://www.sokile.com" style={link}>www.sokile.com</a>
+        </div>
+      </div>
+      <div style={{maxWidth:"1200px",margin:"26px auto 0",paddingTop:"18px",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",flexWrap:"wrap",gap:"8px 18px",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>© 2026 Sokilé — Tous droits réservés</div>
+        <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Annonces modérées avant publication</div>
+      </div>
+    </footer>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState("accueil");
   const [user, setUser] = useState(null);
@@ -959,20 +1006,21 @@ export default function App() {
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
 
-  const inputBase = {border:`1px solid ${C.sand}`,borderRadius:"7px",padding:"8px 10px",fontSize:"12px",outline:"none",color:C.dark,fontFamily:F};
-  const chipBase = (active) => ({background:active?C.forest:C.white,color:active?C.white:C.dark,border:`1px solid ${active?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:active?700:500,cursor:"pointer",fontFamily:F,transition:"all 0.15s"});
+  const inputBase = {border:`1px solid ${C.sand}`,borderRadius:"9px",padding:"11px 13px",fontSize:"15px",outline:"none",color:C.dark,fontFamily:F};
+  const chipBase = (active) => ({background:active?C.forest:C.white,color:active?C.white:C.dark,border:`1px solid ${active?C.forest:C.sand}`,borderRadius:"22px",padding:"9px 16px",fontSize:"14px",fontWeight:active?700:500,cursor:"pointer",fontFamily:F,transition:"all 0.15s"});
 
   return (
-    <div style={{minHeight:"100vh",background:C.cream,fontFamily:F,overflowX:"hidden"}}>
+    <div style={{minHeight:"100vh",background:C.cream,fontFamily:F,overflowX:"hidden",display:"flex",flexDirection:"column"}}>
+      <style>{`*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}body{margin:0;line-height:1.55}button,input,select,textarea{font-size:inherit}@media(min-width:900px){.desktop-nav{visibility:visible!important;position:static!important}}`}</style>
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
       {/* HEADER */}
       <header style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(0,0,0,0.25)",borderBottom:`2px solid ${C.gold}`}}>
-        <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"76px",gap:"10px"}}>
+        <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:"78px",gap:"8px",boxSizing:"border-box"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div>
-              <div onClick={()=>switchTab("accueil")} style={{fontSize:"clamp(28px,7vw,38px)",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em",cursor:"pointer"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
-              <div style={{fontSize:"10px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"4px",letterSpacing:"0.02em"}}>L'immobilier en Afrique</div>
+              <div onClick={()=>switchTab("accueil")} style={{fontSize:"clamp(27px,6.6vw,38px)",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em",cursor:"pointer",whiteSpace:"nowrap"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
+              <div style={{fontSize:"11.5px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"5px",letterSpacing:"0.02em",whiteSpace:"nowrap"}}>L'immobilier en Afrique</div>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
@@ -984,23 +1032,23 @@ export default function App() {
                 </button>
               ))}
             </nav>
-            <a href="/about.html" style={{background:C.gold,color:C.forestDark,fontSize:"12px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"8px 12px",borderRadius:"7px",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>Qui sommes-nous</a>
+            <a href="/about.html" style={{background:C.gold,color:C.forestDark,fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"9px 12px",borderRadius:"8px",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>Qui sommes-nous</a>
 
             {user?(
               <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
-                <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
                   {user.name?.slice(0,2).toUpperCase()}
                 </div>
-                <span style={{fontSize:"11px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
+                <span style={{fontSize:"13px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
               </div>
             ):(
-              <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.4)",borderRadius:"7px",padding:"6px 14px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
+              <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.4)",borderRadius:"8px",padding:"9px 13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
             )}
           </div>
         </div>
       </header>
 
-      <main style={{maxWidth:"1200px",margin:"0 auto",padding:"0 20px 80px",opacity:animIn?1:0,transform:animIn?"translateY(0)":"translateY(6px)",transition:"all 0.2s ease"}}>
+      <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transform:animIn?"translateY(0)":"translateY(6px)",transition:"all 0.2s ease"}}>
 
         {/* ── ACCUEIL ── */}
         {tab==="accueil"&&(
@@ -1020,16 +1068,16 @@ export default function App() {
             <div style={{display:"flex",background:C.white,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px"}}>
               {[[ALL_PROPS.length+"+","Biens"],["17","Pays"],["100%","Annonces modérées"],["Gratuit","Publication"]].map(([v,l],i)=>(
                 <div key={l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
-                  <div style={{fontSize:"17px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
-                  <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{l}</div>
+                  <div style={{fontSize:"19px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
+                  <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{l}</div>
                 </div>
               ))}
             </div>
 
             {/* Sélection */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"14px"}}>
-              <h2 style={{fontFamily:FT,fontSize:"17px",fontWeight:500,color:C.dark,margin:0}}>Sélection du moment</h2>
-              <span onClick={()=>switchTab("biens")} style={{fontSize:"11px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
+              <h2 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,margin:0}}>Sélection du moment</h2>
+              <span onClick={()=>switchTab("biens")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px",marginBottom:"24px"}}>
               {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
@@ -1038,37 +1086,37 @@ export default function App() {
             {/* CTA */}
             <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"16px",flexWrap:"wrap"}}>
               <div>
-                <h3 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"16px"}}>Publiez votre bien gratuitement</h3>
-                <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
+                <h3 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publiez votre bien gratuitement</h3>
+                <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
-                <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.gold,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Particulier</button>
-                <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
+                <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.gold,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
+                <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
               </div>
             </div>
 
             {/* Accès annuaire */}
             <div onClick={()=>openAnnuaire()} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"16px 18px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",cursor:"pointer",flexWrap:"wrap"}}>
               <div>
-                <h3 style={{margin:"0 0 4px",color:C.dark,fontFamily:FT,fontSize:"16px"}}>Besoin d'un géomètre, d'un notaire, d'un architecte ?</h3>
-                <p style={{margin:0,color:C.sub,fontSize:"11px",fontFamily:F}}>Des professionnels vérifiés dans le pays de votre projet</p>
+                <h3 style={{margin:"0 0 4px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>Besoin d'un géomètre, d'un notaire, d'un architecte ?</h3>
+                <p style={{margin:0,color:C.sub,fontSize:"13px",fontFamily:F}}>Des professionnels vérifiés dans le pays de votre projet</p>
               </div>
-              <button style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"11px",cursor:"pointer",fontFamily:F,flexShrink:0}}>Trouver un prestataire</button>
+              <button style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,flexShrink:0}}>Trouver un prestataire</button>
             </div>
 
             {/* Pays — Option B fond vert sombre */}
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
-              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.8)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
+              <div style={{fontSize:"15px",color:"rgba(255,255,255,0.8)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
               {["Afrique de l'Ouest","Afrique Centrale"].map(region=>{
                 const regionKey = region==="Afrique de l'Ouest"?"Ouest":"Centrale";
                 const pays = COUNTRIES.filter(c=>c.region===regionKey);
                 if(!pays.length) return null;
                 return(
                   <div key={region} style={{marginBottom:"14px"}}>
-                    <div style={{fontSize:"9px",fontWeight:700,color:"rgba(212,160,23,0.8)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px",paddingBottom:"6px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontFamily:F}}>{region}</div>
+                    <div style={{fontSize:"11px",fontWeight:700,color:"rgba(212,160,23,0.8)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px",paddingBottom:"6px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontFamily:F}}>{region}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
                       {pays.map(p=>(
-                        <button key={p.name} onClick={()=>{setFilterCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:600,color:"rgba(255,255,255,0.75)",cursor:"pointer",fontFamily:F}}>
+                        <button key={p.name} onClick={()=>{setFilterCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"6px",padding:"5px 10px",fontSize:"13px",fontWeight:600,color:"rgba(255,255,255,0.75)",cursor:"pointer",fontFamily:F}}>
                           <Flag flag={p.flag}/>{p.name}
                         </button>
                       ))}
@@ -1080,10 +1128,10 @@ export default function App() {
 
             {/* Encart publicitaire — Option A */}
             <div style={{margin:"16px",borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center"}}>
-              <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
-              <div style={{fontFamily:FT,fontSize:"15px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
-              <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-              <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
+              <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
+              <div style={{fontFamily:FT,fontSize:"17px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
+              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
+              <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
             </div>
           </div>
         )}
@@ -1092,27 +1140,27 @@ export default function App() {
         {tab==="biens"&&(
           <div style={{paddingTop:"20px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
-              <h2 style={{fontFamily:FT,fontSize:"20px",fontWeight:500,color:C.dark,margin:0}}>Trouver un bien</h2>
-              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"11px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
+              <h2 style={{fontFamily:FT,fontSize:"23px",fontWeight:500,color:C.dark,margin:0}}>Trouver un bien</h2>
+              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
             </div>
 
             <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
-              <input type="text" placeholder="Rechercher par ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"7px",padding:"9px 14px",fontSize:"13px",outline:"none",color:C.dark,boxSizing:"border-box",marginBottom:"10px",fontFamily:F}}/>
+              <input type="text" placeholder="Rechercher par ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"7px",padding:"9px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",marginBottom:"10px",fontFamily:F}}/>
               <div style={{marginBottom:"8px"}}>
-                <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Région</div>
+                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Région</div>
                 <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
                   {["Tous","Afrique de l'Ouest","Afrique Centrale"].map(r=><button key={r} onClick={()=>setFilterRegion(r)} style={chipBase(filterRegion===r)}>{r}</button>)}
                 </div>
               </div>
               <div style={{marginBottom:"8px"}}>
-                <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pays</div>
+                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pays</div>
                 <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
                   <button onClick={()=>setFilterCountry("Tous")} style={chipBase(filterCountry==="Tous")}>Tous</button>
                   {filteredCountries.map(c=><button key={c.name} onClick={()=>setFilterCountry(c.name)} style={{...chipBase(filterCountry===c.name),background:filterCountry===c.name?C.terra:C.white,borderColor:filterCountry===c.name?C.terra:C.sand}}><Flag flag={c.flag} size={14}/>{c.name}</button>)}
                 </div>
               </div>
               <div>
-                <div style={{fontSize:"10px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Type</div>
+                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Type</div>
                 <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
                   {types.map(t=><button key={t} onClick={()=>setFilterType(t)} style={{...chipBase(filterType===t),background:filterType===t?C.terra:C.white,borderColor:filterType===t?C.terra:C.sand}}>{t}</button>)}
                 </div>
@@ -1121,65 +1169,70 @@ export default function App() {
 
             <div style={{display:"flex",gap:"7px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
               <button onClick={()=>setShowFilters(!showFilters)} style={{...chipBase(showFilters),display:"flex",alignItems:"center",gap:"4px"}}>
-                Filtres avancés {activeFiltersCount>0&&<span style={{background:showFilters?"rgba(255,255,255,0.3)":C.terra,color:C.white,borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{activeFiltersCount}</span>}
+                Filtres avancés {activeFiltersCount>0&&<span style={{background:showFilters?"rgba(255,255,255,0.3)":C.terra,color:C.white,borderRadius:"10px",padding:"0 5px",fontSize:"12px"}}>{activeFiltersCount}</span>}
               </button>
-              <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 10px",fontSize:"11px",color:C.dark,fontFamily:F,fontWeight:500,cursor:"pointer",background:C.white}}>
+              <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 10px",fontSize:"13px",color:C.dark,fontFamily:F,fontWeight:500,cursor:"pointer",background:C.white}}>
                 {sorts.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
-              {activeFiltersCount>0&&<button onClick={resetFilters} style={{background:"#FEE2E2",color:"#DC2626",border:"none",borderRadius:"20px",padding:"5px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer",fontFamily:F}}>✕ Réinitialiser</button>}
+              {activeFiltersCount>0&&<button onClick={resetFilters} style={{background:"#FEE2E2",color:"#DC2626",border:"none",borderRadius:"20px",padding:"5px 12px",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:F}}>✕ Réinitialiser</button>}
             </div>
 
             {showFilters&&(
               <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"12px",marginBottom:"12px"}}>
                   <div>
-                    <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Budget (€)</label>
+                    <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Budget (€)</label>
                     <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
                       <input type="number" placeholder="Min" value={filterPriceMin} onChange={e=>setFilterPriceMin(e.target.value)} style={{...inputBase,flex:1}}/>
-                      <span style={{color:C.sub,fontSize:"12px"}}>—</span>
+                      <span style={{color:C.sub,fontSize:"14px"}}>—</span>
                       <input type="number" placeholder="Max" value={filterPriceMax} onChange={e=>setFilterPriceMax(e.target.value)} style={{...inputBase,flex:1}}/>
                     </div>
                   </div>
                   <div>
-                    <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Surface (m²)</label>
+                    <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Surface (m²)</label>
                     <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
                       <input type="number" placeholder="Min" value={filterSurfaceMin} onChange={e=>setFilterSurfaceMin(e.target.value)} style={{...inputBase,flex:1}}/>
-                      <span style={{color:C.sub,fontSize:"12px"}}>—</span>
+                      <span style={{color:C.sub,fontSize:"14px"}}>—</span>
                       <input type="number" placeholder="Max" value={filterSurfaceMax} onChange={e=>setFilterSurfaceMax(e.target.value)} style={{...inputBase,flex:1}}/>
                     </div>
                   </div>
                   <div>
-                    <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pièces</label>
+                    <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pièces</label>
                     <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
                       {rooms.map(r=><button key={r} onClick={()=>setFilterRooms(r)} style={{...chipBase(filterRooms===r),padding:"4px 9px",borderRadius:"5px"}}>{r}</button>)}
                     </div>
                   </div>
                 </div>
                 <div style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"10px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Équipements</label>
+                  <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Équipements</label>
                   <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
                     {EQUIPEMENTS.map(eq=><button key={eq} onClick={()=>toggleEquipement(eq)} style={{...chipBase(filterEquipements.includes(eq)),background:filterEquipements.includes(eq)?C.terra:C.white,borderColor:filterEquipements.includes(eq)?C.terra:C.sand,borderRadius:"5px"}}>{filterEquipements.includes(eq)?"✓ ":""}{eq}</button>)}
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"7px"}}>
-                  <button onClick={()=>setFilterVerified(!filterVerified)} style={{width:18,height:18,borderRadius:"3px",border:`1.5px solid ${filterVerified?C.terra:C.sand}`,background:filterVerified?C.terra:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontSize:"11px"}}>{filterVerified?"✓":""}</button>
-                  <span style={{fontSize:"12px",color:C.dark,fontWeight:500,cursor:"pointer",fontFamily:F}} onClick={()=>setFilterVerified(!filterVerified)}>Biens vérifiés uniquement</span>
+                  <button onClick={()=>setFilterVerified(!filterVerified)} style={{width:18,height:18,borderRadius:"3px",border:`1.5px solid ${filterVerified?C.terra:C.sand}`,background:filterVerified?C.terra:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontSize:"13px"}}>{filterVerified?"✓":""}</button>
+                  <span style={{fontSize:"14px",color:C.dark,fontWeight:500,cursor:"pointer",fontFamily:F}} onClick={()=>setFilterVerified(!filterVerified)}>Biens vérifiés uniquement</span>
                 </div>
               </div>
             )}
 
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
-              <p style={{color:C.sub,fontSize:"11px",margin:0,fontFamily:F}}>{filtered.length} bien{filtered.length>1?"s":""} trouvé{filtered.length>1?"s":""}</p>
-              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"10px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
+              <p style={{color:C.sub,fontSize:"13px",margin:0,fontFamily:F}}>{filtered.length} bien{filtered.length>1?"s":""} trouvé{filtered.length>1?"s":""}</p>
+              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
             </div>
 
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px"}}>
-              {filtered.map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
+              {filtered.map((p,i)=>(
+                <div key={p.id} style={{display:"contents"}}>
+                  <PropertyCard p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>
+                  {i===2&&<AdSlot onClick={()=>setShowPub(true)}/>}
+                </div>
+              ))}
               {filtered.length===0&&(
                 <div style={{textAlign:"center",padding:"48px 20px",color:C.sub,gridColumn:"1/-1"}}>
-                  <div style={{fontSize:"32px",marginBottom:"8px",opacity:0.4}}>○</div>
-                  <p style={{fontFamily:F,fontSize:"13px"}}>Aucun bien ne correspond à votre recherche.</p>
-                  <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
+                  <div style={{fontSize:"34px",marginBottom:"8px",opacity:0.4}}>○</div>
+                  <p style={{fontFamily:F,fontSize:"15px"}}>Aucun bien ne correspond à votre recherche.</p>
+                  <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
                 </div>
               )}
             </div>
@@ -1188,14 +1241,15 @@ export default function App() {
 
         {/* ── PRESTATAIRES (particuliers) ── */}
         {tab==="prestataires"&&(
-          <div style={{paddingBottom:"80px"}}>
+          <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
-              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
-              <div style={{fontSize:"12px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"560px"}}>Vous achetez ou faites construire à distance ? Faites vérifier un terrain, trouvez un notaire, un géomètre ou un architecte dans le pays de votre projet. Chaque prestataire est vérifié par Sokilé avant d'apparaître dans l'annuaire, et vous le contactez directement.</div>
+              <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
+              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"560px"}}>Vous achetez ou faites construire à distance ? Faites vérifier un terrain, trouvez un notaire, un géomètre ou un architecte dans le pays de votre projet. Chaque prestataire est vérifié par Sokilé avant d'apparaître dans l'annuaire, et vous le contactez directement.</div>
             </div>
             <div style={{padding:"16px"}}>
               <Annuaire key={`${annFilter.spec}|${annFilter.pays}`} initialSpec={annFilter.spec} initialPays={annFilter.pays}/>
-              <div style={{textAlign:"center",marginTop:"14px",fontSize:"12px",color:C.sub,fontFamily:F}}>
+              <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"18px"}}/>
+              <div style={{textAlign:"center",marginTop:"16px",fontSize:"14px",color:C.sub,fontFamily:F}}>
                 Vous êtes prestataire ? <span onClick={()=>switchTab("pro")} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Rejoignez l'annuaire</span>
               </div>
             </div>
@@ -1204,34 +1258,34 @@ export default function App() {
 
         {/* ── ESPACE PRO ── */}
         {tab==="pro"&&(
-          <div style={{paddingBottom:"80px"}}>
+          <div>
             {/* Hero Pro */}
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px 16px"}}>
-              <div style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
-              <div style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez notre communauté en Afrique de l'Ouest et Centrale</div>
+              <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"4px"}}>Espace Professionnel</div>
+              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez notre communauté en Afrique de l'Ouest et Centrale</div>
               <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                 {/* Déposer une annonce pro */}
                 <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
-                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>🏠</div>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>🏠</div>
                   <div>
-                    <div style={{fontSize:"13px",fontWeight:700,color:C.white,fontFamily:F}}>Déposer une annonce</div>
-                    <div style={{fontSize:"10px",color:"rgba(255,255,255,0.7)",fontFamily:F}}>Agence ou promoteur immobilier</div>
+                    <div style={{fontSize:"15px",fontWeight:700,color:C.white,fontFamily:F}}>Déposer une annonce</div>
+                    <div style={{fontSize:"12px",color:"rgba(255,255,255,0.7)",fontFamily:F}}>Agence ou promoteur immobilier</div>
                   </div>
                 </button>
                 {/* Proposer un service */}
                 <button onClick={()=>setShowServiceForm(true)} style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
-                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>🛠️</div>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>🛠️</div>
                   <div>
-                    <div style={{fontSize:"13px",fontWeight:700,fontFamily:F}}>Proposer mes services</div>
-                    <div style={{fontSize:"10px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Géomètre, notaire, architecte, BTP...</div>
+                    <div style={{fontSize:"15px",fontWeight:700,fontFamily:F}}>Proposer mes services</div>
+                    <div style={{fontSize:"12px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Géomètre, notaire, architecte, BTP...</div>
                   </div>
                 </button>
                 {/* Publicité */}
                 <button onClick={()=>setShowPub(true)} style={{width:"100%",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
-                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",flexShrink:0}}>📢</div>
+                  <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>📢</div>
                   <div>
-                    <div style={{fontSize:"13px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
-                    <div style={{fontSize:"10px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Bannières et encarts sponsorisés</div>
+                    <div style={{fontSize:"15px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
+                    <div style={{fontSize:"12px",color:"rgba(255,255,255,0.55)",fontFamily:F}}>Bannières et encarts sponsorisés</div>
                   </div>
                 </button>
               </div>
@@ -1240,14 +1294,14 @@ export default function App() {
             <div style={{padding:"16px"}}>
               {/* Encart pub Option A */}
               <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
-                <div style={{fontSize:"9px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
-                <div style={{fontFamily:FT,fontSize:"15px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
-                <div style={{fontSize:"11px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-                <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"11px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
+                <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
+                <div style={{fontFamily:FT,fontSize:"17px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
+                <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
               </div>
 
               {/* Bouton rejoindre annuaire */}
-              <button onClick={()=>setShowServiceForm(true)} style={{width:"100%",marginTop:"12px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>
+              <button onClick={()=>setShowServiceForm(true)} style={{width:"100%",marginTop:"12px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>
                 Rejoindre l'annuaire prestataires
               </button>
             </div>
@@ -1260,39 +1314,39 @@ export default function App() {
             {!user?(
               <div style={{textAlign:"center",padding:"48px 20px"}}>
                 <div style={{width:56,height:56,borderRadius:"50%",background:C.cream,border:`1px solid ${C.sand}`,margin:"0 auto 16px",display:"flex",alignItems:"center",justifyContent:"center",color:C.sub}}>{Icon.person}</div>
-                <h2 style={{fontFamily:FT,fontSize:"20px",color:C.dark,margin:"0 0 8px"}}>Votre espace personnel</h2>
-                <p style={{color:C.sub,fontSize:"13px",margin:"0 0 24px",fontFamily:F}}>Connectez-vous pour accéder à vos favoris, alertes et annonces.</p>
-                <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"13px 32px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,marginBottom:"10px",display:"block",width:"100%"}}>Se connecter</button>
-                <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"8px",padding:"12px 32px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,display:"block",width:"100%"}}>Créer un compte gratuit</button>
+                <h2 style={{fontFamily:FT,fontSize:"23px",color:C.dark,margin:"0 0 8px"}}>Votre espace personnel</h2>
+                <p style={{color:C.sub,fontSize:"15px",margin:"0 0 24px",fontFamily:F}}>Connectez-vous pour accéder à vos favoris, alertes et annonces.</p>
+                <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"13px 32px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,marginBottom:"10px",display:"block",width:"100%"}}>Se connecter</button>
+                <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"8px",padding:"12px 32px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,display:"block",width:"100%"}}>Créer un compte gratuit</button>
               </div>
             ):(
               <>
                 <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"14px"}}>
-                  <div style={{width:48,height:48,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",fontWeight:700,color:C.white,fontFamily:F}}>
+                  <div style={{width:48,height:48,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",fontWeight:700,color:C.white,fontFamily:F}}>
                     {user.name?.slice(0,2).toUpperCase()}
                   </div>
                   <div>
-                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"16px"}}>{user.name}</h2>
-                    <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"11px",fontFamily:F}}>{user.email}</p>
-                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"10px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre Sokilé</span>
+                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{user.name}</h2>
+                    <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>{user.email}</p>
+                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"12px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre Sokilé</span>
                   </div>
                 </div>
                 <div style={{display:"grid",gap:"7px"}}>
                                       {/* Biens sauvegardés */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${C.sand}`}}>
-                      <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"8px"}}>Biens sauvegardés <span style={{color:C.sub,fontWeight:400}}>({savedProps.length})</span></div>
+                      <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"8px"}}>Biens sauvegardés <span style={{color:C.sub,fontWeight:400}}>({savedProps.length})</span></div>
                       {savedProps.length===0?(
-                        <div style={{fontSize:"11px",color:C.sub,fontFamily:F}}>Aucun bien sauvegardé — cliquez sur ❤️ sur une annonce</div>
+                        <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>Aucun bien sauvegardé — cliquez sur ❤️ sur une annonce</div>
                       ):(
                         <div style={{display:"grid",gap:"6px"}}>
                           {savedProps.map(p=>(
                             <div key={p.id} style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>setSelectedProp(p)}>
                               <div style={{width:40,height:40,borderRadius:"6px",background:p.bg,flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div>
-                                <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}</div>
+                                <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div>
+                                <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}</div>
                               </div>
-                              <span onClick={e=>{e.stopPropagation();handleSave(p);}} style={{fontSize:"14px",cursor:"pointer"}}>❤️</span>
+                              <span onClick={e=>{e.stopPropagation();handleSave(p);}} style={{fontSize:"16px",cursor:"pointer"}}>❤️</span>
                             </div>
                           ))}
                         </div>
@@ -1302,39 +1356,41 @@ export default function App() {
                     {[{label:"Messages agents",value:"Fonctionnalité à venir"},{label:"Mes alertes",value:"Fonctionnalité à venir"},{label:"Mes annonces",value:"Fonctionnalité à venir"}].map(item=>(
                     <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
                       <div>
-                        <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F}}>{item.label}</div>
-                        <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>{item.value}</div>
+                        <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F}}>{item.label}</div>
+                        <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{item.value}</div>
                       </div>
-                      <span style={{color:C.sub,fontSize:"14px"}}>›</span>
+                      <span style={{color:C.sub,fontSize:"16px"}}>›</span>
                     </div>
                   ))}
                     {/* Contact / Support */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
-                      <div style={{fontSize:"12px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
+                      <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
                       <a href="mailto:contact@sokile.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
-                        <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px"}}>✉️</div>
+                        <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}}>✉️</div>
                         <div>
-                          <div style={{fontSize:"12px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@sokile.com</div>
-                          <div style={{fontSize:"10px",color:C.sub,fontFamily:F}}>Réponse sous 24h</div>
+                          <div style={{fontSize:"14px",fontWeight:600,color:C.terra,fontFamily:F}}>contact@sokile.com</div>
+                          <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>Réponse sous 24h</div>
                         </div>
                       </a>
                     </div>
                 </div>
-                <button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
-                <button onClick={()=>setUser(null)} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"12px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
+                <button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
+                <button onClick={()=>setUser(null)} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
               </>
             )}
           </div>
         )}
-        {tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"12px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
+        {tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"14px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
       </main>
 
+      <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);setShowPartner(true);}}/>
+
       {/* BOTTOM NAV */}
-      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -2px 12px rgba(0,0,0,0.06)"}}>
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(12px)",borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -3px 18px rgba(26,60,46,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
         {NAV.map(n=>(
-          <button key={n.id} onClick={()=>switchTab(n.id)} style={{flex:1,background:"none",border:"none",padding:"8px 4px 7px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px"}}>
+          <button key={n.id} onClick={()=>switchTab(n.id)} style={{flex:1,background:"none",border:"none",padding:"11px 4px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",transition:"all 0.15s"}}>
             <span style={{color:tab===n.id?C.terra:C.sub}}>{n.icon}</span>
-            <span style={{fontSize:"9px",fontWeight:tab===n.id?700:400,color:tab===n.id?C.terra:C.sub,fontFamily:F}}>{n.label}</span>
+            <span style={{fontSize:"11.5px",fontWeight:tab===n.id?700:500,color:tab===n.id?C.terra:C.sub,fontFamily:F,letterSpacing:"0.01em"}}>{n.label}</span>
           </button>
         ))}
       </nav>
