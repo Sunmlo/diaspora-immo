@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mentions légales — Sokilé</title>
+<meta name="robots" content="index, follow"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--green:#1A3C2E;--green-d:#0D2019;--gold:#C9A84C;--clay:#B85C3A;--cream:#F5F0E8;--sand:#E8DFD0;--ink:#1C1A17;--muted:#7A7264}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:16px;line-height:1.65}
+  header{background:linear-gradient(135deg,var(--green),var(--green-d));border-bottom:2px solid var(--gold);padding:0 5vw;min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .logo{font-family:'Fraunces',serif;font-size:clamp(26px,6vw,34px);font-weight:500;color:#fff;letter-spacing:-.02em;text-decoration:none;line-height:1;white-space:nowrap;padding:14px 0}
+  .logo .ki{color:var(--gold);font-style:italic}
+  .logo .le{color:#E8A07E}
+  .retour{background:var(--gold);color:var(--green-d);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+  main{max-width:780px;margin:0 auto;padding:42px 5vw 80px}
+  h1{font-family:'Fraunces',serif;font-size:clamp(28px,5vw,40px);font-weight:300;line-height:1.15;margin-bottom:10px;letter-spacing:-.02em}
+  .maj{color:var(--muted);font-size:14px;margin-bottom:34px}
+  h2{font-family:'Fraunces',serif;font-size:clamp(20px,3.4vw,25px);font-weight:500;margin:38px 0 12px;color:var(--green)}
+  h3{font-size:16px;font-weight:700;margin:22px 0 7px}
+  p,li{margin-bottom:11px}
+  ul,ol{padding-left:22px;margin-bottom:11px}
+  a{color:var(--clay)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+  th,td{border:1px solid var(--sand);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:#fff;font-weight:700}
+  .todo{background:#FFF8E1;border:1px solid #FFE082;border-radius:10px;padding:16px 18px;margin:20px 0}
+  .todo strong{color:#6D4C1B}
+  .encadre{background:#fff;border:1px solid var(--sand);border-radius:12px;padding:18px 20px;margin:18px 0}
+  footer{background:linear-gradient(160deg,var(--green),var(--green-d));border-top:2px solid var(--gold);padding:30px 5vw;color:rgba(255,255,255,.55);font-size:14px}
+  footer a{color:rgba(255,255,255,.8);text-decoration:none;margin-right:18px}
+  @media(max-width:600px){main{padding-top:28px}}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">So<span class="ki">ki</span><span class="le">lé</span></a>
+  <a href="/" class="retour">Retour au site</a>
+</header>
+<main>
+<h1>Mentions légales</h1>
+<p class="maj">Dernière mise à jour : 19 septembre 2026</p>
+
+<div class="todo">
+<strong>À compléter avant mise en ligne.</strong> Les champs entre crochets doivent être renseignés : la loi impose que l'éditeur d'un site accessible en France soit identifiable. Tant que la SASU n'est pas créée, c'est la personne physique qui édite le site.
+</div>
+
+<h2>Éditeur du site</h2>
+<p>Le site <strong>www.sokile.com</strong> est édité par :</p>
+<div class="encadre">
+<p><strong>[Prénom NOM de l'éditrice]</strong><br/>
+Entrepreneur individuel — [statut : auto-entrepreneur / en cours d'immatriculation]<br/>
+Adresse : [adresse postale complète]<br/>
+Adresse électronique : contact@diasporaimmo.com<br/>
+[SIREN / SIRET : à compléter dès immatriculation]<br/>
+[N° TVA intracommunautaire : le cas échéant]</p>
+</div>
+<p>Directeur de la publication : [Prénom NOM].</p>
+
+<h2>Hébergement</h2>
+<p>Le site est hébergé par :</p>
+<div class="encadre">
+<p><strong>Vercel Inc.</strong><br/>
+340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis<br/>
+<a href="https://vercel.com">vercel.com</a></p>
+</div>
+<p>Les données de la plateforme (annonces, comptes, photographies) sont hébergées par <strong>Supabase Inc.</strong> Les noms de domaine sont enregistrés auprès d'<strong>OVH SAS</strong>, 2 rue Kellermann, 59100 Roubaix, France.</p>
+
+<h2>Nature du service</h2>
+<p>Sokilé est une plateforme de mise en relation entre personnes souhaitant vendre, louer, acheter ou louer un bien immobilier dans les pays francophones de la zone franc CFA, et entre ces personnes et des prestataires de services.</p>
+<p>Sokilé n'est ni agent immobilier, ni mandataire, ni partie aux transactions. La plateforme agit en qualité d'hébergeur au sens de l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique. Elle n'exerce aucune activité relevant de la loi n° 70-9 du 2 janvier 1970 dite loi Hoguet.</p>
+
+<h2>Signalement d'un contenu illicite</h2>
+<p>Chaque annonce comporte un lien « Signaler cette annonce ». Tout contenu manifestement illicite peut également être signalé à <a href="mailto:contact@diasporaimmo.com">contact@diasporaimmo.com</a>, en précisant l'annonce concernée et le motif du signalement. Nous examinons chaque signalement et retirons promptement les contenus manifestement illicites qui nous sont notifiés.</p>
+
+<h2>Propriété intellectuelle</h2>
+<p>La dénomination « Sokilé », le logo, la charte graphique et les contenus éditoriaux du site sont protégés. Toute reproduction sans autorisation est interdite.</p>
+<p>Les photographies et descriptions des annonces restent la propriété de leurs auteurs, qui concèdent à Sokilé une licence non exclusive et gratuite de diffusion sur la plateforme et ses supports de communication, pour la durée de publication de l'annonce.</p>
+
+<h2>Droit applicable</h2>
+<p>Le présent site est soumis au droit français. En cas de litige, et à défaut de résolution amiable, les tribunaux français sont compétents, sous réserve des règles protectrices applicables aux consommateurs.</p>
+
+</main>
+<footer>
+  <div style="margin-bottom:12px">
+    <a href="/">Accueil</a><a href="/about.html">Qui sommes-nous</a><a href="/mentions-legales.html">Mentions légales</a><a href="/confidentialite.html">Confidentialité</a><a href="/cgu.html">CGU</a>
+  </div>
+  <div>© 2026 Sokilé — contact@diasporaimmo.com</div>
+</footer>
+</body>
+</html>
