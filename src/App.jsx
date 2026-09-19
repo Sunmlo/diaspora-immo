@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 
 const C = {
-  // Charte Sokilé — Afrique contemporaine : chaleureuse, premium et accessible
-  terra: "#C86642", gold: "#C9A55A", earth: "#8B5E3C",
-  forest: "#17382C", forestMid: "#244C3C", forestDark: "#10271F",
-  cacao: "#3A2923", cream: "#F7F1E8", light: "#FFFDF9", sand: "#E7D8C6",
-  dark: "#211C19", muted: "#746A62", sub: "#8C7F75", white: "#FFFFFF",
+  // Charte Sokilé — mêmes teintes que la page « Qui sommes-nous »
+  terra: "#B85C3A", gold: "#C9A84C", earth: "#8B5E3C",
+  forest: "#1A3C2E", forestMid: "#2D5E45", forestDark: "#0D2019",
+  cacao: "#3A2923", cream: "#F5F0E8", light: "#FFFFFF", sand: "#E8DFD0",
+  dark: "#1C1A17", muted: "#7A7264", sub: "#8F8676", white: "#FFFFFF",
   success: "#2E7D32", successBg: "#E8F5E9",
 };
 
@@ -1569,12 +1569,12 @@ export default function App() {
     setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
   };
 
-  // Navigation volontairement centrée sur les trois actions de la marketplace.
-  // L'annuaire prestataires reste disponible depuis l'accueil et le pied de page.
+  // Bandeau complet : toutes les rubriques historiques restent visibles.
   const NAV = [
     {id:"accueil",label:"Accueil",icon:Icon.home},
-    {id:"biens",label:"Rechercher",icon:Icon.search},
-    {id:"pro",label:"Publier",icon:Icon.briefcase},
+    {id:"biens",label:"Biens",icon:Icon.search},
+    {id:"prestataires",label:"Prestataires",icon:Icon.group},
+    {id:"pro",label:"Espace pro",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
 
