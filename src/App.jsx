@@ -73,13 +73,13 @@ const COUNTRIES = [
   // Afrique de l'Ouest — ordre alphabétique
   {name:"Bénin",flag:"🇧🇯",region:"Ouest"},{name:"Burkina Faso",flag:"🇧🇫",region:"Ouest"},
   {name:"Cap-Vert",flag:"🇨🇻",region:"Autres"},{name:"Côte d'Ivoire",flag:"🇨🇮",region:"Ouest"},
-  {name:"Guinée",flag:"🇬🇳",region:"Ouest"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Autres"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
-  {name:"Mauritanie",flag:"🇲🇷",region:"Ouest"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},{name:"Sénégal",flag:"🇸🇳",region:"Ouest"},{name:"Togo",flag:"🇹🇬",region:"Ouest"},
+  {name:"Guinée",flag:"🇬🇳",region:"Autres"},{name:"Guinée-Bissau",flag:"🇬🇼",region:"Autres"},{name:"Mali",flag:"🇲🇱",region:"Ouest"},
+  {name:"Mauritanie",flag:"🇲🇷",region:"Autres"},{name:"Niger",flag:"🇳🇪",region:"Ouest"},{name:"Sénégal",flag:"🇸🇳",region:"Ouest"},{name:"Togo",flag:"🇹🇬",region:"Ouest"},
   // Afrique Centrale — ordre alphabétique
-  {name:"Burundi",flag:"🇧🇮",region:"Centrale"},{name:"Cameroun",flag:"🇨🇲",region:"Centrale"},
+  {name:"Burundi",flag:"🇧🇮",region:"Autres"},{name:"Cameroun",flag:"🇨🇲",region:"Centrale"},
   {name:"Centrafrique",flag:"🇨🇫",region:"Centrale"},{name:"Congo",flag:"🇨🇬",region:"Centrale"},
   {name:"Gabon",flag:"🇬🇦",region:"Centrale"},{name:"Guinée Équatoriale",flag:"🇬🇶",region:"Autres"},
-  {name:"RD Congo",flag:"🇨🇩",region:"Centrale"},{name:"Rwanda",flag:"🇷🇼",region:"Centrale"},
+  {name:"RD Congo",flag:"🇨🇩",region:"Autres"},{name:"Rwanda",flag:"🇷🇼",region:"Autres"},
   {name:"São Tomé",flag:"🇸🇹",region:"Autres"},{name:"Tchad",flag:"🇹🇩",region:"Centrale"},
   // Afrique de l'Est
   {name:"Djibouti",flag:"🇩🇯",region:"Est"},{name:"Érythrée",flag:"🇪🇷",region:"Est"},
@@ -100,7 +100,9 @@ const COUNTRIES = [
   {name:"Tunisie",flag:"🇹🇳",region:"Maghreb"},
 ];
 
-// Pays disponibles pour les ANNONCES (Ouest + Centrale uniquement)
+// Pays disponibles pour les ANNONCES — zone franc CFA francophone
+// UEMOA (XOF) : Bénin, Burkina Faso, Côte d'Ivoire, Mali, Niger, Sénégal, Togo
+// CEMAC (XAF) : Cameroun, Centrafrique, Congo, Gabon, Tchad
 const COUNTRIES_ANNONCES = COUNTRIES.filter(c=>["Ouest","Centrale"].includes(c.region));
 
 const PROPERTIES = [
@@ -114,12 +116,9 @@ const PROPERTIES = [
   {id:8,title:"Villa ACI 2000 Bamako",type:"Vente",country:"Mali",city:"Bamako",neighborhood:"ACI 2000",price:75000000,price_eur:114375,surface:200,rooms:4,bathrooms:3,verified:true,agent_name:"Immo Mali",tags:["Titre foncier","Résidentiel"],bg:"linear-gradient(160deg,#2C2018,#1A1410)",description:"Belle villa 4 pièces dans le quartier ACI 2000.",demo:true,features:["Parking","Titre foncier"]},
   {id:9,title:"Terrain Badalabougou",type:"Terrain",country:"Mali",city:"Bamako",neighborhood:"Badalabougou",price:25000000,price_eur:38125,surface:400,verified:true,agent_name:"SahelImmo",tags:["Titre foncier","Résidentiel"],bg:"linear-gradient(160deg,#3A2A1E,#281E14)",description:"Terrain titré 400m² à Badalabougou.",demo:true,features:["Titre foncier"]},
   {id:10,title:"Villa Ouaga 2000",type:"Vente",country:"Burkina Faso",city:"Ouagadougou",neighborhood:"Ouaga 2000",price:55000000,price_eur:83875,surface:180,rooms:4,bathrooms:2,verified:true,agent_name:"Faso Immo",tags:["Titre foncier","Résidentiel"],bg:"linear-gradient(160deg,#2E1E0E,#1E140A)",description:"Villa 4 pièces dans le quartier résidentiel Ouaga 2000.",demo:true,features:["Jardin","Parking","Titre foncier"]},
-  {id:11,title:"Villa Ratoma Conakry",type:"Vente",country:"Guinée",city:"Conakry",neighborhood:"Ratoma",price:80000000,price_eur:122000,surface:220,rooms:5,bathrooms:3,verified:true,agent_name:"Guinée Immo",tags:["Vue mer","Titre foncier"],bg:"linear-gradient(160deg,#1A2E28,#0E1E18)",description:"Belle villa 5 pièces à Ratoma avec vue sur l'Atlantique.",demo:true,features:["Piscine","Jardin","Titre foncier"]},
   {id:12,title:"Villa Cadjehoun Cotonou",type:"Vente",country:"Bénin",city:"Cotonou",neighborhood:"Cadjehoun",price:70000000,price_eur:106750,surface:200,rooms:4,bathrooms:3,verified:true,agent_name:"Bénin Immo",tags:["Titre foncier","Aéroport"],bg:"linear-gradient(160deg,#1E2A1E,#141E14)",description:"Villa 4 pièces à Cadjehoun.",demo:true,features:["Jardin","Parking","Titre foncier"]},
   {id:13,title:"Villa Lomé Agbalépédogan",type:"Vente",country:"Togo",city:"Lomé",neighborhood:"Agbalépédogan",price:45000000,price_eur:68625,surface:160,rooms:4,bathrooms:2,verified:true,agent_name:"Togo Immo",tags:["Titre foncier","Calme"],bg:"linear-gradient(160deg,#1A2C1A,#101C10)",description:"Villa 4 pièces dans quartier résidentiel calme.",demo:true,features:["Jardin","Titre foncier"]},
-  {id:14,title:"Villa Gombe Kinshasa",type:"Vente",country:"RD Congo",city:"Kinshasa",neighborhood:"Gombe",price:120000000,price_eur:183000,surface:280,rooms:5,bathrooms:4,verified:true,agent_name:"Kinshasa Immo",tags:["Diplomatique","Titre foncier"],bg:"linear-gradient(160deg,#2C1E2C,#1A101A)",description:"Grande villa 5 pièces dans le quartier diplomatique.",demo:true,features:["Piscine","Jardin","Parking","Titre foncier"]},
   {id:15,title:"Villa Batterie IV Libreville",type:"Vente",country:"Gabon",city:"Libreville",neighborhood:"Batterie IV",price:130000000,price_eur:198250,surface:260,rooms:5,bathrooms:4,verified:true,agent_name:"Gabon Immo",tags:["Vue mer","Titre foncier"],bg:"linear-gradient(160deg,#1E2C1E,#101810)",description:"Villa 5 pièces vue Atlantique.",demo:true,features:["Piscine","Jardin","Parking","Titre foncier"]},
-  {id:16,title:"Villa Tevragh Zeina",type:"Vente",country:"Mauritanie",city:"Nouakchott",neighborhood:"Tevragh Zeina",price:60000000,price_eur:91500,surface:200,rooms:4,bathrooms:3,verified:true,agent_name:"Maurimmo",tags:["Quartier huppé","Titre foncier"],bg:"linear-gradient(160deg,#2C2010,#1C1408)",description:"Villa 4 pièces à Tevragh Zeina.",demo:true,features:["Jardin","Parking","Titre foncier"]},
   {id:17,title:"Villa Gombe Brazzaville",type:"Vente",country:"Congo",city:"Brazzaville",neighborhood:"Gombe",price:85000000,price_eur:129625,surface:220,rooms:5,bathrooms:3,verified:true,agent_name:"Congo Immo",tags:["Vue fleuve","Titre foncier"],bg:"linear-gradient(160deg,#1A1E2C,#0E1018)",description:"Villa 5 pièces vue fleuve Congo.",demo:true,features:["Piscine","Jardin","Titre foncier"]},
   {id:18,title:"Local commercial Ouagadougou",type:"Commercial",country:"Burkina Faso",city:"Ouagadougou",neighborhood:"Zogona",price:800000,price_eur:1220,surface:60,verified:false,agent_name:"Particulier",tags:["Vitrine","Rue passante"],bg:"linear-gradient(160deg,#2C2C2C,#1C1C1C)",description:"Local commercial 60m² en zone commerçante.",demo:true,features:["Parking"]},
   {id:19,title:"Villa Niamey Plateau",type:"Vente",country:"Niger",city:"Niamey",neighborhood:"Plateau",price:50000000,price_eur:76250,surface:180,rooms:4,bathrooms:2,verified:true,agent_name:"Niger Immo",tags:["Résidentiel","Titre foncier"],bg:"linear-gradient(160deg,#2C1C10,#1C1008)",description:"Belle villa 4 pièces au Plateau.",demo:true,features:["Jardin","Parking","Titre foncier"]},
@@ -1066,7 +1065,7 @@ export default function App() {
 
             {/* Stats */}
             <div style={{display:"flex",background:C.white,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px"}}>
-              {[[ALL_PROPS.length+"+","Biens"],["17","Pays"],["100%","Annonces modérées"],["Gratuit","Publication"]].map(([v,l],i)=>(
+              {[[ALL_PROPS.length+"+","Biens"],["12","Pays"],["100%","Annonces modérées"],["Gratuit","Publication"]].map(([v,l],i)=>(
                 <div key={l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
                   <div style={{fontSize:"19px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
                   <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{l}</div>
@@ -1109,14 +1108,15 @@ export default function App() {
               <div style={{fontSize:"15px",color:"rgba(255,255,255,0.8)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
               {["Afrique de l'Ouest","Afrique Centrale"].map(region=>{
                 const regionKey = region==="Afrique de l'Ouest"?"Ouest":"Centrale";
+                const devise = regionKey==="Ouest"?"Franc CFA UEMOA":"Franc CFA CEMAC";
                 const pays = COUNTRIES.filter(c=>c.region===regionKey);
                 if(!pays.length) return null;
                 return(
                   <div key={region} style={{marginBottom:"14px"}}>
-                    <div style={{fontSize:"11px",fontWeight:700,color:"rgba(212,160,23,0.8)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px",paddingBottom:"6px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontFamily:F}}>{region}</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+                    <div style={{fontSize:"11px",fontWeight:700,color:"rgba(212,160,23,0.8)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px",paddingBottom:"6px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontFamily:F}}>{region} <span style={{color:"rgba(255,255,255,0.35)",fontWeight:600}}>· {devise}</span></div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"7px"}}>
                       {pays.map(p=>(
-                        <button key={p.name} onClick={()=>{setFilterCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"6px",padding:"5px 10px",fontSize:"13px",fontWeight:600,color:"rgba(255,255,255,0.75)",cursor:"pointer",fontFamily:F}}>
+                        <button key={p.name} onClick={()=>{setFilterCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"8px",padding:"8px 13px",fontSize:"14px",fontWeight:600,color:"rgba(255,255,255,0.82)",cursor:"pointer",fontFamily:F}}>
                           <Flag flag={p.flag}/>{p.name}
                         </button>
                       ))}
