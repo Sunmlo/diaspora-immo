@@ -155,6 +155,24 @@ const Icon = {
 
 // ─── PHOTOS D'ANNONCE ─────────────────────────────
 const MAX_PHOTOS = 10;
+
+// ─── MÉMOIRE DU NAVIGATEUR ────────────────────────
+// Le site oubliait tout au rechargement : session et favoris sont désormais conservés.
+const CLE_SESSION = "sokile.session";
+const CLE_FAVORIS = "sokile.favoris";
+function lireLocal(cle, defaut) {
+  try { const v = localStorage.getItem(cle); return v ? JSON.parse(v) : defaut; } catch(e) { return defaut; }
+}
+function ecrireLocal(cle, valeur) {
+  try { localStorage.setItem(cle, JSON.stringify(valeur)); } catch(e) {}
+}
+function effacerLocal(cle) {
+  try { localStorage.removeItem(cle); } catch(e) {}
+}
+const CONTACT_MAIL = "contact@diasporaimmo.com";
+
+// Personne ne tape les accents sur un clavier de téléphone
+const sansAccent = (s) => String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 const PHOTO_BUCKET = "photos-verified";
 
 // Réduit la photo avant envoi : indispensable sur connexion mobile africaine
@@ -197,6 +215,51 @@ async function envoyerPhotos(files, onProgress) {
     onProgress && onProgress(i + 1, files.length);
   }
   return urls;
+}
+
+
+// ─── ENVOI FIABLE ─────────────────────────────────
+// Toute écriture passe par ici : on lit la réponse, on ne fait plus semblant.
+async function ecrire(table, donnees) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Prefer": "return=representation",
+    },
+    body: JSON.stringify(donnees),
+  });
+  if (res.ok) return { ok: true, data: await res.json().catch(()=>null) };
+  let motif = "";
+  try { const j = await res.json(); motif = j.message || j.hint || j.details || ""; } catch(e) {}
+  return { ok: false, statut: res.status, motif };
+}
+
+// Message compréhensible, sans jargon technique
+function messageErreur(r) {
+  if (r.statut === 401 || r.statut === 403)
+    return "Le serveur a refusé l'enregistrement. Réessayez dans un instant ; si le problème persiste, écrivez-nous à " + CONTACT_MAIL + ".";
+  if (r.statut === 409)
+    return "Cette demande semble avoir déjà été envoyée.";
+  if (r.statut >= 500)
+    return "Le serveur est momentanément indisponible. Réessayez dans quelques minutes.";
+  if (!r.statut)
+    return "Connexion interrompue. Vérifiez votre connexion internet et réessayez.";
+  return "L'enregistrement a échoué" + (r.motif ? ` (${r.motif})` : "") + ". Réessayez, ou écrivez-nous à " + CONTACT_MAIL + ".";
+}
+
+// Bandeau d'erreur réutilisable
+function BandeauErreur({ texte, onRetry }) {
+  if (!texte) return null;
+  return (
+    <div style={{background:"#FDECEA",border:"1px solid #F5C6C2",borderRadius:"9px",padding:"12px 14px",marginBottom:"12px"}}>
+      <div style={{fontSize:"14px",fontWeight:700,color:"#A93226",fontFamily:F,marginBottom:"3px"}}>L'envoi n'a pas abouti</div>
+      <div style={{fontSize:"13.5px",color:"#7B241C",fontFamily:F,lineHeight:1.55}}>{texte}</div>
+      {onRetry&&<button onClick={onRetry} style={{marginTop:"9px",background:"#A93226",color:C.white,border:"none",borderRadius:"8px",padding:"9px 16px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Réessayer</button>}
+    </div>
+  );
 }
 
 // ─── AUTH ─────────────────────────────────────────
@@ -309,6 +372,7 @@ function LoginModal({ onClose, onLogin }) {
 
 // ─── ALERT MODAL ──────────────────────────────────
 function AlertModal({ onClose, filters, user }) {
+  const [erreur, setErreur] = useState("");
   const [email, setEmail] = useState(user?.email||"");
   const [name, setName] = useState(user?.name||"");
   const [sent, setSent] = useState(false);
@@ -316,8 +380,11 @@ function AlertModal({ onClose, filters, user }) {
   const handleSubmit = async () => {
     if (!email) return;
     setLoading(true);
-    try { await fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({name,email,message:`ALERTE: ${JSON.stringify(filters)}`,status:"alerte"})}); } catch(e){}
-    setLoading(false); setSent(true);
+    const r = await ecrire("leads", {name,email,message:`ALERTE: ${JSON.stringify(filters)}`,status:"alerte"})
+      .catch(e=>({ok:false,statut:0,motif:String(e)}));
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    setSent(true);
   };
   return (
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
@@ -341,6 +408,7 @@ function AlertModal({ onClose, filters, user }) {
                   <input type={f.type||"text"} placeholder={f.ph} value={f.val} onChange={e=>f.set(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F}}/>
                 </div>
               ))}
+              <BandeauErreur texte={erreur} onRetry={handleSubmit}/>
               <button onClick={handleSubmit} disabled={!email||loading} style={{width:"100%",background:email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"12px",fontWeight:700,fontSize:"15px",cursor:email?"pointer":"not-allowed",fontFamily:F}}>
                 {loading?"Enregistrement...":"Activer l'alerte email"}
               </button>
@@ -361,6 +429,8 @@ function PartnerModal({ onClose, user, defaultType }) {
   const [photoErr, setPhotoErr] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [manquants, setManquants] = useState([]);
   const fileRef = useRef();
 
   const ajouterPhotos = (liste) => {
@@ -378,39 +448,79 @@ function PartnerModal({ onClose, user, defaultType }) {
   const mettreEnCouverture = (i) => setPhotos(p => { const c=[...p]; const [x]=c.splice(i,1); return [x,...c]; });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
+  const champ = (k) => manquants.includes(k) ? {...inputStyle, border:"2px solid #C0392B", background:"#FDF3F2"} : inputStyle;
+
+  // Champs indispensables pour qu'une annonce serve à quelque chose
+  const CHAMPS_REQUIS = [
+    ["name","Votre nom"], ["email","Votre email"], ["phone","Votre téléphone"],
+    ["type","Type de bien"], ["title","Titre de l'annonce"],
+    ["country","Pays"], ["city","Ville"], ["price_eur","Prix"], ["description","Description"],
+  ];
+
+  const verifier = () => {
+    const vides = CHAMPS_REQUIS.filter(([k])=>!String(form[k]||"").trim()).map(([k,l])=>({k,l}));
+    if (type==="pro" && !String(form.agency||"").trim()) vides.push({k:"agency",l:"Nom de l'agence"});
+    if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(form.email)) vides.push({k:"email",l:"Email (format invalide)"});
+    if (form.price_eur && !(parseInt(form.price_eur)>0)) vides.push({k:"price_eur",l:"Prix (doit être supérieur à 0)"});
+    if (String(form.description||"").trim().length>0 && String(form.description).trim().length<30)
+      vides.push({k:"description",l:"Description (30 caractères minimum)"});
+    if (!photos.length) vides.push({k:"photos",l:"Au moins une photo"});
+    return vides;
+  };
 
   const handleSubmit = async () => {
-    if (!form.name||!form.email||(type==="pro"&&!form.agency)) return;
+    setErreur("");
+    const vides = verifier();
+    setManquants(vides.map(v=>v.k));
+    if (vides.length) {
+      setErreur("Complétez les champs suivants : " + vides.map(v=>v.l).join(", ") + ".");
+      const el = document.querySelector("[data-modal-scroll]");
+      if (el) el.scrollTo({top:0,behavior:"smooth"});
+      return;
+    }
     setLoading(true);
     let urlsPhotos = [];
     try {
-      if (photos.length) {
-        setEnvoiPhoto(`Envoi des photos… 0/${photos.length}`);
-        urlsPhotos = await envoyerPhotos(photos.map(p=>p.file), (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
-        setEnvoiPhoto("");
-      }
+      setEnvoiPhoto(`Envoi des photos… 0/${photos.length}`);
+      urlsPhotos = await envoyerPhotos(photos.map(p=>p.file), (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
+      setEnvoiPhoto("");
     } catch(e){ setEnvoiPhoto(""); }
-    try {
-      // Sauvegarder dans properties avec status en_attente
-      await fetch(`${SUPABASE_URL}/rest/v1/properties`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({
-        user_email:form.email, user_name:form.name, user_phone:`${form.phoneCode}${form.phone}`,
-        title:form.title||`${form.type} - ${form.city}`, type:form.type||type,
-        country:form.country, city:form.city, neighborhood:form.neighborhood,
-        description:form.description, price_eur:parseInt(form.price_eur)||null,
-        price_xof:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
-        rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
-        features:form.features||[], status:"en_attente", advertiser_type:type,
-        agency_name:form.agency||null, photos:urlsPhotos,
-      })});
-      // Notifier dans leads aussi
-      await fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | Type: ${type} | ${form.type} | ${form.country} - ${form.city} | Prix: ${form.price_eur}€ | ${urlsPhotos.length} photo(s) | ${form.description}`,status:"annonce_en_attente"})});
-    } catch(e){}
+
+    if (!urlsPhotos.length) {
+      setLoading(false);
+      setErreur("Vos photos n'ont pas pu être envoyées. Vérifiez votre connexion et réessayez ; rien n'a été perdu, votre annonce est toujours là.");
+      return;
+    }
+    if (urlsPhotos.length < photos.length) {
+      setEnvoiPhoto(`${photos.length - urlsPhotos.length} photo(s) n'ont pas pu être envoyées, l'annonce continue avec ${urlsPhotos.length}.`);
+    }
+
+    const r = await ecrire("properties", {
+      user_email:form.email, user_name:form.name, user_phone:`${form.phoneCode}${form.phone}`,
+      title:form.title, type:form.type,
+      country:form.country, city:form.city, neighborhood:form.neighborhood,
+      description:form.description, price_eur:parseInt(form.price_eur)||null,
+      price_xof:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
+      rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
+      features:form.features||[], status:"en_attente", advertiser_type:type,
+      agency_name:form.agency||null, photos:urlsPhotos,
+    }).catch(e=>({ok:false,statut:0,motif:String(e)}));
+
+    if (!r.ok) {
+      setLoading(false);
+      setErreur(messageErreur(r));
+      return;   // le formulaire reste rempli
+    }
+
+    // trace interne, sans conséquence pour l'utilisateur si elle échoue
+    ecrire("leads", {name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | ${type} | ${form.type} | ${form.country} - ${form.city} | ${form.price_eur}€ | ${urlsPhotos.length} photo(s)`,status:"annonce_en_attente"}).catch(()=>{});
+
     setLoading(false); setSent(true);
   };
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
-      <div style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+      <div data-modal-scroll style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:C.terra,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>Publier une annonce{type==="pro"?" · Professionnel":type==="particulier"?" · Particulier":""}</h2>
@@ -448,7 +558,7 @@ function PartnerModal({ onClose, user, defaultType }) {
               {type==="pro"&&(
                 <div style={{marginBottom:"10px"}}>
                   <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
-                  <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={inputStyle}/>
+                  <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={champ("agency")}/>
                 </div>
               )}
               {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
@@ -463,19 +573,19 @@ function PartnerModal({ onClose, user, defaultType }) {
                   <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
                     {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                   </select>
-                  <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...inputStyle,flex:1}}/>
+                  <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...champ("phone"),flex:1}}/>
                 </div>
               </div>
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
-                <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...inputStyle}}>
+                <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...champ("country")}}>
                   {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               {/* Type de bien */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Type de bien *</label>
-                <select value={form.type||""} onChange={e=>set("type",e.target.value)} style={{...inputStyle}}>
+                <select value={form.type||""} onChange={e=>set("type",e.target.value)} style={{...champ("type")}}>
                   <option value="">Sélectionner...</option>
                   {["Vente","Location","Terrain","Commercial","Agricole"].map(t=><option key={t}>{t}</option>)}
                 </select>
@@ -483,13 +593,13 @@ function PartnerModal({ onClose, user, defaultType }) {
               {/* Titre */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
-                <input placeholder="Ex: Villa 4 pièces avec piscine à Cocody" value={form.title||""} onChange={e=>set("title",e.target.value)} style={inputStyle}/>
+                <input placeholder="Ex: Villa 4 pièces avec piscine à Cocody" value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
               </div>
               {/* Ville + Quartier */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
                 <div>
                   <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Ville *</label>
-                  <input placeholder="Ex: Abidjan" value={form.city||""} onChange={e=>set("city",e.target.value)} style={inputStyle}/>
+                  <input placeholder="Ex: Abidjan" value={form.city||""} onChange={e=>set("city",e.target.value)} style={champ("city")}/>
                 </div>
                 <div>
                   <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Quartier</label>
@@ -501,7 +611,7 @@ function PartnerModal({ onClose, user, defaultType }) {
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prix</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
                   <div style={{position:"relative"}}>
-                    <input type="number" placeholder="Prix en €" value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...inputStyle,paddingRight:"28px"}}/>
+                    <input type="number" placeholder="Prix en €" value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...champ("price_eur"),paddingRight:"28px"}}/>
                     <span style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",fontSize:"13px",color:C.sub,fontFamily:F}}>€</span>
                   </div>
                   <div style={{position:"relative"}}>
@@ -545,10 +655,10 @@ function PartnerModal({ onClose, user, defaultType }) {
               {/* Description */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
-                <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...inputStyle,resize:"vertical"}}/>
+                <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
                 {photos.length>0&&(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:"8px",marginBottom:"10px"}}>
                     {photos.map((ph,i)=>(
@@ -573,9 +683,13 @@ function PartnerModal({ onClose, user, defaultType }) {
                 {photoErr&&<div style={{marginTop:"6px",fontSize:"13px",color:C.terra,fontWeight:600,fontFamily:F}}>{photoErr}</div>}
                 {envoiPhoto&&<div style={{marginTop:"6px",fontSize:"13px",color:C.forest,fontWeight:700,fontFamily:F}}>{envoiPhoto}</div>}
               </div>
-              <button onClick={handleSubmit} disabled={!form.name||!form.email||loading} style={{width:"100%",background:form.name&&form.email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:form.name&&form.email?"pointer":"not-allowed",fontFamily:F}}>
-                {loading?"Envoi en cours...":"Envoyer ma demande"}
+              <BandeauErreur texte={erreur} onRetry={erreur&&!manquants.length?handleSubmit:null}/>
+              <button onClick={handleSubmit} disabled={loading} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
+                {loading?(envoiPhoto||"Envoi en cours…"):"Publier mon annonce"}
               </button>
+              <p style={{margin:"10px 0 0",fontSize:"12.5px",color:C.sub,fontFamily:F,textAlign:"center",lineHeight:1.5}}>
+                Votre annonce est vérifiée par Sokilé avant publication. Les champs marqués * sont obligatoires.
+              </p>
             </>
           )}
         </div>
@@ -584,12 +698,105 @@ function PartnerModal({ onClose, user, defaultType }) {
   );
 }
 
+
+
+// ─── SIGNALER UNE ANNONCE ─────────────────────────
+// Obligation d'hébergeur : permettre à chacun de signaler un contenu illicite.
+const MOTIFS_SIGNALEMENT = [
+  "Le bien n'existe pas / annonce fictive",
+  "Prix manifestement trompeur",
+  "Photos qui ne correspondent pas au bien",
+  "Demande d'argent avant toute visite",
+  "Coordonnées injoignables",
+  "Contenu choquant ou illégal",
+  "Autre",
+];
+
+function SignalerModal({ p, onClose }) {
+  const [motif, setMotif] = useState("");
+  const [detail, setDetail] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  const envoyer = async () => {
+    if (!motif) return;
+    setErreur(""); setLoading(true);
+    const idBrut = String(p.id).replace(/^db-/, "");
+    // trace principale, toujours enregistrée
+    const r = await ecrire("leads", {
+      name: "Signalement", email: email || CONTACT_MAIL, status: "signalement",
+      message: `SIGNALEMENT | Annonce #${idBrut} — ${p.title} (${p.city}, ${p.country}) | Motif : ${motif} | ${detail}`,
+    }).catch(e=>({ok:false,statut:0,motif:String(e)}));
+    // table dédiée si elle existe, sans bloquer l'utilisateur
+    ecrire("reports", { property_id: idBrut, reason: motif, details: detail || null, reporter_email: email || null }).catch(()=>{});
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    setSent(true);
+  };
+
+  return (
+    <ModalShell title="Signaler cette annonce" subtitle={p.title} color="#A93226" onClose={onClose}>
+      {sent ? (
+        <SentMessage title="Signalement transmis"
+          text="Merci. Nous examinons cette annonce et la retirons si elle enfreint nos règles. Vous pouvez fermer cette fenêtre." onClose={onClose}/>
+      ) : (<>
+        <p style={{margin:"0 0 14px",fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6}}>
+          Signalez une annonce qui vous paraît frauduleuse, trompeuse ou illégale. Chaque signalement est examiné.
+        </p>
+        <div style={{marginBottom:"12px"}}>
+          <label style={lbl}>Motif *</label>
+          <select style={inp} value={motif} onChange={e=>setMotif(e.target.value)}>
+            <option value="">Choisir…</option>
+            {MOTIFS_SIGNALEMENT.map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:"12px"}}>
+          <label style={lbl}>Précisions</label>
+          <textarea style={{...inp,minHeight:"84px",resize:"vertical"}} value={detail} onChange={e=>setDetail(e.target.value)} placeholder="Ce que vous avez constaté…"/>
+        </div>
+        <div style={{marginBottom:"14px"}}>
+          <label style={lbl}>Votre email (facultatif)</label>
+          <input type="email" style={inp} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Pour que nous puissions vous répondre"/>
+        </div>
+        <BandeauErreur texte={erreur} onRetry={envoyer}/>
+        <button onClick={envoyer} disabled={!motif||loading} style={{width:"100%",background:motif?"#A93226":"#ccc",color:C.white,border:"none",borderRadius:"9px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:motif?"pointer":"default",fontFamily:F}}>
+          {loading?"Envoi…":"Envoyer le signalement"}
+        </button>
+      </>)}
+    </ModalShell>
+  );
+}
+
+// ─── CONTACT DU VENDEUR ───────────────────────────
+// Sokilé n'a pas de téléphone : seul le vendeur en fournit un au dépôt.
+function telPropre(brut) {
+  if (!brut) return "";
+  const n = String(brut).replace(/[^\d+]/g, "");
+  return n.length >= 8 ? n : "";
+}
+function lienWhatsApp(p) {
+  const n = telPropre(p.user_phone).replace(/^\+/, "");
+  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}).`;
+  return n ? `https://wa.me/${n}?text=${encodeURIComponent(txt)}` : null;
+}
+function lienAppel(p) {
+  const n = telPropre(p.user_phone);
+  return n ? `tel:${n}` : null;
+}
+function lienMailSokile(p) {
+  const sujet = `Demande de contact — annonce ${p.title} (${p.city})`;
+  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nMerci,\n`;
+  return `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+}
+
 // ─── PROPERTY CARD ────────────────────────────────
 function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const [hov, setHov] = useState(false);
   const shareWA = (e) => {
-    e.stopPropagation();
-    const txt = `${p.title}\n${p.neighborhood}, ${p.city} ${countryFlag(p.country)}\n${fmtEUR(p.price_eur)}\nSokilé`;
+    e && e.stopPropagation();
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   if (compact) return (
@@ -642,13 +849,16 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
 // ─── PROPERTY MODAL ───────────────────────────────
 function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
   const [img, setImg] = useState(0);
+  const [signaler, setSignaler] = useState(false);
   useEffect(()=>{ setImg(0); }, [p?.id]);
   if (!p) return null;
   const shareWA = () => {
-    const txt = `${p.title}\n${p.neighborhood}, ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\nSokilé`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   return (
+    <>
+    {signaler&&<SignalerModal p={p} onClose={()=>setSignaler(false)}/>}
     <div style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"500px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{height:260,background:p.bg,backgroundImage:p.photos?.[img]?`url('${p.photos[img]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center",borderRadius:"16px 16px 0 0",position:"relative",display:"flex",alignItems:"flex-end",padding:"14px"}}>
@@ -703,15 +913,50 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
               <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.advertiser_type==="pro"?"Professionnel":p.advertiser_type==="particulier"?"Particulier":"Agent certifié Sokilé"}</div>
             </div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"7px"}}>
-            <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent('Bonjour, je suis intéressé(e) par votre annonce : '+p.title+' - '+p.city+', '+p.country)}`,'_blank')} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Contacter</button>
+          {/* Mise en relation avec l'annonceur */}
+          {(() => {
+            const wa = lienWhatsApp(p), tel = lienAppel(p);
+            if (p.demo) return (
+              <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"14px",marginBottom:"10px",textAlign:"center"}}>
+                <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.55}}>Annonce de démonstration : il n'y a pas d'annonceur à contacter.</div>
+              </div>
+            );
+            if (wa || tel) return (
+              <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px",marginBottom:"10px"}}>
+                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"10px"}}>Contacter l'annonceur{p.user_name?` · ${p.user_name}`:""}</div>
+                <div style={{display:"grid",gridTemplateColumns:wa&&tel?"1fr 1fr":"1fr",gap:"8px"}}>
+                  {wa&&<a href={wa} target="_blank" rel="noopener noreferrer" style={{background:"#25D366",color:C.white,borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14px",fontFamily:F,textDecoration:"none",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:"7px"}}>{Icon.wa}WhatsApp</a>}
+                  {tel&&<a href={tel} style={{background:C.terra,color:C.white,borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14px",fontFamily:F,textDecoration:"none",textAlign:"center"}}>Appeler</a>}
+                </div>
+                <a href={lienMailSokile(p)} style={{display:"block",textAlign:"center",marginTop:"9px",fontSize:"13px",color:C.forest,fontFamily:F,fontWeight:600}}>Passer par Sokilé</a>
+              </div>
+            );
+            return (
+              <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px",marginBottom:"10px",textAlign:"center"}}>
+                <div style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55,marginBottom:"10px"}}>L'annonceur n'a pas laissé de numéro. Écrivez-nous et nous transmettons votre demande.</div>
+                <a href={lienMailSokile(p)} style={{display:"inline-block",background:C.forest,color:C.white,borderRadius:"9px",padding:"12px 22px",fontWeight:700,fontSize:"14px",fontFamily:F,textDecoration:"none"}}>Écrire à Sokilé</a>
+              </div>
+            );
+          })()}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
             <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
-            <button onClick={shareWA} style={{background:"#25D366",color:C.white,border:"none",borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>WhatsApp</button>
+            <button onClick={shareWA} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Partager</button>
           </div>
           {onVerify&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
+          {!p.demo&&(
+            <div style={{marginTop:"14px",paddingTop:"13px",borderTop:`1px solid ${C.sand}`}}>
+              <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"9px",padding:"11px 13px",marginBottom:"10px"}}>
+                <div style={{fontSize:"13px",color:"#6D4C1B",fontFamily:F,lineHeight:1.55}}>
+                  <strong>Prudence.</strong> Sokilé met en relation mais n'intervient pas dans la transaction. Ne versez jamais d'argent avant d'avoir visité le bien ou fait vérifier le titre foncier.
+                </div>
+              </div>
+              <button onClick={()=>setSignaler(true)} style={{width:"100%",background:"transparent",color:"#A93226",border:"none",padding:"8px",fontWeight:600,fontSize:"13.5px",cursor:"pointer",fontFamily:F,textDecoration:"underline"}}>Signaler cette annonce</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -778,17 +1023,19 @@ function ServiceFormModal({ onClose }) {
   const [f, setF] = useState({name:"",spec:"",pays:[],email:"",phoneCode:"+221",phone:"",site:"",zones:"",tarifs:"",desc:""});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [erreur, setErreur] = useState("");
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const togglePays = n => set("pays", f.pays.includes(n)?f.pays.filter(x=>x!==n):[...f.pays,n]);
   const ok = f.name && f.spec && f.email && f.pays.length>0;
   const submit = async () => {
     if (!ok) return;
-    setLoading(true);
-    try {
-      await sendLead({name:f.name,email:f.email,phone:`${f.phoneCode}${f.phone}`,status:"prestataire",
-        message:`DEMANDE PRESTATAIRE | Spécialité: ${f.spec} | Pays: ${f.pays.join(", ")} | Zones: ${f.zones} | Tarifs: ${f.tarifs} | Site: ${f.site} | ${f.desc}`});
-    } catch(e){}
-    setLoading(false); setSent(true);
+    setErreur(""); setLoading(true);
+    const r = await ecrire("leads", {name:f.name,email:f.email,phone:`${f.phoneCode}${f.phone}`,status:"prestataire",
+      message:`DEMANDE PRESTATAIRE | Spécialité: ${f.spec} | Pays: ${f.pays.join(", ")} | Zones: ${f.zones} | Tarifs: ${f.tarifs} | Site: ${f.site} | ${f.desc}`})
+      .catch(e=>({ok:false,statut:0,motif:String(e)}));
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    setSent(true);
   };
   return (
     <ModalShell title="Rejoindre l'annuaire" subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
@@ -819,6 +1066,7 @@ function ServiceFormModal({ onClose }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Site web</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Tarifs indicatifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Ex : à partir de 150 000 FCFA"/></div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Présentation</label><textarea rows={4} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Vos services, votre expérience, vos références…"/></div>
+        <BandeauErreur texte={erreur} onRetry={submit}/>
         <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
     </ModalShell>
@@ -830,16 +1078,18 @@ function PubFormModal({ onClose }) {
   const [f, setF] = useState({name:"",company:"",email:"",phoneCode:"+221",phone:"",format:"",message:""});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [erreur, setErreur] = useState("");
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const ok = f.name && f.email && f.format;
   const submit = async () => {
     if (!ok) return;
-    setLoading(true);
-    try {
-      await sendLead({name:f.name,email:f.email,phone:`${f.phoneCode}${f.phone}`,status:"publicite",
-        message:`DEMANDE PUBLICITÉ | Société: ${f.company} | Format: ${f.format} | ${f.message}`});
-    } catch(e){}
-    setLoading(false); setSent(true);
+    setErreur(""); setLoading(true);
+    const r = await ecrire("leads", {name:f.name,email:f.email,phone:`${f.phoneCode}${f.phone}`,status:"publicite",
+      message:`DEMANDE PUBLICITÉ | Société: ${f.company} | Format: ${f.format} | ${f.message}`})
+      .catch(e=>({ok:false,statut:0,motif:String(e)}));
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    setSent(true);
   };
   return (
     <ModalShell title="Faire de la publicité" subtitle="Présentez votre activité aux acheteurs et vendeurs" color={C.gold} onClose={onClose}>
@@ -862,6 +1112,7 @@ function PubFormModal({ onClose }) {
           </select>
         </div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Votre message</label><textarea rows={3} style={{...inp,resize:"vertical"}} value={f.message} onChange={e=>set("message",e.target.value)} placeholder="Votre activité, votre budget, la période souhaitée…"/></div>
+        <BandeauErreur texte={erreur} onRetry={submit}/>
         <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.gold:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
     </ModalShell>
@@ -1028,15 +1279,21 @@ function SiteFooter({ onNav, onPub }) {
           <button onClick={()=>onNav("prestataires")} style={link}>Trouver un prestataire</button>
           <button onClick={onPub} style={link}>Publier un bien</button>
         </div>
+        <div style={{flex:"0 1 165px"}}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Informations</div>
+          <a href="/mentions-legales.html" style={link}>Mentions légales</a>
+          <a href="/confidentialite.html" style={link}>Confidentialité</a>
+          <a href="/cgu.html" style={link}>Conditions d&apos;utilisation</a>
+        </div>
         <div style={{flex:"0 1 200px"}}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Nous contacter</div>
-          <a href="mailto:contact@diasporaimmo.com" style={{...link,color:"#E8A07E",fontWeight:600,wordBreak:"break-word"}}>contact@diasporaimmo.com</a>
+          <a href={`mailto:${CONTACT_MAIL}`} style={{...link,color:"#E8A07E",fontWeight:600,wordBreak:"break-word"}}>{CONTACT_MAIL}</a>
           <a href="https://www.sokile.com" style={link}>www.sokile.com</a>
         </div>
       </div>
       <div style={{maxWidth:"1200px",margin:"26px auto 0",paddingTop:"18px",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",flexWrap:"wrap",gap:"8px 18px",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>© 2026 Sokilé — Tous droits réservés</div>
-        <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Annonces modérées avant publication</div>
+        <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Sokilé met en relation et n&apos;intervient pas dans les transactions</div>
       </div>
     </footer>
   );
@@ -1044,7 +1301,7 @@ function SiteFooter({ onNav, onPub }) {
 
 export default function App() {
   const [tab, setTab] = useState("accueil");
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => lireLocal(CLE_SESSION, null));
   const [selectedProp, setSelectedProp] = useState(null);
   const [filterCountry, setFilterCountry] = useState("Tous");
   const [filterType, setFilterType] = useState("Tous");
@@ -1064,7 +1321,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
-  const [savedProps, setSavedProps] = useState([]);
+  const [savedProps, setSavedProps] = useState(() => lireLocal(CLE_FAVORIS, []));
   const [animIn, setAnimIn] = useState(true);
   const [showPub, setShowPub] = useState(false);
   const [dbProps, setDbProps] = useState([]);
@@ -1073,12 +1330,16 @@ export default function App() {
 
   // Annonces réelles validées (status = validee)
   useEffect(()=>{
-    fetch(`${SUPABASE_URL}/rest/v1/properties?status=eq.validee&select=id,title,type,country,city,neighborhood,description,price_eur,price_xof,surface,rooms,bathrooms,features,advertiser_type,agency_name,photos`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+    fetch(`${SUPABASE_URL}/rest/v1/properties?status=eq.validee&select=id,title,type,country,city,neighborhood,description,price_eur,price_xof,surface,rooms,bathrooms,features,advertiser_type,agency_name,photos,user_phone,user_name,created_at`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
       .then(r=>r.ok?r.json():[])
       .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price_xof||0,features:r.features||[],tags:r.features||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:false,agent_name:r.agency_name||"Particulier"}))); })
       .catch(()=>{});
   },[]);
   const ALL_PROPS = [...dbProps, ...PROPERTIES];
+
+  // On garde session et favoris d'une visite à l'autre
+  useEffect(()=>{ user ? ecrireLocal(CLE_SESSION, user) : effacerLocal(CLE_SESSION); }, [user]);
+  useEffect(()=>{ ecrireLocal(CLE_FAVORIS, savedProps); }, [savedProps]);
 
   const types = ["Tous","Vente","Location","Terrain","Commercial"];
   const rooms = ["Tous","1+","2+","3+","4+","5+"];
@@ -1094,7 +1355,8 @@ export default function App() {
     const mc=filterCountry==="Tous"||p.country===filterCountry;
     const mr=filterRegion==="Tous"||filteredCountries.map(c=>c.name).includes(p.country);
     const mt=filterType==="Tous"||p.type===filterType;
-    const ms=!search||[p.title,p.city,p.country,p.neighborhood].some(s=>s?.toLowerCase().includes(search.toLowerCase()));
+    const q=sansAccent(search);
+    const ms=!q||[p.title,p.city,p.country,p.neighborhood,p.description,p.agency_name].some(s=>sansAccent(s).includes(q));
     const mpMin=!filterPriceMin||p.price_eur>=parseInt(filterPriceMin);
     const mpMax=!filterPriceMax||p.price_eur<=parseInt(filterPriceMax);
     const msMin=!filterSurfaceMin||!p.surface||(p.surface>=parseInt(filterSurfaceMin));
@@ -1104,7 +1366,17 @@ export default function App() {
     const mv=!filterVerified||p.verified;
     return mc&&mr&&mt&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq&&mv;
   });
-  filtered=[...filtered].sort((a,b)=>sortBy==="price_asc"?a.price_eur-b.price_eur:sortBy==="price_desc"?b.price_eur-a.price_eur:sortBy==="surface_asc"?(a.surface||0)-(b.surface||0):sortBy==="surface_desc"?(b.surface||0)-(a.surface||0):b.id-a.id);
+  // "Plus récent" : les vraies annonces d'abord, puis par date de dépôt
+  const quand = (x) => x.created_at ? new Date(x.created_at).getTime() : 0;
+  const estReelle = (x) => !x.demo;
+  filtered=[...filtered].sort((a,b)=>{
+    if (sortBy==="price_asc")    return (a.price_eur||0)-(b.price_eur||0);
+    if (sortBy==="price_desc")   return (b.price_eur||0)-(a.price_eur||0);
+    if (sortBy==="surface_asc")  return (a.surface||0)-(b.surface||0);
+    if (sortBy==="surface_desc") return (b.surface||0)-(a.surface||0);
+    if (estReelle(a)!==estReelle(b)) return estReelle(a) ? -1 : 1;
+    return quand(b)-quand(a);
+  });
 
   const switchTab = t=>{setAnimIn(false);setTimeout(()=>{setTab(t);setAnimIn(true);},150);};
   const handleSave = (p) => {
@@ -1547,7 +1819,7 @@ button,input,select,textarea{font-size:inherit}
                     </div>
                 </div>
                 <button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
-                <button onClick={()=>setUser(null)} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
+                <button onClick={()=>{setUser(null);effacerLocal(CLE_SESSION);}} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
               </>
             )}
           </div>
