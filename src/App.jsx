@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 
 const C = {
-  // Charte Sokilé (identique à la page Qui sommes-nous)
-  terra: "#B85C3A", gold: "#C9A84C", earth: "#8B5E3C",
-  forest: "#1A3C2E", forestMid: "#2D5E45", forestDark: "#0D2019",
-  cream: "#F5F0E8", light: "#FFFFFF", sand: "#E8DFD0",
-  dark: "#1C1A17", muted: "#7A7264", sub: "#8F8676", white: "#FFFFFF",
+  // Charte Sokilé — Afrique contemporaine : chaleureuse, premium et accessible
+  terra: "#C86642", gold: "#C9A55A", earth: "#8B5E3C",
+  forest: "#17382C", forestMid: "#244C3C", forestDark: "#10271F",
+  cacao: "#3A2923", cream: "#F7F1E8", light: "#FFFDF9", sand: "#E7D8C6",
+  dark: "#211C19", muted: "#746A62", sub: "#8C7F75", white: "#FFFFFF",
   success: "#2E7D32", successBg: "#E8F5E9",
 };
 
@@ -834,7 +834,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
-        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F}}>Vérifié</div>}
+        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</div>}
         <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
           <span style={{background:typeColor(p.type),color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"3px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:"5px"}}>
@@ -888,7 +888,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
           <div style={{position:"relative",zIndex:1}}>
             <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
-            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",fontFamily:F}}>Vérifié</span>}
+            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}
           </div>
         </div>
         {p.photos?.length>1&&(
@@ -1023,7 +1023,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires 
             <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
               <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
               {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}
-              {p.verified&&<span style={{background:"rgba(46,125,50,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Vérifié</span>}
+              {p.verified&&<span style={{background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}
             </div>
             {photos.length>1&&(<>
               <button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>‹</button>
@@ -1364,9 +1364,9 @@ function HeroCarousel({ search, setSearch, onSearch }) {
         transition:"opacity 0.5s ease",
       }}/>
       {/* Overlay */}
-      <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,rgba(8,20,12,0.78) 0%,rgba(26,60,46,0.7) 50%,rgba(196,98,45,0.3) 100%)"}}/>
-      {/* Ligne dorée bas */}
-      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#D4A017 30%,#D4A017 70%,transparent)",zIndex:2}}/>
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(120deg,rgba(16,39,31,0.92) 0%,rgba(23,56,44,0.78) 55%,rgba(200,102,66,0.42) 100%)"}}/>
+      {/* Ligne terre cuite bas */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"3px",background:`linear-gradient(90deg,transparent,${C.terra} 30%,${C.terra} 70%,transparent)`,zIndex:2}}/>
       {/* Label pays */}
       {/* Dots */}
       <div style={{position:"absolute",bottom:16,right:"max(18px, calc(50vw - 590px))",display:"flex",gap:"6px",zIndex:2}}>
@@ -1376,18 +1376,19 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       </div>
       {/* Contenu */}
       <div className="sok-hero-in" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",zIndex:1}}>
-        <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
-        <h1 style={{margin:"0 0 22px",color:C.white,fontFamily:FT,fontSize:"clamp(26px,4.8vw,50px)",fontWeight:300,lineHeight:1.1,letterSpacing:"-0.02em",textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>
-          Votre patrimoine en Afrique,<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>où que vous soyez</em>
+        <div style={{fontSize:"11px",fontWeight:700,color:"#E0C680",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique francophone</div>
+        <h1 style={{margin:"0 0 10px",color:C.white,fontFamily:FT,fontSize:"clamp(28px,4.8vw,52px)",fontWeight:300,lineHeight:1.08,letterSpacing:"-0.03em",textShadow:"0 2px 10px rgba(0,0,0,0.38)"}}>
+          Trouvez votre prochain bien<br/><em style={{color:"#E8A07E",fontStyle:"italic",fontWeight:300}}>en Afrique.</em>
         </h1>
-        <div className="sok-search" style={{background:C.white,borderRadius:"16px",boxShadow:"0 14px 44px rgba(0,0,0,0.42), 0 0 0 4px rgba(201,168,76,0.35)",maxWidth:"700px",padding:"16px 16px 17px"}}>
-          <div style={{fontSize:"13px",fontWeight:700,color:C.forest,fontFamily:F,marginBottom:"10px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
+        <p style={{margin:"0 0 22px",color:"rgba(255,255,255,0.78)",fontSize:"14px",fontFamily:F}}>Des annonces en FCFA et en euros. Contactez directement l'annonceur.</p>
+        <div className="sok-search" style={{background:C.light,borderRadius:"14px",boxShadow:"0 14px 40px rgba(0,0,0,0.34)",maxWidth:"760px",padding:"14px 14px 15px"}}>
+          <div style={{fontSize:"13px",fontWeight:700,color:C.cacao,fontFamily:F,marginBottom:"9px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
           <div className="sok-search-row" style={{display:"flex",gap:"10px"}}>
-            <div style={{flex:1,display:"flex",alignItems:"center",gap:"10px",background:C.cream,border:`2px solid ${C.sand}`,borderRadius:"11px",padding:"0 15px",minWidth:0}}>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:"10px",background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"0 15px",minWidth:0}}>
               <span style={{color:C.terra,flexShrink:0,display:"flex"}}>{Icon.search}</span>
               <input type="text" placeholder="Dakar, Abidjan, Sénégal..." value={search} onChange={e=>setSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSearch()} style={{flex:1,border:"none",outline:"none",fontSize:"17px",fontWeight:500,color:C.dark,background:"transparent",fontFamily:F,padding:"16px 0",minWidth:0}}/>
             </div>
-            <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",borderRadius:"11px",padding:"0 30px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap",display:"flex",alignItems:"center",justifyContent:"center",gap:"9px",boxShadow:"0 5px 16px rgba(184,92,58,0.45)",minHeight:"58px"}}>
+            <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",borderRadius:"10px",padding:"0 30px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap",display:"flex",alignItems:"center",justifyContent:"center",gap:"9px",boxShadow:"0 5px 16px rgba(200,102,66,0.32)",minHeight:"58px"}}>
               <span style={{display:"flex"}}>{Icon.searchSm}</span>Rechercher
             </button>
           </div>
@@ -1409,11 +1410,11 @@ function HeroCarousel({ search, setSearch, onSearch }) {
 // ─── ENCART PUBLICITAIRE ──────────────────────────
 function AdSlot({ onClick, style, className }) {
   return (
-    <div className={className} style={{borderRadius:"12px",border:`2px solid ${C.gold}`,background:C.cream,padding:"20px 18px",textAlign:"center",...style}}>
-      <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Espace publicitaire</div>
-      <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,marginBottom:"6px"}}>Votre publicité ici</div>
-      <div style={{fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"14px",lineHeight:1.55}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-      <button onClick={onClick} style={{border:"none",cursor:"pointer",background:C.gold,color:C.white,borderRadius:"9px",padding:"11px 22px",fontSize:"14px",fontWeight:700,fontFamily:F}}>Nous contacter</button>
+    <div className={className} style={{borderRadius:"14px",border:`1px solid ${C.sand}`,background:C.light,padding:"21px 18px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.07)",...style}}>
+      <div style={{fontSize:"10.5px",fontWeight:700,color:C.terra,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"7px"}}>Publicité · Partenaire</div>
+      <div style={{fontFamily:FT,fontSize:"20px",fontWeight:500,color:C.cacao,marginBottom:"6px"}}>Présentez votre marque sur Sokilé</div>
+      <div style={{fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"14px",lineHeight:1.55}}>Adressez-vous aux personnes qui recherchent activement un bien immobilier en Afrique.</div>
+      <button onClick={onClick} style={{border:"none",cursor:"pointer",background:C.cacao,color:C.white,borderRadius:"9px",padding:"11px 22px",fontSize:"14px",fontWeight:700,fontFamily:F}}>Découvrir les formats</button>
     </div>
   );
 }
@@ -1422,12 +1423,12 @@ function AdSlot({ onClick, style, className }) {
 function SiteFooter({ onNav, onPub }) {
   const link = {color:"rgba(255,255,255,0.72)",fontSize:"14px",fontFamily:F,textDecoration:"none",cursor:"pointer",background:"none",border:"none",padding:0,textAlign:"left",lineHeight:1.9,display:"block"};
   return (
-    <footer style={{background:`linear-gradient(160deg,${C.forest},${C.forestDark})`,borderTop:`2px solid ${C.gold}`,marginTop:"32px",padding:"34px 20px calc(96px + env(safe-area-inset-bottom))"}}>
+    <footer style={{background:`linear-gradient(145deg,${C.cacao},#251A16)`,borderTop:`3px solid ${C.terra}`,marginTop:"32px",padding:"34px 20px calc(96px + env(safe-area-inset-bottom))"}}>
       <div style={{maxWidth:"1200px",margin:"0 auto",display:"flex",flexWrap:"wrap",gap:"30px 48px"}}>
         <div style={{flex:"1 1 220px",minWidth:0}}>
-          <div style={{fontSize:"30px",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
+          <div style={{fontSize:"30px",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em"}}>So<span style={{color:"#E8A07E",fontStyle:"italic"}}>ki</span>lé</div>
           <div style={{fontSize:"14px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"10px",lineHeight:1.65,maxWidth:"320px"}}>
-            L'immobilier en Afrique de l'Ouest &amp; Centrale, où que vous soyez.
+            Le réflexe immobilier en Afrique francophone.
           </div>
         </div>
         <div style={{flex:"0 1 150px"}}>
@@ -1568,11 +1569,12 @@ export default function App() {
     setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
   };
 
+  // Navigation volontairement centrée sur les trois actions de la marketplace.
+  // L'annuaire prestataires reste disponible depuis l'accueil et le pied de page.
   const NAV = [
     {id:"accueil",label:"Accueil",icon:Icon.home},
-    {id:"biens",label:"Biens",icon:Icon.search},
-    {id:"prestataires",label:"Prestataires",icon:Icon.group},
-    {id:"pro",label:"Espace pro",icon:Icon.briefcase},
+    {id:"biens",label:"Rechercher",icon:Icon.search},
+    {id:"pro",label:"Publier",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
 
@@ -1638,34 +1640,34 @@ button,input,select,textarea{font-size:inherit}
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
       {/* HEADER */}
-      <header style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(0,0,0,0.25)",borderBottom:`2px solid ${C.gold}`}}>
+      <header style={{background:"rgba(255,253,249,0.97)",backdropFilter:"blur(14px)",position:"sticky",top:0,zIndex:100,boxShadow:"0 5px 20px rgba(58,41,35,0.08)",borderBottom:`1px solid ${C.sand}`}}>
         <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:"78px",gap:"8px",boxSizing:"border-box"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div>
-              <div onClick={()=>switchTab("accueil")} style={{fontSize:"clamp(27px,6.6vw,38px)",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em",cursor:"pointer",whiteSpace:"nowrap"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
-              <div style={{fontSize:"11.5px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"5px",letterSpacing:"0.02em",whiteSpace:"nowrap"}}>L'immobilier en Afrique</div>
+              <div onClick={()=>switchTab("accueil")} style={{fontSize:"clamp(27px,6.6vw,38px)",fontWeight:500,color:C.forest,fontFamily:FT,lineHeight:1,letterSpacing:"-0.03em",cursor:"pointer",whiteSpace:"nowrap"}}>So<span style={{color:C.terra,fontStyle:"italic"}}>ki</span>lé</div>
+              <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F,marginTop:"5px",letterSpacing:"0.02em",whiteSpace:"nowrap"}}>L'immobilier en Afrique</div>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
             {/* Nav desktop uniquement */}
             <nav className="desktop-nav" style={{display:"none",gap:"3px",marginRight:"10px"}}>
               {NAV.map(n=>(
-                <button key={n.id} onClick={()=>switchTab(n.id)} style={{background:tab===n.id?"rgba(255,255,255,0.13)":"transparent",border:"none",color:tab===n.id?C.white:"rgba(255,255,255,0.62)",padding:"9px 14px",borderRadius:"8px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:"7px",fontFamily:F,fontSize:"14px",fontWeight:tab===n.id?700:500,whiteSpace:"nowrap"}}>
-                  <span style={{display:"flex",color:tab===n.id?C.gold:"rgba(255,255,255,0.5)"}}>{n.icon}</span>{n.label}
+                <button key={n.id} onClick={()=>switchTab(n.id)} style={{background:tab===n.id?C.cream:"transparent",border:"none",color:tab===n.id?C.forest:C.sub,padding:"9px 14px",borderRadius:"8px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:"7px",fontFamily:F,fontSize:"14px",fontWeight:tab===n.id?700:500,whiteSpace:"nowrap"}}>
+                  <span style={{display:"flex",color:tab===n.id?C.terra:C.sub}}>{n.icon}</span>{n.label}
                 </button>
               ))}
             </nav>
-            <a href="/about.html" style={{background:C.gold,color:C.forestDark,fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"9px 12px",borderRadius:"8px",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>Qui sommes-nous</a>
+            <a href="/about.html" style={{background:"transparent",color:C.cacao,border:`1px solid ${C.sand}`,fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"9px 12px",borderRadius:"8px"}}>Qui sommes-nous</a>
 
             {user?(
-              <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.1)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
+              <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:C.cream,borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
                 <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
                   {user.name?.slice(0,2).toUpperCase()}
                 </div>
-                <span style={{fontSize:"13px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
+                <span style={{fontSize:"13px",color:C.cacao,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
               </div>
             ):(
-              <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.4)",borderRadius:"8px",padding:"9px 13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
+              <button onClick={()=>setShowLogin(true)} style={{background:C.forest,color:C.white,border:`1px solid ${C.forest}`,borderRadius:"8px",padding:"9px 13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
             )}
           </div>
         </div>
@@ -1711,22 +1713,22 @@ button,input,select,textarea{font-size:inherit}
               {["Tous","Vente","Location","Terrain","Commercial"].map(t=>(
                 <button key={t} onClick={()=>setFilterType(t)} style={chipBase(filterType===t)}>{t}</button>
               ))}
-              <button onClick={()=>setFilterVerified(!filterVerified)} style={chipBase(filterVerified)}>Vérifié</button>
+              <button onClick={()=>setFilterVerified(!filterVerified)} style={chipBase(filterVerified)}>Annonces modérées</button>
             </div>
 
-            {/* Stats */}
-            <div style={{display:"flex",background:C.white,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px"}}>
-              {[[ALL_PROPS.length+"+","Biens"],["12","Pays"],["100%","Annonces modérées"],["Gratuit","Publication"]].map(([v,l],i)=>(
-                <div key={l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
-                  <div style={{fontSize:"19px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
-                  <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{l}</div>
+            {/* Les bénéfices clés remplacent les statistiques tant que la plateforme est en lancement */}
+            <div style={{display:"flex",background:C.light,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px",flexWrap:"wrap"}}>
+              {[["Afrique francophone","Recherche multipays"],["FCFA + euros","Prix faciles à comparer"],["Contact direct","WhatsApp ou téléphone"],["Publication gratuite","Particuliers et professionnels"]].map(([v,l],i)=>(
+                <div key={l} style={{flex:"1 1 170px",padding:"14px 10px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
+                  <div style={{fontSize:"14px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
+                  <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F}}>{l}</div>
                 </div>
               ))}
             </div>
 
             {/* Sélection */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"14px"}}>
-              <h2 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,margin:0}}>Sélection du moment</h2>
+              <h2 style={{fontFamily:FT,fontSize:"22px",fontWeight:500,color:C.cacao,margin:0}}>Annonces récentes</h2>
               <span onClick={()=>switchTab("biens")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
             <div className="sok-grid" style={{marginBottom:"28px"}}>
@@ -1740,7 +1742,7 @@ button,input,select,textarea{font-size:inherit}
                 <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
-                <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.gold,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
+                <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
                 <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
               </div>
             </div>
@@ -1777,12 +1779,12 @@ button,input,select,textarea{font-size:inherit}
               })}
             </div>
 
-            {/* Encart publicitaire — Option A */}
-            <div style={{margin:"16px",borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center"}}>
-              <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
-              <div style={{fontFamily:FT,fontSize:"17px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
-              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-              <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
+            {/* Encart publicitaire */}
+            <div style={{margin:"16px",borderRadius:"14px",border:`1px solid ${C.sand}`,background:C.light,padding:"20px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.06)"}}>
+              <div style={{fontSize:"10.5px",fontWeight:700,color:C.terra,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Publicité · Partenaire</div>
+              <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.cacao,marginBottom:"5px"}}>Présentez votre marque sur Sokilé</div>
+              <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez une audience en recherche active d'un bien immobilier en Afrique.</div>
+              <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.cacao,color:C.white,borderRadius:"8px",padding:"9px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Découvrir les formats</button>
             </div>
           </div>
         )}
@@ -1956,12 +1958,12 @@ button,input,select,textarea{font-size:inherit}
             </div>
 
             <div style={{padding:"16px"}}>
-              {/* Encart pub Option A */}
-              <div style={{borderRadius:"10px",border:`2px solid ${C.gold}`,background:C.cream,padding:"18px",textAlign:"center",marginTop:"8px"}}>
-                <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"5px"}}>Espace publicitaire</div>
-                <div style={{fontFamily:FT,fontSize:"17px",fontWeight:500,color:C.dark,marginBottom:"4px"}}>Votre publicité ici</div>
-                <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
-                <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.white,borderRadius:"7px",padding:"8px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Nous contacter</button>
+              {/* Encart publicitaire */}
+              <div style={{borderRadius:"14px",border:`1px solid ${C.sand}`,background:C.light,padding:"20px",textAlign:"center",marginTop:"8px",boxShadow:"0 10px 26px rgba(58,41,35,0.06)"}}>
+                <div style={{fontSize:"10.5px",fontWeight:700,color:C.terra,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Publicité · Partenaire</div>
+                <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.cacao,marginBottom:"5px"}}>Présentez votre marque sur Sokilé</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Découvrez les emplacements disponibles par pays et par type de recherche.</div>
+                <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.cacao,color:C.white,borderRadius:"8px",padding:"9px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Découvrir les formats</button>
               </div>
 
               {/* Bouton rejoindre annuaire */}
