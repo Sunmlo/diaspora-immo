@@ -700,6 +700,23 @@ function PartnerModal({ onClose, user, defaultType }) {
 
 
 
+
+// ─── ADRESSES DES ANNONCES ────────────────────────
+// Une annonce = une vraie page, partageable sur WhatsApp et indexable.
+const idPublic = (p) => String(p.id).startsWith("db-") ? String(p.id).slice(3) : `demo-${p.id}`;
+const cheminAnnonce = (p) => `/annonce/${idPublic(p)}`;
+const urlAnnonce = (p) => `https://www.sokile.com${cheminAnnonce(p)}`;
+
+function lireRoute() {
+  if (typeof window === "undefined") return { nom: "accueil" };
+  const m = window.location.pathname.match(/^\/annonce\/([^/?#]+)/);
+  return m ? { nom: "annonce", id: decodeURIComponent(m[1]) } : { nom: "accueil" };
+}
+
+function correspond(p, id) {
+  return idPublic(p) === id || String(p.id) === id || String(p.id) === `db-${id}`;
+}
+
 // ─── SIGNALER UNE ANNONCE ─────────────────────────
 // Obligation d'hébergeur : permettre à chacun de signaler un contenu illicite.
 const MOTIFS_SIGNALEMENT = [
@@ -813,7 +830,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   return (
     <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:C.white,borderRadius:"14px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,boxShadow:hov?"0 8px 24px rgba(26,60,46,0.13)":"0 1px 4px rgba(26,60,46,0.05)",transform:hov?"translateY(-3px)":"none",transition:"all 0.22s ease"}}>
-      <div className="sok-card-img" style={{background:p.bg,backgroundImage:p.photos?.[0]?`url('${p.photos[0]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
+      <div className="sok-card-img" style={{backgroundColor:C.forest,backgroundImage:p.photos?.[0]?`url('${p.photos[0]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
         {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
@@ -957,6 +974,147 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
       </div>
     </div>
     </>
+  );
+}
+
+
+// ─── PAGE D'UNE ANNONCE ───────────────────────────
+function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires }) {
+  const [img, setImg] = useState(0);
+  const [signaler, setSignaler] = useState(false);
+  const [copie, setCopie] = useState(false);
+
+  useEffect(()=>{ setImg(0); window.scrollTo(0,0); }, [p?.id]);
+  useEffect(()=>{
+    if (!p) return;
+    document.title = `${p.title} — ${p.city}, ${p.country} | Sokilé`;
+    return () => { document.title = "Sokilé — L'immobilier en Afrique"; };
+  }, [p]);
+
+  if (!p) return null;
+  const photos = p.photos?.length ? p.photos : [];
+  const wa = lienWhatsApp(p), tel = lienAppel(p);
+
+  const partager = async () => {
+    const url = urlAnnonce(p);
+    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}`;
+    if (navigator.share) { try { await navigator.share({title:p.title, text:texte, url}); return; } catch(e) {} }
+    try { await navigator.clipboard.writeText(url); setCopie(true); setTimeout(()=>setCopie(false), 2500); }
+    catch(e) { window.open(`https://wa.me/?text=${encodeURIComponent(texte+"\n"+url)}`,"_blank"); }
+  };
+
+  return (
+    <div style={{paddingBottom:"10px"}}>
+      {signaler&&<SignalerModal p={p} onClose={()=>setSignaler(false)}/>}
+
+      {/* Fil d'ariane */}
+      <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"16px 0 12px",flexWrap:"wrap"}}>
+        <button onClick={onRetour} style={{background:"transparent",border:"none",color:C.terra,fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,padding:0}}>← Retour aux annonces</button>
+        <span style={{color:C.sand}}>·</span>
+        <span style={{fontSize:"13.5px",color:C.sub,fontFamily:F}}><Flag name={p.country} size={15}/>{p.country} · {p.city}</span>
+      </div>
+
+      <div className="sok-annonce">
+        {/* Colonne principale */}
+        <div style={{minWidth:0}}>
+          {/* Galerie */}
+          <div className="sok-annonce-photo" style={{position:"relative",borderRadius:"14px",overflow:"hidden",backgroundColor:C.forest,backgroundImage:photos[img]?`url('${photos[img]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center"}}>
+            {!photos.length&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.5)",fontFamily:F,fontSize:"15px"}}>Pas de photo</div>}
+            <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
+              <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
+              {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}
+              {p.verified&&<span style={{background:"rgba(46,125,50,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Vérifié</span>}
+            </div>
+            {photos.length>1&&(<>
+              <button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>‹</button>
+              <button onClick={()=>setImg(i=>(i+1)%photos.length)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>›</button>
+              <div style={{position:"absolute",bottom:12,right:14,background:"rgba(0,0,0,0.62)",color:C.white,fontSize:"13px",fontWeight:600,padding:"4px 12px",borderRadius:"20px",fontFamily:F}}>{img+1} / {photos.length}</div>
+            </>)}
+          </div>
+          {photos.length>1&&(
+            <div style={{display:"flex",gap:"8px",overflowX:"auto",marginTop:"10px",paddingBottom:"4px"}}>
+              {photos.map((u,i)=>(
+                <div key={i} onClick={()=>setImg(i)} style={{width:88,height:66,flexShrink:0,borderRadius:"9px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center",cursor:"pointer",border:`2px solid ${i===img?C.terra:"transparent"}`,opacity:i===img?1:0.62}}/>
+              ))}
+            </div>
+          )}
+
+          {/* Titre et prix */}
+          <h1 style={{margin:"20px 0 6px",fontFamily:FT,fontSize:"clamp(24px,3.4vw,34px)",fontWeight:500,color:C.dark,lineHeight:1.22}}>{p.title}</h1>
+          <p style={{margin:"0 0 14px",color:C.sub,fontSize:"15px",fontFamily:F}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</p>
+          <div style={{display:"flex",alignItems:"baseline",gap:"12px",flexWrap:"wrap",marginBottom:"18px"}}>
+            <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{fmtEUR(p.price_eur)}</span>
+            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</span>
+          </div>
+
+          {/* Caractéristiques */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:"9px",marginBottom:"20px"}}>
+            {[["Surface",p.surface?`${new Intl.NumberFormat("fr-FR").format(p.surface)} m²`:"—"],["Pièces",p.rooms||"—"],["Salles de bain",p.bathrooms||"—"],["Type",p.type||"—"]].map(([l,v])=>(
+              <div key={l} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"13px"}}>
+                <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"3px"}}>{l}</div>
+                <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          {p.description&&(<>
+            <h2 style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark,margin:"0 0 9px"}}>Description</h2>
+            <p style={{margin:"0 0 20px",fontSize:"16px",lineHeight:1.72,color:C.dark,fontFamily:F,whiteSpace:"pre-line"}}>{p.description}</p>
+          </>)}
+
+          {p.features?.length>0&&(<>
+            <h2 style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark,margin:"0 0 9px"}}>Équipements</h2>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginBottom:"20px"}}>
+              {p.features.map(f=><span key={f} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"8px 15px",fontSize:"14px",color:C.dark,fontFamily:F}}>{f}</span>)}
+            </div>
+          </>)}
+
+          {!p.demo&&(
+            <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"11px",padding:"14px 16px",marginBottom:"14px"}}>
+              <div style={{fontSize:"14px",color:"#6D4C1B",fontFamily:F,lineHeight:1.6}}>
+                <strong>Prudence.</strong> Sokilé met en relation mais n'intervient pas dans la transaction. Ne versez jamais d'argent avant d'avoir visité le bien ou fait vérifier le titre foncier par un professionnel.
+              </div>
+            </div>
+          )}
+          {!p.demo&&<button onClick={()=>setSignaler(true)} style={{background:"transparent",color:"#A93226",border:"none",padding:"6px 0",fontWeight:600,fontSize:"13.5px",cursor:"pointer",fontFamily:F,textDecoration:"underline"}}>Signaler cette annonce</button>}
+        </div>
+
+        {/* Colonne de contact */}
+        <aside className="sok-annonce-aside">
+          <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"18px",boxShadow:"0 4px 18px rgba(26,60,46,0.07)"}}>
+            {p.demo ? (
+              <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6,textAlign:"center"}}>Annonce de démonstration : il n'y a pas d'annonceur à contacter.</div>
+            ) : (<>
+              <div style={{fontSize:"11.5px",fontWeight:700,color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:"4px"}}>Contacter l'annonceur</div>
+              <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"14px"}}>{p.agency_name||p.user_name||"Particulier"}</div>
+              {(wa||tel) ? (<>
+                {wa&&<a href={wa} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",background:"#25D366",color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none",marginBottom:"8px"}}>{Icon.wa}WhatsApp</a>}
+                {tel&&<a href={tel} style={{display:"block",textAlign:"center",background:C.terra,color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none",marginBottom:"8px"}}>Appeler</a>}
+                <a href={lienMailSokile(p)} style={{display:"block",textAlign:"center",fontSize:"13.5px",color:C.forest,fontFamily:F,fontWeight:600,padding:"6px"}}>Passer par Sokilé</a>
+              </>) : (<>
+                <p style={{margin:"0 0 12px",fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6}}>L'annonceur n'a pas laissé de numéro. Écrivez-nous, nous transmettons votre demande.</p>
+                <a href={lienMailSokile(p)} style={{display:"block",textAlign:"center",background:C.forest,color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none"}}>Écrire à Sokilé</a>
+              </>)}
+            </>)}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginTop:"14px",paddingTop:"14px",borderTop:`1px solid ${C.sand}`}}>
+              <button onClick={()=>onSave&&onSave(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>{saved?"Enregistré":"Enregistrer"}</button>
+              <button onClick={partager} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>{copie?"Lien copié !":"Partager"}</button>
+            </div>
+            {onVerify&&!p.demo&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
+          </div>
+        </aside>
+      </div>
+
+      {/* Biens similaires */}
+      {similaires?.length>0&&(
+        <div style={{marginTop:"34px"}}>
+          <h2 style={{fontFamily:FT,fontSize:"22px",fontWeight:500,color:C.dark,margin:"0 0 14px"}}>Autres biens en {p.country}</h2>
+          <div className="sok-grid">
+            {similaires.map(s=><PropertyCard key={s.id} p={s} onClick={onVoir} onSave={onSave} saved={false}/>)}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1303,6 +1461,7 @@ export default function App() {
   const [tab, setTab] = useState("accueil");
   const [user, setUser] = useState(() => lireLocal(CLE_SESSION, null));
   const [selectedProp, setSelectedProp] = useState(null);
+  const [route, setRoute] = useState(lireRoute);
   const [filterCountry, setFilterCountry] = useState("Tous");
   const [filterType, setFilterType] = useState("Tous");
   const [filterPriceMin, setFilterPriceMin] = useState("");
@@ -1336,6 +1495,25 @@ export default function App() {
       .catch(()=>{});
   },[]);
   const ALL_PROPS = [...dbProps, ...PROPERTIES];
+
+  // Le bouton Retour du navigateur ramène à la liste
+  useEffect(()=>{
+    const onPop = () => setRoute(lireRoute());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Ouvrir une annonce : nouvelle adresse, nouvelle entrée dans l'historique
+  const ouvrirAnnonce = (p) => {
+    if (!p) return;
+    window.history.pushState({}, "", cheminAnnonce(p));
+    setRoute({ nom:"annonce", id: idPublic(p) });
+    window.scrollTo(0,0);
+  };
+  const quitterAnnonce = () => {
+    window.history.pushState({}, "", "/");
+    setRoute({ nom:"accueil" });
+  };
 
   // On garde session et favoris d'une visite à l'autre
   useEffect(()=>{ user ? ecrireLocal(CLE_SESSION, user) : effacerLocal(CLE_SESSION); }, [user]);
@@ -1378,7 +1556,13 @@ export default function App() {
     return quand(b)-quand(a);
   });
 
-  const switchTab = t=>{setAnimIn(false);setTimeout(()=>{setTab(t);setAnimIn(true);},150);};
+  const switchTab = t=>{
+    if (typeof window!=="undefined" && window.location.pathname!=="/") {
+      window.history.pushState({}, "", "/");
+      setRoute({nom:"accueil"});
+    }
+    setAnimIn(false); setTimeout(()=>{setTab(t);setAnimIn(true);},150);
+  };
   const handleSave = (p) => {
     if (!user) { setShowLogin(true); return; }
     setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
@@ -1420,7 +1604,13 @@ button,input,select,textarea{font-size:inherit}
 /* la colonne publicitaire, sur ordinateur seulement */
 .sok-aside{display:none}
 
+/* la page d'une annonce */
+.sok-annonce{display:block}
+.sok-annonce-photo{height:260px}
+.sok-annonce-aside{margin-top:20px}
+
 @media(min-width:600px){
+  .sok-annonce-photo{height:380px}
   .sok-grid{grid-template-columns:1fr 1fr}
   .sok-hero{height:420px}
   .sok-hero-in{padding:24px 28px 30px}
@@ -1435,6 +1625,9 @@ button,input,select,textarea{font-size:inherit}
   footer{padding-bottom:44px!important}
 }
 @media(min-width:1024px){
+  .sok-annonce{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
+  .sok-annonce-photo{height:460px}
+  .sok-annonce-aside{margin-top:0;position:sticky;top:100px}
   .sok-biens{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start}
   .sok-aside{display:block;position:sticky;top:100px}
   .sok-ad-inline{display:none}
@@ -1480,8 +1673,35 @@ button,input,select,textarea{font-size:inherit}
 
       <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transform:animIn?"translateY(0)":"translateY(6px)",transition:"all 0.2s ease"}}>
 
+        {/* ── UNE ANNONCE, SUR SA PROPRE PAGE ── */}
+        {route.nom==="annonce"&&(()=>{
+          const bien = ALL_PROPS.find(x=>correspond(x, route.id));
+          if (!bien) return (
+            <div style={{textAlign:"center",padding:"70px 20px"}}>
+              <h1 style={{fontFamily:FT,fontSize:"26px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>
+                {dbProps.length===0 ? "Chargement de l'annonce…" : "Cette annonce n'est plus disponible"}
+              </h1>
+              <p style={{color:C.sub,fontSize:"15px",fontFamily:F,margin:"0 0 20px"}}>
+                {dbProps.length===0 ? "Un instant." : "Elle a peut-être été retirée par son auteur."}
+              </p>
+              <button onClick={quitterAnnonce} style={{background:C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"13px 24px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>Voir toutes les annonces</button>
+            </div>
+          );
+          return (
+            <AnnoncePage
+              p={bien}
+              onRetour={()=>{ quitterAnnonce(); switchTab("biens"); }}
+              onSave={handleSave}
+              saved={savedProps.some(s=>s.id===bien.id)}
+              onVerify={b=>{ quitterAnnonce(); openAnnuaire("Vérification terrain", b.country); }}
+              onVoir={ouvrirAnnonce}
+              similaires={ALL_PROPS.filter(x=>x.country===bien.country && x.id!==bien.id).slice(0,3)}
+            />
+          );
+        })()}
+
         {/* ── ACCUEIL ── */}
-        {tab==="accueil"&&(
+        {route.nom==="accueil"&&tab==="accueil"&&(
           <div>
             {/* Hero Carrousel */}
             <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
@@ -1510,7 +1730,7 @@ button,input,select,textarea{font-size:inherit}
               <span onClick={()=>switchTab("biens")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
             <div className="sok-grid" style={{marginBottom:"28px"}}>
-              {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
+              {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={ouvrirAnnonce} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
 
             {/* CTA */}
@@ -1568,7 +1788,7 @@ button,input,select,textarea{font-size:inherit}
         )}
 
         {/* ── BIENS ── */}
-        {tab==="biens"&&(
+        {route.nom==="accueil"&&tab==="biens"&&(
           <div style={{paddingTop:"20px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
               <h2 style={{fontFamily:FT,fontSize:"23px",fontWeight:500,color:C.dark,margin:0}}>Trouver un bien</h2>
@@ -1657,7 +1877,7 @@ button,input,select,textarea{font-size:inherit}
             <div className="sok-grid">
               {filtered.map((p,i)=>(
                 <div key={p.id} style={{display:"contents"}}>
-                  <PropertyCard p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>
+                  <PropertyCard p={p} onClick={ouvrirAnnonce} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>
                   {i===2&&<AdSlot className="sok-ad-inline" onClick={()=>setShowPub(true)}/>}
                 </div>
               ))}
@@ -1684,7 +1904,7 @@ button,input,select,textarea{font-size:inherit}
         )}
 
         {/* ── PRESTATAIRES (particuliers) ── */}
-        {tab==="prestataires"&&(
+        {route.nom==="accueil"&&tab==="prestataires"&&(
           <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
               <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
@@ -1701,7 +1921,7 @@ button,input,select,textarea{font-size:inherit}
         )}
 
         {/* ── ESPACE PRO ── */}
-        {tab==="pro"&&(
+        {route.nom==="accueil"&&tab==="pro"&&(
           <div>
             {/* Hero Pro */}
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px 16px"}}>
@@ -1753,7 +1973,7 @@ button,input,select,textarea{font-size:inherit}
         )}
 
         {/* ── COMPTE ── */}
-        {tab==="compte"&&(
+        {route.nom==="accueil"&&tab==="compte"&&(
           <div style={{paddingTop:"20px"}}>
             {!user?(
               <div style={{textAlign:"center",padding:"48px 20px"}}>
@@ -1824,7 +2044,7 @@ button,input,select,textarea{font-size:inherit}
             )}
           </div>
         )}
-        {tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"14px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
+        {route.nom==="accueil"&&tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"14px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
       </main>
 
       <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);setShowPartner(true);}}/>
