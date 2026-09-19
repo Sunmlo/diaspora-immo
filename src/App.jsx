@@ -152,6 +152,53 @@ const Icon = {
   wa: <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
 };
 
+
+// ─── PHOTOS D'ANNONCE ─────────────────────────────
+const MAX_PHOTOS = 10;
+const PHOTO_BUCKET = "photos-verified";
+
+// Réduit la photo avant envoi : indispensable sur connexion mobile africaine
+function compresserPhoto(file, maxSide = 1600, qualite = 0.82) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) return resolve(null);
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width: w, height: h } = img;
+      if (Math.max(w, h) > maxSide) {
+        const r = maxSide / Math.max(w, h);
+        w = Math.round(w * r); h = Math.round(h * r);
+      }
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      cv.toBlob(b => resolve(b || file), "image/jpeg", qualite);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+async function envoyerPhotos(files, onProgress) {
+  const urls = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const blob = await compresserPhoto(files[i]);
+      if (!blob) continue;
+      const chemin = `annonces/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}/${chemin}`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "image/jpeg", "x-upsert": "true" },
+        body: blob,
+      });
+      if (res.ok) urls.push(`${SUPABASE_URL}/storage/v1/object/public/${PHOTO_BUCKET}/${chemin}`);
+    } catch (e) { /* on continue avec les suivantes */ }
+    onProgress && onProgress(i + 1, files.length);
+  }
+  return urls;
+}
+
 // ─── AUTH ─────────────────────────────────────────
 async function signUp(email, password, meta) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
@@ -309,16 +356,40 @@ function AlertModal({ onClose, filters, user }) {
 function PartnerModal({ onClose, user, defaultType }) {
   const [type, setType] = useState(defaultType||user?.account_type||null);
   const [form, setForm] = useState({agency:user?.agency||"",name:user?.name||"",email:user?.email||"",phoneCode:"+33",phone:"",country:"Sénégal",type:"",title:"",city:"",neighborhood:"",price_eur:"",price_xof:"",surface:"",rooms:"",bathrooms:"",features:[],description:""});
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState([]);       // {file, apercu}
+  const [envoiPhoto, setEnvoiPhoto] = useState("");
+  const [photoErr, setPhotoErr] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef();
+
+  const ajouterPhotos = (liste) => {
+    setPhotoErr("");
+    const choisies = [...liste].filter(f=>f.type.startsWith("image/"));
+    const trop = choisies.filter(f=>f.size > 12*1024*1024);
+    const ok = choisies.filter(f=>f.size <= 12*1024*1024);
+    const place = MAX_PHOTOS - photos.length;
+    if (trop.length) setPhotoErr(`${trop.length} photo(s) ignorée(s) : plus de 12 Mo.`);
+    else if (ok.length > place) setPhotoErr(`Vous pouvez ajouter ${MAX_PHOTOS} photos au maximum.`);
+    const retenues = ok.slice(0, Math.max(0, place));
+    setPhotos(p => [...p, ...retenues.map(f => ({ file: f, apercu: URL.createObjectURL(f) }))]);
+  };
+  const retirerPhoto = (i) => setPhotos(p => { const c=[...p]; try{URL.revokeObjectURL(c[i].apercu);}catch(e){} c.splice(i,1); return c; });
+  const mettreEnCouverture = (i) => setPhotos(p => { const c=[...p]; const [x]=c.splice(i,1); return [x,...c]; });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
 
   const handleSubmit = async () => {
     if (!form.name||!form.email||(type==="pro"&&!form.agency)) return;
     setLoading(true);
+    let urlsPhotos = [];
+    try {
+      if (photos.length) {
+        setEnvoiPhoto(`Envoi des photos… 0/${photos.length}`);
+        urlsPhotos = await envoyerPhotos(photos.map(p=>p.file), (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
+        setEnvoiPhoto("");
+      }
+    } catch(e){ setEnvoiPhoto(""); }
     try {
       // Sauvegarder dans properties avec status en_attente
       await fetch(`${SUPABASE_URL}/rest/v1/properties`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({
@@ -329,10 +400,10 @@ function PartnerModal({ onClose, user, defaultType }) {
         price_xof:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
         rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
         features:form.features||[], status:"en_attente", advertiser_type:type,
-        agency_name:form.agency||null,
+        agency_name:form.agency||null, photos:urlsPhotos,
       })});
       // Notifier dans leads aussi
-      await fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | Type: ${type} | ${form.type} | ${form.country} - ${form.city} | Prix: ${form.price_eur}€ | ${form.description}`,status:"annonce_en_attente"})});
+      await fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | Type: ${type} | ${form.type} | ${form.country} - ${form.city} | Prix: ${form.price_eur}€ | ${urlsPhotos.length} photo(s) | ${form.description}`,status:"annonce_en_attente"})});
     } catch(e){}
     setLoading(false); setSent(true);
   };
@@ -477,12 +548,30 @@ function PartnerModal({ onClose, user, defaultType }) {
                 <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...inputStyle,resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos</label>
-                <div onClick={()=>fileRef.current?.click()} style={{border:`1px dashed ${C.sand}`,borderRadius:"8px",padding:"14px",textAlign:"center",cursor:"pointer",background:"#FAFAF8"}}>
-                  <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>Cliquez pour ajouter des photos</div>
-                  <input ref={fileRef} type="file" multiple accept="image/*" style={{display:"none"}} onChange={e=>setPhotos([...e.target.files])}/>
-                </div>
-                {photos.length>0&&<div style={{marginTop:"4px",fontSize:"13px",color:C.success,fontWeight:700,fontFamily:F}}>✓ {photos.length} photo{photos.length>1?"s":""} ajoutée{photos.length>1?"s":""}</div>}
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
+                {photos.length>0&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:"8px",marginBottom:"10px"}}>
+                    {photos.map((ph,i)=>(
+                      <div key={i} style={{position:"relative",paddingTop:"75%",borderRadius:"9px",overflow:"hidden",border:`1px solid ${i===0?C.gold:C.sand}`,background:C.cream}}>
+                        <img src={ph.apercu} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+                        {i===0&&<div style={{position:"absolute",bottom:0,left:0,right:0,background:C.gold,color:C.forestDark,fontSize:"10px",fontWeight:700,textAlign:"center",padding:"2px",fontFamily:F}}>COUVERTURE</div>}
+                        {i!==0&&<button type="button" onClick={()=>mettreEnCouverture(i)} title="Mettre en couverture" style={{position:"absolute",bottom:4,left:4,background:"rgba(0,0,0,0.55)",color:C.white,border:"none",borderRadius:"5px",fontSize:"10px",padding:"3px 6px",cursor:"pointer",fontFamily:F,fontWeight:600}}>Couverture</button>}
+                        <button type="button" onClick={()=>retirerPhoto(i)} title="Retirer" style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,0.6)",color:C.white,border:"none",width:22,height:22,borderRadius:"50%",cursor:"pointer",fontSize:"12px",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {photos.length<MAX_PHOTOS&&(
+                  <div onClick={()=>fileRef.current?.click()}
+                    onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();ajouterPhotos(e.dataTransfer.files);}}
+                    style={{border:`2px dashed ${C.sand}`,borderRadius:"10px",padding:"18px 14px",textAlign:"center",cursor:"pointer",background:"#FAFAF8"}}>
+                    <div style={{fontSize:"15px",fontWeight:700,color:C.forest,fontFamily:F,marginBottom:"3px"}}>+ Ajouter des photos</div>
+                    <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>Jusqu'à {MAX_PHOTOS} photos · la première sert de couverture</div>
+                  </div>
+                )}
+                <input ref={fileRef} type="file" multiple accept="image/*" style={{display:"none"}} onChange={e=>{ajouterPhotos(e.target.files);e.target.value="";}}/>
+                {photoErr&&<div style={{marginTop:"6px",fontSize:"13px",color:C.terra,fontWeight:600,fontFamily:F}}>{photoErr}</div>}
+                {envoiPhoto&&<div style={{marginTop:"6px",fontSize:"13px",color:C.forest,fontWeight:700,fontFamily:F}}>{envoiPhoto}</div>}
               </div>
               <button onClick={handleSubmit} disabled={!form.name||!form.email||loading} style={{width:"100%",background:form.name&&form.email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:form.name&&form.email?"pointer":"not-allowed",fontFamily:F}}>
                 {loading?"Envoi en cours...":"Envoyer ma demande"}
@@ -516,8 +605,9 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   );
   return (
     <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"border-color 0.2s"}}>
-      <div style={{height:110,background:p.bg,position:"relative",display:"flex",alignItems:"flex-end",padding:"8px"}}>
+      style={{background:C.white,borderRadius:"14px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,boxShadow:hov?"0 8px 24px rgba(26,60,46,0.13)":"0 1px 4px rgba(26,60,46,0.05)",transform:hov?"translateY(-3px)":"none",transition:"all 0.22s ease"}}>
+      <div className="sok-card-img" style={{background:p.bg,backgroundImage:p.photos?.[0]?`url('${p.photos[0]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
+        {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
         {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F}}>Vérifié</div>}
@@ -529,20 +619,20 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
           </div>
         </div>
       </div>
-      <div style={{padding:"12px"}}>
-        <div style={{fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"3px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={14}/>{p.country}</div>
+      <div style={{padding:"16px 16px 18px"}}>
+        <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"5px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={15}/>{p.country}</div>
         {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
-        <div style={{fontSize:"15px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"6px",lineHeight:1.3}}>{p.title}</div>
+        <div style={{fontSize:"19px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"9px",lineHeight:1.28}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
-          {p.rooms&&<span style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
+          {p.rooms&&<span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
           {p.rooms&&p.surface&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
-          {p.surface&&<span style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{new Intl.NumberFormat("fr-FR").format(p.surface)} m²</span>}
+          {p.surface&&<span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{new Intl.NumberFormat("fr-FR").format(p.surface)} m²</span>}
           {p.surface&&p.tags?.[0]&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
-          {p.tags?.[0]&&<span style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.tags[0]}</span>}
+          {p.tags?.[0]&&<span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{p.tags[0]}</span>}
         </div>
-        <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"8px"}}>
-          <div style={{fontSize:"16px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
-          <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</div>
+        <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"11px"}}>
+          <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{fmtEUR(p.price_eur)}</div>
+          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{fmtXOF(p.price)}</div>
         </div>
       </div>
     </div>
@@ -551,6 +641,8 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
 
 // ─── PROPERTY MODAL ───────────────────────────────
 function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
+  const [img, setImg] = useState(0);
+  useEffect(()=>{ setImg(0); }, [p?.id]);
   if (!p) return null;
   const shareWA = () => {
     const txt = `${p.title}\n${p.neighborhood}, ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\nSokilé`;
@@ -559,14 +651,26 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
   return (
     <div style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"500px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{height:180,background:p.bg,borderRadius:"16px 16px 0 0",position:"relative",display:"flex",alignItems:"flex-end",padding:"14px"}}>
+        <div style={{height:260,background:p.bg,backgroundImage:p.photos?.[img]?`url('${p.photos[img]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center",borderRadius:"16px 16px 0 0",position:"relative",display:"flex",alignItems:"flex-end",padding:"14px"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 30%,rgba(0,0,0,0.6) 100%)",borderRadius:"16px 16px 0 0"}}/>
+          {p.photos?.length>1&&(<>
+            <button onClick={e=>{e.stopPropagation();setImg(i=>(i-1+p.photos.length)%p.photos.length);}} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"17px",zIndex:2}}>‹</button>
+            <button onClick={e=>{e.stopPropagation();setImg(i=>(i+1)%p.photos.length);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"17px",zIndex:2}}>›</button>
+            <div style={{position:"absolute",bottom:12,right:14,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",fontFamily:F,zIndex:2}}>{img+1}/{p.photos.length}</div>
+          </>)}
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
           <div style={{position:"relative",zIndex:1}}>
             <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
             {p.verified&&<span style={{marginLeft:"6px",background:"rgba(46,125,50,0.9)",color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",fontFamily:F}}>Vérifié</span>}
           </div>
         </div>
+        {p.photos?.length>1&&(
+          <div style={{display:"flex",gap:"7px",overflowX:"auto",padding:"10px 18px 0"}}>
+            {p.photos.map((u,i)=>(
+              <div key={i} onClick={()=>setImg(i)} style={{width:66,height:50,flexShrink:0,borderRadius:"7px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center",cursor:"pointer",border:`2px solid ${i===img?C.terra:"transparent"}`,opacity:i===img?1:0.65}}/>
+            ))}
+          </div>
+        )}
         <div style={{padding:"18px"}}>
           {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"13px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
           <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark}}>{p.title}</h2>
@@ -821,8 +925,8 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
 // ─── HERO CARROUSEL ───────────────────────────────
 const SLIDES = [
   {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/prix-construction-maison-senegal-HUB-CEPHAS.webp",label:"🏡 Villa moderne, Dakar"},
-  {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/photo%20baobab.webp",label:"🌳 Terres agricoles, Afrique"},
-  {url:"https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",label:"🏠 Immobilier Afrique"},
+  {url:"https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&q=80",label:"🏠 Immobilier Afrique"},
+  {url:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80",label:"🏘️ Résidence moderne"},
 ];
 
 function HeroCarousel({ search, setSearch, onSearch }) {
@@ -841,7 +945,7 @@ function HeroCarousel({ search, setSearch, onSearch }) {
   }, []);
 
   return (
-    <div style={{position:"relative",height:"280px",overflow:"hidden"}}>
+    <div className="sok-hero sok-bleed" style={{position:"relative",overflow:"hidden"}}>
       {/* Image de fond */}
       <div style={{
         position:"absolute",inset:0,
@@ -856,23 +960,34 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       <div style={{position:"absolute",bottom:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#D4A017 30%,#D4A017 70%,transparent)",zIndex:2}}/>
       {/* Label pays */}
       {/* Dots */}
-      <div style={{position:"absolute",bottom:14,right:14,display:"flex",gap:"5px",zIndex:2}}>
+      <div style={{position:"absolute",bottom:16,right:"max(18px, calc(50vw - 590px))",display:"flex",gap:"6px",zIndex:2}}>
         {SLIDES.map((_,i)=>(
           <button key={i} onClick={()=>{setCurrent(i);setFade(true);}} style={{width:i===current?18:6,height:6,borderRadius:i===current?"3px":"50%",background:i===current?C.gold:"rgba(255,255,255,0.4)",border:"none",cursor:"pointer",transition:"all 0.3s",padding:0}}/>
         ))}
       </div>
       {/* Contenu */}
-      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"20px 18px 22px",zIndex:1}}>
+      <div className="sok-hero-in" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",zIndex:1}}>
         <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique de l'Ouest & Centrale</div>
-        <h1 style={{margin:"0 0 16px",color:C.white,fontFamily:FT,fontSize:"clamp(28px,6vw,44px)",fontWeight:300,lineHeight:1.1,letterSpacing:"-0.02em",textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>
+        <h1 style={{margin:"0 0 22px",color:C.white,fontFamily:FT,fontSize:"clamp(26px,4.8vw,50px)",fontWeight:300,lineHeight:1.1,letterSpacing:"-0.02em",textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>
           Votre patrimoine en Afrique,<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>où que vous soyez</em>
         </h1>
-        <div style={{background:"rgba(255,255,255,0.97)",borderRadius:"8px",display:"flex",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
-          <div style={{flex:1,display:"flex",alignItems:"center",gap:"8px",padding:"0 12px",minWidth:0}}>
-            <span style={{color:C.sub,flexShrink:0}}>{Icon.searchSm}</span>
-            <input type="text" placeholder="Ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:"14px",color:C.dark,background:"transparent",fontFamily:F,padding:"11px 0",minWidth:0}}/>
+        <div className="sok-search" style={{background:C.white,borderRadius:"16px",boxShadow:"0 14px 44px rgba(0,0,0,0.42), 0 0 0 4px rgba(201,168,76,0.35)",maxWidth:"700px",padding:"16px 16px 17px"}}>
+          <div style={{fontSize:"13px",fontWeight:700,color:C.forest,fontFamily:F,marginBottom:"10px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
+          <div className="sok-search-row" style={{display:"flex",gap:"10px"}}>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:"10px",background:C.cream,border:`2px solid ${C.sand}`,borderRadius:"11px",padding:"0 15px",minWidth:0}}>
+              <span style={{color:C.terra,flexShrink:0,display:"flex"}}>{Icon.search}</span>
+              <input type="text" placeholder="Dakar, Abidjan, Sénégal..." value={search} onChange={e=>setSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSearch()} style={{flex:1,border:"none",outline:"none",fontSize:"17px",fontWeight:500,color:C.dark,background:"transparent",fontFamily:F,padding:"16px 0",minWidth:0}}/>
+            </div>
+            <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",borderRadius:"11px",padding:"0 30px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap",display:"flex",alignItems:"center",justifyContent:"center",gap:"9px",boxShadow:"0 5px 16px rgba(184,92,58,0.45)",minHeight:"58px"}}>
+              <span style={{display:"flex"}}>{Icon.searchSm}</span>Rechercher
+            </button>
           </div>
-          <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",padding:"0 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap"}}>Chercher</button>
+          <div className="sok-search-tags" style={{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap",alignItems:"center"}}>
+            <span style={{fontSize:"12.5px",color:C.sub,fontFamily:F}}>Populaire :</span>
+            {["Dakar","Abidjan","Douala","Terrain"].map(v=>(
+              <button key={v} onClick={()=>{setSearch(v);onSearch();}} style={{background:"transparent",border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 13px",fontSize:"12.5px",fontWeight:600,color:C.forest,cursor:"pointer",fontFamily:F}}>{v}</button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -883,9 +998,9 @@ function HeroCarousel({ search, setSearch, onSearch }) {
 
 
 // ─── ENCART PUBLICITAIRE ──────────────────────────
-function AdSlot({ onClick, style }) {
+function AdSlot({ onClick, style, className }) {
   return (
-    <div style={{borderRadius:"12px",border:`2px solid ${C.gold}`,background:C.cream,padding:"20px 18px",textAlign:"center",...style}}>
+    <div className={className} style={{borderRadius:"12px",border:`2px solid ${C.gold}`,background:C.cream,padding:"20px 18px",textAlign:"center",...style}}>
       <div style={{fontSize:"11px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Espace publicitaire</div>
       <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,marginBottom:"6px"}}>Votre publicité ici</div>
       <div style={{fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"14px",lineHeight:1.55}}>Touchez des milliers d'acheteurs et vendeurs en Afrique</div>
@@ -958,9 +1073,9 @@ export default function App() {
 
   // Annonces réelles validées (status = validee)
   useEffect(()=>{
-    fetch(`${SUPABASE_URL}/rest/v1/properties?status=eq.validee&select=id,title,type,country,city,neighborhood,description,price_eur,price_xof,surface,rooms,bathrooms,features,advertiser_type,agency_name`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+    fetch(`${SUPABASE_URL}/rest/v1/properties?status=eq.validee&select=id,title,type,country,city,neighborhood,description,price_eur,price_xof,surface,rooms,bathrooms,features,advertiser_type,agency_name,photos`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
       .then(r=>r.ok?r.json():[])
-      .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price_xof||0,features:r.features||[],tags:r.features||[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:false,agent_name:r.agency_name||"Particulier"}))); })
+      .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price_xof||0,features:r.features||[],tags:r.features||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:false,agent_name:r.agency_name||"Particulier"}))); })
       .catch(()=>{});
   },[]);
   const ALL_PROPS = [...dbProps, ...PROPERTIES];
@@ -973,7 +1088,7 @@ export default function App() {
   const resetFilters = () => { setFilterCountry("Tous"); setFilterType("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setFilterVerified(false); setSortBy("recent"); setSearch(""); };
 
   const activeFiltersCount = [filterCountry!=="Tous",filterType!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0,filterVerified].filter(Boolean).length;
-  const filteredCountries = filterRegion==="Tous"?COUNTRIES:COUNTRIES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
+  const filteredCountries = filterRegion==="Tous"?COUNTRIES_ANNONCES:COUNTRIES_ANNONCES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
 
   let filtered = ALL_PROPS.filter(p=>{
     const mc=filterCountry==="Tous"||p.country===filterCountry;
@@ -1010,7 +1125,51 @@ export default function App() {
 
   return (
     <div style={{minHeight:"100vh",background:C.cream,fontFamily:F,overflowX:"hidden",display:"flex",flexDirection:"column"}}>
-      <style>{`*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}body{margin:0;line-height:1.55}button,input,select,textarea{font-size:inherit}@media(min-width:900px){.desktop-nav{visibility:visible!important;position:static!important}}`}</style>
+      <style>{`
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{margin:0;line-height:1.55}
+button,input,select,textarea{font-size:inherit}
+
+/* le carrousel prend toute la largeur de l'écran */
+.sok-bleed{width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}
+.sok-hero{height:400px}
+.sok-hero-in{padding:20px 20px 24px}
+
+/* la grille d'annonces */
+.sok-grid{display:grid;grid-template-columns:1fr;gap:16px}
+
+/* la barre de recherche */
+.sok-search-row{flex-direction:column}
+@media(min-width:560px){.sok-search-row{flex-direction:row}}
+@media(max-width:520px){.sok-search-tags{display:none!important}}
+@media(max-width:520px){.sok-search{padding:14px 13px 15px!important}}
+.sok-card-img{height:200px}
+
+/* la colonne publicitaire, sur ordinateur seulement */
+.sok-aside{display:none}
+
+@media(min-width:600px){
+  .sok-grid{grid-template-columns:1fr 1fr}
+  .sok-hero{height:420px}
+  .sok-hero-in{padding:24px 28px 30px}
+  .sok-card-img{height:210px}
+}
+@media(min-width:900px){
+  .sok-hero{height:520px}
+  .sok-hero-in{padding:28px max(28px, calc(50vw - 590px)) 44px}
+  .desktop-nav{display:flex!important}
+  .sok-bottomnav{display:none!important}
+  .sok-grid{grid-template-columns:1fr 1fr 1fr}
+  footer{padding-bottom:44px!important}
+}
+@media(min-width:1024px){
+  .sok-biens{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start}
+  .sok-aside{display:block;position:sticky;top:100px}
+  .sok-ad-inline{display:none}
+  .sok-card-img{height:230px}
+  .sok-biens .sok-grid{grid-template-columns:1fr 1fr}
+}
+`}</style>
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
       {/* HEADER */}
@@ -1024,10 +1183,10 @@ export default function App() {
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
             {/* Nav desktop uniquement */}
-            <nav style={{display:"flex",gap:"2px",visibility:"hidden",position:"absolute"}} className="desktop-nav">
+            <nav className="desktop-nav" style={{display:"none",gap:"3px",marginRight:"10px"}}>
               {NAV.map(n=>(
-                <button key={n.id} onClick={()=>switchTab(n.id)} style={{background:tab===n.id?"rgba(255,255,255,0.12)":"transparent",border:"none",color:tab===n.id?C.white:"rgba(255,255,255,0.5)",padding:"6px 10px",borderRadius:"7px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <span style={{color:tab===n.id?C.white:"rgba(255,255,255,0.5)"}}>{n.icon}</span>
+                <button key={n.id} onClick={()=>switchTab(n.id)} style={{background:tab===n.id?"rgba(255,255,255,0.13)":"transparent",border:"none",color:tab===n.id?C.white:"rgba(255,255,255,0.62)",padding:"9px 14px",borderRadius:"8px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:"7px",fontFamily:F,fontSize:"14px",fontWeight:tab===n.id?700:500,whiteSpace:"nowrap"}}>
+                  <span style={{display:"flex",color:tab===n.id?C.gold:"rgba(255,255,255,0.5)"}}>{n.icon}</span>{n.label}
                 </button>
               ))}
             </nav>
@@ -1078,7 +1237,7 @@ export default function App() {
               <h2 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,margin:0}}>Sélection du moment</h2>
               <span onClick={()=>switchTab("biens")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px",marginBottom:"24px"}}>
+            <div className="sok-grid" style={{marginBottom:"28px"}}>
               {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
 
@@ -1221,11 +1380,13 @@ export default function App() {
               <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
             </div>
 
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"10px"}}>
+            <div className="sok-biens">
+            <div>
+            <div className="sok-grid">
               {filtered.map((p,i)=>(
                 <div key={p.id} style={{display:"contents"}}>
                   <PropertyCard p={p} onClick={setSelectedProp} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>
-                  {i===2&&<AdSlot onClick={()=>setShowPub(true)}/>}
+                  {i===2&&<AdSlot className="sok-ad-inline" onClick={()=>setShowPub(true)}/>}
                 </div>
               ))}
               {filtered.length===0&&(
@@ -1235,6 +1396,17 @@ export default function App() {
                   <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
                 </div>
               )}
+            </div>
+            </div>
+            <aside className="sok-aside">
+              <AdSlot onClick={()=>setShowPub(true)}/>
+              <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginTop:"16px"}}>
+                <div style={{fontFamily:FT,fontSize:"18px",color:C.white,marginBottom:"7px",lineHeight:1.3}}>Un projet à distance ?</div>
+                <div style={{fontSize:"14px",color:"rgba(255,255,255,0.65)",fontFamily:F,lineHeight:1.55,marginBottom:"14px"}}>Géomètre, notaire, architecte : faites vérifier un bien avant d'acheter.</div>
+                <button onClick={()=>switchTab("prestataires")} style={{width:"100%",background:C.gold,color:C.forestDark,border:"none",borderRadius:"9px",padding:"12px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Trouver un prestataire</button>
+              </div>
+              <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"16px"}}/>
+            </aside>
             </div>
           </div>
         )}
@@ -1386,7 +1558,7 @@ export default function App() {
       <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);setShowPartner(true);}}/>
 
       {/* BOTTOM NAV */}
-      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(12px)",borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -3px 18px rgba(26,60,46,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
+      <nav className="sok-bottomnav" style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(12px)",borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -3px 18px rgba(26,60,46,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>switchTab(n.id)} style={{flex:1,background:"none",border:"none",padding:"11px 4px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",transition:"all 0.15s"}}>
             <span style={{color:tab===n.id?C.terra:C.sub}}>{n.icon}</span>
