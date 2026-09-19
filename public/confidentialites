@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Politique de confidentialité — Sokilé</title>
+<meta name="robots" content="index, follow"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--green:#1A3C2E;--green-d:#0D2019;--gold:#C9A84C;--clay:#B85C3A;--cream:#F5F0E8;--sand:#E8DFD0;--ink:#1C1A17;--muted:#7A7264}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:16px;line-height:1.65}
+  header{background:linear-gradient(135deg,var(--green),var(--green-d));border-bottom:2px solid var(--gold);padding:0 5vw;min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .logo{font-family:'Fraunces',serif;font-size:clamp(26px,6vw,34px);font-weight:500;color:#fff;letter-spacing:-.02em;text-decoration:none;line-height:1;white-space:nowrap;padding:14px 0}
+  .logo .ki{color:var(--gold);font-style:italic}
+  .logo .le{color:#E8A07E}
+  .retour{background:var(--gold);color:var(--green-d);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+  main{max-width:780px;margin:0 auto;padding:42px 5vw 80px}
+  h1{font-family:'Fraunces',serif;font-size:clamp(28px,5vw,40px);font-weight:300;line-height:1.15;margin-bottom:10px;letter-spacing:-.02em}
+  .maj{color:var(--muted);font-size:14px;margin-bottom:34px}
+  h2{font-family:'Fraunces',serif;font-size:clamp(20px,3.4vw,25px);font-weight:500;margin:38px 0 12px;color:var(--green)}
+  h3{font-size:16px;font-weight:700;margin:22px 0 7px}
+  p,li{margin-bottom:11px}
+  ul,ol{padding-left:22px;margin-bottom:11px}
+  a{color:var(--clay)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+  th,td{border:1px solid var(--sand);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:#fff;font-weight:700}
+  .todo{background:#FFF8E1;border:1px solid #FFE082;border-radius:10px;padding:16px 18px;margin:20px 0}
+  .todo strong{color:#6D4C1B}
+  .encadre{background:#fff;border:1px solid var(--sand);border-radius:12px;padding:18px 20px;margin:18px 0}
+  footer{background:linear-gradient(160deg,var(--green),var(--green-d));border-top:2px solid var(--gold);padding:30px 5vw;color:rgba(255,255,255,.55);font-size:14px}
+  footer a{color:rgba(255,255,255,.8);text-decoration:none;margin-right:18px}
+  @media(max-width:600px){main{padding-top:28px}}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">So<span class="ki">ki</span><span class="le">lé</span></a>
+  <a href="/" class="retour">Retour au site</a>
+</header>
+<main>
+<h1>Politique de confidentialité</h1>
+<p class="maj">Dernière mise à jour : 19 septembre 2026</p>
+
+<p>Cette page explique quelles données personnelles Sokilé recueille, pourquoi, combien de temps elles sont conservées et comment exercer vos droits. Elle est rédigée conformément au Règlement général sur la protection des données (RGPD).</p>
+
+<div class="todo">
+<strong>À compléter.</strong> L'identité et l'adresse du responsable de traitement doivent figurer ci-dessous : ce sont les mêmes que dans les mentions légales.
+</div>
+
+<h2>Qui est responsable de vos données</h2>
+<p>Le responsable du traitement est <strong>[Prénom NOM]</strong>, éditeur du site www.sokile.com, [adresse postale]. Pour toute question : <a href="mailto:contact@diasporaimmo.com">contact@diasporaimmo.com</a>.</p>
+
+<h2>Ce que nous collectons, et pourquoi</h2>
+<table>
+<tr><th>Données</th><th>Quand</th><th>Pourquoi</th><th>Base légale</th></tr>
+<tr><td>Nom, adresse électronique, mot de passe</td><td>Création de compte</td><td>Vous identifier et vous permettre de gérer vos annonces</td><td>Exécution du service</td></tr>
+<tr><td>Nom de l'agence, statut particulier ou professionnel</td><td>Création de compte professionnel</td><td>Distinguer les annonces professionnelles</td><td>Exécution du service</td></tr>
+<tr><td>Numéro de téléphone</td><td>Dépôt d'une annonce</td><td>Permettre aux personnes intéressées de vous joindre</td><td>Exécution du service</td></tr>
+<tr><td>Description du bien, localisation, prix, photographies</td><td>Dépôt d'une annonce</td><td>Publier votre annonce</td><td>Exécution du service</td></tr>
+<tr><td>Adresse électronique</td><td>Création d'une alerte</td><td>Vous prévenir des nouvelles annonces correspondantes</td><td>Consentement</td></tr>
+<tr><td>Coordonnées professionnelles</td><td>Inscription à l'annuaire, demande publicitaire</td><td>Traiter votre demande</td><td>Mesures précontractuelles</td></tr>
+<tr><td>Motif et précisions d'un signalement</td><td>Signalement d'annonce</td><td>Examiner le contenu signalé</td><td>Obligation légale</td></tr>
+</table>
+
+<h2>Ce que nous ne faisons pas</h2>
+<ul>
+<li>Nous ne vendons ni ne louons vos données à des tiers.</li>
+<li>Nous ne déposons aucun cookie publicitaire ni traceur de mesure d'audience. Le site utilise uniquement le stockage local de votre navigateur pour vous garder connecté et retenir vos biens favoris ; ces informations ne quittent jamais votre appareil et ne nécessitent pas de consentement préalable.</li>
+<li>Nous ne cédons aucune donnée à des fins de prospection commerciale.</li>
+</ul>
+
+<h2>Ce qui est visible publiquement</h2>
+<p>Lorsque vous publiez une annonce, les éléments suivants deviennent visibles de tous : le titre, la description, la localisation, le prix, les caractéristiques et les photographies du bien. Votre numéro de téléphone est accessible aux visiteurs via les boutons de contact de l'annonce : c'est ce qui leur permet de vous joindre. Votre adresse électronique n'est jamais affichée.</p>
+<p>Si vous préférez ne pas exposer votre numéro, ne le renseignez pas : les demandes vous parviendront alors par notre intermédiaire.</p>
+
+<h2>Durées de conservation</h2>
+<ul>
+<li><strong>Compte utilisateur</strong> : tant que le compte existe, puis douze mois après la dernière connexion.</li>
+<li><strong>Annonces</strong> : pendant la durée de publication, puis douze mois à des fins de preuve.</li>
+<li><strong>Alertes email</strong> : jusqu'à votre désinscription.</li>
+<li><strong>Signalements</strong> : trois ans, durée requise pour justifier du traitement des contenus signalés.</li>
+<li><strong>Demandes de contact et devis</strong> : trois ans à compter du dernier échange.</li>
+</ul>
+
+<h2>Où vos données sont hébergées</h2>
+<p>Les données sont stockées chez <strong>Supabase Inc.</strong> et le site est servi par <strong>Vercel Inc.</strong>, deux sociétés établies aux États-Unis. Ces transferts hors Union européenne sont encadrés par les clauses contractuelles types de la Commission européenne.</p>
+
+<h2>Vos droits</h2>
+<p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos données. Vous pouvez également retirer à tout moment un consentement donné.</p>
+<p>Pour exercer ces droits, écrivez à <a href="mailto:contact@diasporaimmo.com">contact@diasporaimmo.com</a>. Nous répondons dans un délai d'un mois.</p>
+<p>Si vous estimez, après nous avoir contactés, que vos droits ne sont pas respectés, vous pouvez saisir la Commission nationale de l'informatique et des libertés (CNIL), 3 place de Fontenoy, 75007 Paris — <a href="https://www.cnil.fr">www.cnil.fr</a>.</p>
+
+<h2>Sécurité</h2>
+<p>Les échanges avec le site sont chiffrés (HTTPS). Les mots de passe ne sont jamais stockés en clair. L'accès aux données d'administration est restreint.</p>
+
+<h2>Modifications</h2>
+<p>Cette politique peut évoluer. La date de dernière mise à jour figure en haut de cette page. En cas de changement substantiel, les utilisateurs inscrits en sont informés par courrier électronique.</p>
+
+</main>
+<footer>
+  <div style="margin-bottom:12px">
+    <a href="/">Accueil</a><a href="/about.html">Qui sommes-nous</a><a href="/mentions-legales.html">Mentions légales</a><a href="/confidentialite.html">Confidentialité</a><a href="/cgu.html">CGU</a>
+  </div>
+  <div>© 2026 Sokilé — contact@diasporaimmo.com</div>
+</footer>
+</body>
+</html>
