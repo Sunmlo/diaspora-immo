@@ -235,6 +235,25 @@
   }
   .concept-item p { font-size: 14px; color: var(--muted); line-height: 1.65; font-weight: 300; }
 
+  .status-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-top: 28px;
+  }
+  .status-card {
+    border: 1px solid var(--sand); border-radius: 12px;
+    background: var(--white); padding: 20px;
+  }
+  .status-card strong {
+    display: block; color: var(--green); font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .status-card p { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .trust-note {
+    margin-top: 24px; border-left: 3px solid var(--gold);
+    background: rgba(201,168,76,0.10); padding: 14px 16px;
+    color: var(--muted); font-size: 13px; line-height: 1.6;
+  }
+
   /* ── POUR QUI ── */
   .pourqui {
     padding: 100px 5vw;
@@ -336,13 +355,14 @@
   .cta-final {
     padding: 100px 5vw;
     background: var(--cream);
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
   }
   .cta-card {
     border-radius: 16px; padding: 40px;
   }
   .cta-card.dark { background: var(--green); }
   .cta-card.light { background: var(--sand); }
+  .cta-card.gold { background: var(--gold); }
   .cta-card h3 {
     font-family: 'Fraunces', serif;
     font-size: 24px; font-weight: 500; margin-bottom: 12px;
@@ -350,9 +370,11 @@
   }
   .cta-card.dark h3 { color: var(--white); }
   .cta-card.light h3 { color: var(--ink); }
+  .cta-card.gold h3 { color: var(--green-d); }
   .cta-card p { font-size: 14px; line-height: 1.6; margin-bottom: 24px; font-weight: 300; }
   .cta-card.dark p { color: rgba(255,255,255,0.5); }
   .cta-card.light p { color: var(--muted); }
+  .cta-card.gold p { color: rgba(13,32,25,0.72); }
 
   /* ── FOOTER ── */
   footer {
@@ -409,6 +431,7 @@
     .hero { grid-template-columns: 1fr; padding-top: 80px; }
     .hero-visual { display: none; }
     .concept-grid { grid-template-columns: 1fr; }
+    .status-grid { grid-template-columns: 1fr; }
     .pourqui-grid { grid-template-columns: 1fr; }
     .prest-grid { grid-template-columns: 1fr 1fr; }
     .confiance { grid-template-columns: 1fr; }
@@ -429,11 +452,11 @@
     <div class="nav-tagline">L'immobilier en Afrique</div>
   </div>
   <div class="nav-links">
-    <a href="#concept">Le concept</a>
+    <a href="#concept">Nos services</a>
     <a href="#pourqui">Pour qui</a>
     <a href="#prestataires">Prestataires</a>
+    <a href="#confiance">Transparence</a>
     <a href="#pays">Pays couverts</a>
-    <a href="#contact">Contact</a>
   </div>
   <a href="/" class="nav-cta">Accéder à la plateforme</a>
 </nav>
@@ -442,11 +465,11 @@
 <section class="hero">
   <div class="hero-text">
     <div class="hero-tag">Zone franc CFA · Afrique de l'Ouest &amp; Centrale</div>
-    <h1>Trouver, vendre,<br/><em>investir</em><br/>en Afrique.</h1>
-    <p class="hero-sub">Sokilé connecte acheteurs, vendeurs et prestataires immobiliers en Afrique de l'Ouest et Centrale — que vous viviez sur place ou à l'étranger.</p>
+    <h1>Tout pour votre<br/><em>projet immobilier</em><br/>en Afrique.</h1>
+    <p class="hero-sub">Biens, professionnels et guides pratiques pour avancer en Afrique de l'Ouest et Centrale — sur place comme à distance.</p>
     <div class="hero-actions">
-      <a href="/" class="btn-primary">Voir les annonces</a>
-      <a href="#concept" class="btn-outline">Découvrir le concept</a>
+      <a href="/?tab=biens" class="btn-primary">Explorer les annonces</a>
+      <a href="/?tab=prestataires" class="btn-outline">Trouver un professionnel</a>
     </div>
     <div class="hero-langs">
       <span>Sokilé signifie</span>
@@ -469,16 +492,16 @@
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-n">18+</div>
-        <div class="hero-stat-l">Annonces</div>
+        <div class="hero-stat-n">3</div>
+        <div class="hero-stat-l">Services utiles</div>
       </div>
       <div class="hero-stat">
         <div class="hero-stat-n">12</div>
         <div class="hero-stat-l">Pays</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-n">+4M</div>
-        <div class="hero-stat-l">Diaspora</div>
+        <div class="hero-stat-n">0</div>
+        <div class="hero-stat-l">Commission Sokilé</div>
       </div>
     </div>
   </div>
@@ -487,24 +510,24 @@
 <!-- CONCEPT -->
 <section class="concept" id="concept">
   <div class="concept-header">
-    <div class="section-eyebrow">Le concept</div>
-    <h2 class="section-h">Une plateforme simple, fiable, conçue pour l'Afrique réelle.</h2>
+    <div class="section-eyebrow">Les trois piliers</div>
+    <h2 class="section-h">Une plateforme utile pour chercher, choisir et comprendre.</h2>
   </div>
   <div class="concept-grid">
     <div class="concept-item">
       <div class="concept-icon">🏠</div>
-      <h3>Annonces immobilières</h3>
-      <p>Vente, location, terrain, commercial — publiez ou recherchez un bien en Afrique de l'Ouest et Centrale. Chaque annonce est vérifiée avant publication.</p>
+      <h3>Trouver un bien</h3>
+      <p>Vente, location, terrain ou local commercial : recherchez et comparez des annonces modérées avant leur mise en ligne.</p>
     </div>
     <div class="concept-item">
       <div class="concept-icon">🛠️</div>
-      <h3>Annuaire prestataires</h3>
-      <p>Géomètres, notaires, architectes, entreprises de construction — trouvez les professionnels vérifiés pour sécuriser et concrétiser votre projet.</p>
+      <h3>Trouver un professionnel</h3>
+      <p>Géomètres, notaires, architectes et entreprises de construction : identifiez les interlocuteurs utiles selon votre pays et votre projet.</p>
     </div>
     <div class="concept-item">
-      <div class="concept-icon">✅</div>
-      <h3>Modération humaine</h3>
-      <p>Toutes les annonces et fiches prestataires sont validées manuellement. Zéro fausse annonce, zéro arnaque. La confiance avant tout.</p>
+      <div class="concept-icon">📖</div>
+      <h3>Comprendre avant d'agir</h3>
+      <p>Consultez des guides pratiques sur les titres fonciers, les professionnels, les budgets, les devis et l'achat immobilier à distance.</p>
     </div>
   </div>
 </section>
@@ -516,22 +539,22 @@
   <div class="pourqui-grid">
     <div class="pourqui-card">
       <h3>Vous vivez en Europe, au Canada, aux États-Unis</h3>
-      <p>Vous voulez investir, construire ou acheter au pays — mais à distance, c'est compliqué. Sokilé vous connecte aux bonnes personnes, dans les bonnes villes.</p>
+      <p>Vous voulez investir, construire ou acheter au pays, mais la distance complique les recherches et les vérifications. Sokilé centralise les premières informations utiles.</p>
       <ul class="pourqui-list">
-        <li>Annonces vérifiées avec prix en euros et en FCFA</li>
-        <li>Prestataires certifiés pour sécuriser votre achat</li>
+        <li>Annonces modérées avec prix en euros et en francs CFA</li>
+        <li>Prestataires accompagnés d'un statut de transparence</li>
+        <li>Guides pratiques pour préparer chaque étape</li>
         <li>Contact direct par WhatsApp ou email</li>
-        <li>Service client basé en France</li>
       </ul>
     </div>
     <div class="pourqui-card">
       <h3>Vous vivez en Afrique de l'Ouest ou Centrale</h3>
-      <p>Vous avez un bien à vendre ou à louer, ou vous cherchez votre prochaine maison. Sokilé c'est le bon coin de l'immobilier africain — simple, gratuit, sérieux.</p>
+      <p>Vous avez un bien à vendre ou à louer, ou vous cherchez votre prochaine maison. Sokilé facilite la visibilité et la mise en relation directe.</p>
       <ul class="pourqui-list">
-        <li>Publication gratuite et rapide</li>
+        <li>Publication gratuite au lancement, après modération</li>
         <li>Visibilité auprès des acheteurs locaux et de la diaspora</li>
         <li>Profils particuliers et professionnels disponibles</li>
-        <li>Couverture des 12 pays francophones de la zone franc CFA</li>
+        <li>Informations et contenus adaptés aux réalités locales</li>
       </ul>
     </div>
   </div>
@@ -593,14 +616,30 @@
       <p>Construction, rénovation, suivi de chantier</p>
     </div>
   </div>
+  <div class="status-grid">
+    <div class="status-card">
+      <strong>Fiche référencée</strong>
+      <p>La fiche est constituée à partir d'informations professionnelles accessibles au public. Le prestataire ne l'a pas encore revendiquée.</p>
+    </div>
+    <div class="status-card">
+      <strong>Fiche revendiquée</strong>
+      <p>Le professionnel a confirmé être responsable de la fiche et peut maintenir ses coordonnées et ses services à jour.</p>
+    </div>
+    <div class="status-card">
+      <strong>Fiche contrôlée</strong>
+      <p>Sokilé a effectué les contrôles annoncés sur la fiche. Leur nature est précisée afin d'éviter toute promesse ambiguë.</p>
+    </div>
+  </div>
 </section>
 
 <!-- CONFIANCE -->
-<section class="confiance">
+<section class="confiance" id="confiance">
   <div class="confiance-text">
-    <div class="section-eyebrow">La confiance</div>
-    <h2 class="section-h">Chaque annonce passe par nous avant d'être visible.</h2>
-    <p>L'immobilier à distance, c'est risqué. Fausses annonces, prix gonflés, terrains litigieux — on le sait. C'est pourquoi Sokilé applique une validation humaine sur chaque publication.</p>
+    <div class="section-eyebrow">La transparence</div>
+    <h2 class="section-h">Des informations plus claires avant la mise en relation.</h2>
+    <p>L'immobilier à distance comporte des risques : fausses annonces, prix incohérents, documents incomplets ou terrains litigieux. Sokilé modère les publications et indique le niveau d'information disponible.</p>
+    <p>La modération améliore la qualité des contenus, mais elle ne remplace jamais les vérifications juridiques, foncières et techniques nécessaires avant une transaction.</p>
+    <div class="trust-note">Sokilé facilite la recherche d'informations et la mise en relation. La plateforme n'est ni agent immobilier, ni notaire, ni partie à la transaction.</div>
   </div>
   <div class="confiance-steps">
     <div class="step">
@@ -613,22 +652,22 @@
     <div class="step">
       <div class="step-num">2</div>
       <div class="step-text">
-        <h4>Notre équipe vérifie</h4>
-        <p>Nous contrôlons les informations fournies avant toute publication. Délai : 24 à 48h.</p>
+        <h4>Notre équipe examine la publication</h4>
+        <p>Nous vérifions la cohérence et la complétude des informations fournies avant toute mise en ligne.</p>
       </div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
       <div class="step-text">
         <h4>Votre annonce est en ligne</h4>
-        <p>Visible auprès de toute la communauté Sokilé — locaux et diaspora confondus.</p>
+        <p>Après validation, elle devient visible auprès des utilisateurs locaux et de la diaspora.</p>
       </div>
     </div>
     <div class="step">
       <div class="step-num">4</div>
       <div class="step-text">
         <h4>Les acheteurs vous contactent</h4>
-        <p>Directement par WhatsApp ou email — pas d'intermédiaire, pas de commission cachée.</p>
+        <p>Directement par téléphone, WhatsApp ou email. Vous restez responsable des vérifications et de la transaction.</p>
       </div>
     </div>
   </div>
@@ -642,20 +681,25 @@
     <span class="nom-pill">Ki — maison en wolof (Sénégal, Gambie)</span>
     <span class="nom-pill">Lé — maison en yoruba (Nigeria, Bénin)</span>
   </div>
-  <p>Un nom, trois langues, une seule idée — la maison, partout en Afrique de l'Ouest.</p>
+  <p>Un nom, trois langues, une seule idée — la maison, en Afrique de l'Ouest et Centrale.</p>
 </section>
 
 <!-- CTA FINAL -->
 <section class="cta-final" id="contact">
   <div class="cta-card dark">
-    <h3>Vous avez un bien à vendre ou à louer ?</h3>
-    <p>Publiez gratuitement sur Sokilé et touchez des milliers d'acheteurs — en Afrique et dans la diaspora.</p>
-    <a href="/" class="btn-primary">Publier une annonce</a>
+    <h3>Explorer les biens</h3>
+    <p>Consultez les annonces disponibles et utilisez les filtres pour cibler votre pays, votre ville et votre type de projet.</p>
+    <a href="/?tab=biens" class="btn-primary">Voir les annonces</a>
   </div>
   <div class="cta-card light">
-    <h3>Vous êtes prestataire ou annonceur ?</h3>
-    <p>Rejoignez l'annuaire Sokilé ou réservez un espace publicitaire pour toucher une audience qualifiée.</p>
-    <a href="mailto:contact@diasporaimmo.com?subject=Partenariat Sokilé" class="btn-primary" style="background:var(--green);color:white;">Nous contacter</a>
+    <h3>Trouver un professionnel</h3>
+    <p>Recherchez un géomètre, un notaire, un architecte ou une entreprise selon le pays et les besoins de votre projet.</p>
+    <a href="/?tab=prestataires" class="btn-primary" style="background:var(--green);color:white;">Voir l'annuaire</a>
+  </div>
+  <div class="cta-card gold">
+    <h3>Préparer votre projet</h3>
+    <p>Parcourez les guides Sokilé pour comprendre les démarches, éviter les pièges courants et poser les bonnes questions.</p>
+    <a href="/?tab=guides" class="btn-primary" style="background:var(--green-d);color:white;">Lire les guides</a>
   </div>
 </section>
 
@@ -663,7 +707,12 @@
 <footer>
   <div class="footer-logo">So<span class="ki">ki</span><span class="le">lé</span></div>
   <p>© 2026 Sokilé — L'immobilier en zone franc CFA, Afrique de l'Ouest et Centrale</p>
-  <a href="mailto:contact@diasporaimmo.com">contact@diasporaimmo.com</a>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
+    <a href="/mentions%20legales.html">Mentions légales</a>
+    <a href="/confidentialites.html">Confidentialité</a>
+    <a href="/cgu.html">CGU</a>
+    <a href="mailto:contact@diasporaimmo.com">Contact</a>
+  </div>
 </footer>
 
 </body>
