@@ -592,6 +592,15 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     if (form.price_eur && !(parseInt(form.price_eur)>0)) vides.push({k:"price_eur",l:"Prix (doit être supérieur à 0)"});
     if (String(form.description||"").trim().length>0 && String(form.description).trim().length<30)
       vides.push({k:"description",l:"Description (30 caractères minimum)"});
+    // Champs obligatoires propres à la nature de bien choisie
+    if (form.nature) {
+      champsDe(form.nature, form.transaction)
+        .filter(c=>c.requis)
+        .forEach(c=>{
+          const v = form.details?.[c.k];
+          if (v===undefined || String(v).trim()==="") vides.push({k:"d_"+c.k, l:c.l});
+        });
+    }
     if (!(photos.length+existingPhotos.length)) vides.push({k:"photos",l:"Au moins une photo"});
     return vides;
   };
@@ -630,7 +639,11 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     const payload = {
       owner_id:user.id,
       user_email:form.email, user_name:form.name, user_phone:`${form.phoneCode}${form.phone}`,
-      title:form.title, type:form.type,
+      title:form.title,
+      type: form.transaction==="location" ? "Location" : "Vente",
+      transaction: form.transaction,
+      nature: form.nature,
+      details: Object.fromEntries(Object.entries(form.details||{}).filter(([,v])=>String(v).trim()!=="")),
       country:form.country, city:form.city, neighborhood:form.neighborhood,
       description:form.description, price_eur:parseInt(form.price_eur)||null,
       price:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
@@ -717,13 +730,33 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                   {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
-              {/* Type de bien */}
-              <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Type de bien *</label>
-                <select value={form.type||""} onChange={e=>set("type",e.target.value)} style={{...champ("type")}}>
-                  <option value="">Sélectionner...</option>
-                  {["Vente","Location","Terrain","Commercial","Agricole"].map(t=><option key={t}>{t}</option>)}
-                </select>
+              {/* Vendre ou louer */}
+              <div style={{marginBottom:"14px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Vous souhaitez *</label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                  {[["vente","Vendre"],["location","Louer"]].map(([v,l])=>(
+                    <button key={v} type="button" onClick={()=>{set("transaction",v);set("type",v==="location"?"Location":"Vente");}}
+                      style={{background:form.transaction===v?C.forest:C.white,color:form.transaction===v?C.white:C.dark,border:`1px solid ${form.transaction===v?C.forest:(manquants.includes("transaction")?"#C0392B":C.sand)}`,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>{l}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nature du bien */}
+              <div style={{marginBottom:"14px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nature du bien *</label>
+                {FAMILLES.map(fam=>(
+                  <div key={fam} style={{marginBottom:"10px"}}>
+                    <div style={{fontSize:"11.5px",fontWeight:700,color:C.sub,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>{fam}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"7px"}}>
+                      {naturesDeFamille(fam).map(([k,v])=>(
+                        <button key={k} type="button" onClick={()=>set("nature",k)}
+                          style={{background:form.nature===k?C.forest:C.white,color:form.nature===k?C.white:C.dark,border:`1px solid ${form.nature===k?C.forest:(manquants.includes("nature")?"#C0392B":C.sand)}`,borderRadius:"20px",padding:"9px 14px",fontSize:"14px",fontWeight:form.nature===k?700:500,cursor:"pointer",fontFamily:F,display:"flex",alignItems:"center",gap:"6px"}}>
+                          <span>{v.icone}</span>{v.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
               {/* Titre */}
               <div style={{marginBottom:"10px"}}>
@@ -743,39 +776,62 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               </div>
               {/* Prix */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prix</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{form.transaction==="location"?"Loyer mensuel":"Prix de vente"}</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
                   <div style={{position:"relative"}}>
-                    <input type="number" placeholder="Prix en €" value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...champ("price_eur"),paddingRight:"28px"}}/>
+                    <input type="number" placeholder={form.transaction==="location"?"Loyer en €":"Prix en €"} value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...champ("price_eur"),paddingRight:"28px"}}/>
                     <span style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",fontSize:"13px",color:C.sub,fontFamily:F}}>€</span>
                   </div>
                   <div style={{position:"relative"}}>
-                    <input type="number" placeholder="Prix en FCFA" value={form.price_xof||""} onChange={e=>{set("price_xof",e.target.value);set("price_eur",Math.round(e.target.value/655.957));}} style={{...inputStyle,paddingRight:"40px"}}/>
+                    <input type="number" placeholder={form.transaction==="location"?"Loyer en FCFA":"Prix en FCFA"} value={form.price_xof||""} onChange={e=>{set("price_xof",e.target.value);set("price_eur",Math.round(e.target.value/655.957));}} style={{...inputStyle,paddingRight:"40px"}}/>
                     <span style={{position:"absolute",right:"8px",top:"50%",transform:"translateY(-50%)",fontSize:"12px",color:C.sub,fontFamily:F}}>FCFA</span>
                   </div>
                 </div>
                 {form.price_eur&&<div style={{fontSize:"12px",color:C.terra,marginTop:"4px",fontFamily:F}}>≈ {new Intl.NumberFormat("fr-FR").format(Math.round(form.price_eur*655.957))} FCFA · {new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(form.price_eur)}</div>}
               </div>
-              {/* Surface + Pièces + SDB */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"10px"}}>
-                <div>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface m²</label>
-                  <input type="number" placeholder="Ex: 150" value={form.surface||""} onChange={e=>set("surface",e.target.value)} style={inputStyle}/>
+              {/* Caractéristiques propres à la nature du bien */}
+              {form.nature ? (
+                <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"15px",marginBottom:"12px"}}>
+                  <div style={{fontSize:"12px",fontWeight:700,color:C.forest,letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px",display:"flex",alignItems:"center",gap:"7px"}}>
+                    <span style={{fontSize:"16px"}}>{NATURES[form.nature].icone}</span>
+                    {NATURES[form.nature].label}{form.transaction==="location"?" · à louer":""}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"10px"}}>
+                    {champsDe(form.nature, form.transaction).map(c=>{
+                      const val = form.details?.[c.k] ?? "";
+                      const enDefaut = manquants.includes("d_"+c.k);
+                      const st = enDefaut ? {...inputStyle,border:"2px solid #C0392B",background:"#FDF3F2"} : inputStyle;
+                      return (
+                        <div key={c.k}>
+                          <label style={{fontSize:"12px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F}}>
+                            {c.l}{c.requis?" *":""}
+                          </label>
+                          {c.t==="choix" ? (
+                            <select value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}>
+                              <option value="">—</option>
+                              {c.options.map(o=><option key={o} value={o}>{o}</option>)}
+                            </select>
+                          ) : (
+                            <input type={c.t==="nombre"?"number":"text"} inputMode={c.t==="nombre"?"numeric":undefined}
+                              placeholder={c.aide||""} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}/>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pièces</label>
-                  <select value={form.rooms||""} onChange={e=>set("rooms",e.target.value)} style={{...inputStyle}}>
-                    <option value="">—</option>
-                    {[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}
-                  </select>
+              ) : (
+                <div style={{background:C.cream,border:`1px dashed ${C.sand}`,borderRadius:"12px",padding:"18px",marginBottom:"12px",textAlign:"center"}}>
+                  <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.55}}>
+                    Choisissez la nature du bien ci-dessus : les caractéristiques à renseigner s'adapteront.
+                  </div>
                 </div>
-                <div>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>S. de bain</label>
-                  <select value={form.bathrooms||""} onChange={e=>set("bathrooms",e.target.value)} style={{...inputStyle}}>
-                    <option value="">—</option>
-                    {[1,2,3,4,5].map(n=><option key={n}>{n}</option>)}
-                  </select>
-                </div>
+              )}
+
+              {/* Surface générale */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface habitable ou utile (m²)</label>
+                <input type="number" placeholder="Ex: 150" value={form.surface||""} onChange={e=>set("surface",e.target.value)} style={inputStyle}/>
               </div>
               {/* Équipements */}
               <div style={{marginBottom:"10px"}}>
@@ -837,6 +893,222 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
 
 
 
+
+
+// ─── NATURES DE BIEN ──────────────────────────────
+// Chaque nature décrit ses propres champs. Le formulaire, la carte, la fiche
+// et les filtres se construisent à partir d'ici : ajouter une nature ou un
+// champ se fait en un seul endroit.
+//
+// type des champs : texte | nombre | choix | bool | surface
+// only: "vente" ou "location" quand le champ ne concerne qu'une transaction
+
+const OUI_NON = ["Oui","Non","À vérifier"];
+
+const NATURES = {
+  maison: {
+    label:"Maison ou villa", famille:"Habitation", icone:"🏡",
+    resume:(d)=>[d.pieces&&`${d.pieces} pièces`, d.chambres&&`${d.chambres} ch.`, d.surface_terrain&&`terrain ${d.surface_terrain} m²`],
+    champs:[
+      {k:"pieces",         l:"Nombre de pièces",        t:"nombre", requis:true},
+      {k:"chambres",       l:"Chambres",                t:"nombre", requis:true},
+      {k:"sdb",            l:"Salles de bain",          t:"nombre"},
+      {k:"niveaux",        l:"Niveaux",                 t:"nombre"},
+      {k:"surface_terrain",l:"Surface du terrain (m²)", t:"nombre"},
+      {k:"annee",          l:"Année de construction",   t:"nombre"},
+      {k:"etat",           l:"État",                    t:"choix", options:["Neuf","Bon état","À rafraîchir","À rénover","Sur plan"]},
+      {k:"titre_foncier",  l:"Titre foncier",           t:"choix", options:OUI_NON, only:"vente"},
+    ],
+  },
+  appartement: {
+    label:"Appartement", famille:"Habitation", icone:"🏢",
+    resume:(d)=>[d.pieces&&`${d.pieces} pièces`, d.chambres&&`${d.chambres} ch.`, d.etage!==undefined&&d.etage!==""&&`étage ${d.etage}`],
+    champs:[
+      {k:"pieces",      l:"Nombre de pièces",  t:"nombre", requis:true},
+      {k:"chambres",    l:"Chambres",          t:"nombre", requis:true},
+      {k:"sdb",         l:"Salles de bain",    t:"nombre"},
+      {k:"etage",       l:"Étage",             t:"nombre"},
+      {k:"etages_imm",  l:"Étages de l'immeuble", t:"nombre"},
+      {k:"ascenseur",   l:"Ascenseur",         t:"choix", options:["Oui","Non"]},
+      {k:"charges",     l:"Charges de copropriété (FCFA/mois)", t:"nombre", only:"vente"},
+      {k:"etat",        l:"État",              t:"choix", options:["Neuf","Bon état","À rafraîchir","À rénover","Sur plan"]},
+    ],
+  },
+  immeuble: {
+    label:"Immeuble", famille:"Habitation", icone:"🏬",
+    resume:(d)=>[d.lots&&`${d.lots} lots`, d.etages&&`${d.etages} étages`, d.revenu_mensuel&&`revenu ${d.revenu_mensuel} FCFA/mois`],
+    champs:[
+      {k:"lots",           l:"Nombre de lots ou logements", t:"nombre", requis:true},
+      {k:"etages",         l:"Nombre d'étages",             t:"nombre", requis:true},
+      {k:"surface_totale", l:"Surface totale bâtie (m²)",   t:"nombre"},
+      {k:"surface_terrain",l:"Surface du terrain (m²)",     t:"nombre"},
+      {k:"occupation",     l:"Taux d'occupation",           t:"choix", options:["Entièrement loué","Partiellement loué","Vide","En construction"]},
+      {k:"revenu_mensuel", l:"Revenu locatif mensuel (FCFA)", t:"nombre", only:"vente"},
+      {k:"annee",          l:"Année de construction",       t:"nombre"},
+      {k:"titre_foncier",  l:"Titre foncier",               t:"choix", options:OUI_NON, only:"vente"},
+    ],
+  },
+  terrain: {
+    label:"Terrain à bâtir", famille:"Terrain", icone:"📐",
+    resume:(d)=>[d.superficie&&`${d.superficie} m²`, d.statut_juridique, d.viabilise&&`viabilisé : ${d.viabilise}`],
+    champs:[
+      {k:"superficie",       l:"Superficie (m²)",     t:"nombre", requis:true},
+      {k:"statut_juridique", l:"Statut juridique",    t:"choix", requis:true, options:["Titre foncier","Bail emphytéotique","Délibération","Acte administratif","Non titré"]},
+      {k:"viabilise",        l:"Viabilisé",           t:"choix", options:["Eau et électricité","Eau seulement","Électricité seulement","Non viabilisé"]},
+      {k:"cloture",          l:"Clôturé",             t:"choix", options:["Oui","Partiellement","Non"]},
+      {k:"acces",            l:"Accès",               t:"choix", options:["Route bitumée","Piste carrossable","Difficile"]},
+      {k:"constructible",    l:"Constructible",       t:"choix", options:OUI_NON},
+      {k:"bornage",          l:"Bornage effectué",    t:"choix", options:OUI_NON},
+    ],
+  },
+  agricole: {
+    label:"Terrain agricole ou exploitation", famille:"Terrain", icone:"🌾",
+    resume:(d)=>[d.superficie_ha&&`${d.superficie_ha} ha`, d.eau, d.cultures],
+    champs:[
+      {k:"superficie_ha",    l:"Superficie (hectares)", t:"nombre", requis:true},
+      {k:"statut_juridique", l:"Statut juridique",      t:"choix", requis:true, options:["Titre foncier","Bail emphytéotique","Délibération","Acte administratif","Non titré"]},
+      {k:"eau",              l:"Accès à l'eau",         t:"choix", options:["Forage","Rivière ou marigot","Réseau","Aucun"]},
+      {k:"cultures",         l:"Cultures en place",     t:"texte", aide:"Ex : manguiers, arachide, maraîchage"},
+      {k:"batiments",        l:"Bâtiments",             t:"texte", aide:"Ex : hangar, logement de gardien"},
+      {k:"cloture",          l:"Clôturé",               t:"choix", options:["Oui","Partiellement","Non"]},
+      {k:"acces",            l:"Accès",                 t:"choix", options:["Route bitumée","Piste carrossable","Difficile"]},
+    ],
+  },
+  commerce: {
+    label:"Local commercial", famille:"Professionnel", icone:"🏪",
+    resume:(d)=>[d.surface_local&&`${d.surface_local} m²`, d.vitrine&&`vitrine ${d.vitrine}`, d.emplacement],
+    champs:[
+      {k:"surface_local", l:"Surface du local (m²)", t:"nombre", requis:true},
+      {k:"emplacement",   l:"Emplacement",           t:"choix", options:["Rue passante","Centre commercial","Marché","Quartier résidentiel","Zone industrielle"]},
+      {k:"vitrine",       l:"Linéaire de vitrine (m)", t:"nombre"},
+      {k:"activite",      l:"Activité précédente",   t:"texte", aide:"Ex : restaurant, boutique de prêt-à-porter"},
+      {k:"etat",          l:"État",                  t:"choix", options:["Neuf","Bon état","À rafraîchir","Brut de béton"]},
+      {k:"bail_reprise",  l:"Droit au bail à reprendre", t:"choix", options:["Oui","Non"], only:"location"},
+    ],
+  },
+  bureau: {
+    label:"Bureau", famille:"Professionnel", icone:"💼",
+    resume:(d)=>[d.surface_bureau&&`${d.surface_bureau} m²`, d.postes&&`${d.postes} postes`, d.etage!==undefined&&d.etage!==""&&`étage ${d.etage}`],
+    champs:[
+      {k:"surface_bureau", l:"Surface (m²)",        t:"nombre", requis:true},
+      {k:"postes",         l:"Postes de travail",   t:"nombre"},
+      {k:"bureaux_fermes", l:"Bureaux fermés",      t:"nombre"},
+      {k:"etage",          l:"Étage",               t:"nombre"},
+      {k:"ascenseur",      l:"Ascenseur",           t:"choix", options:["Oui","Non"]},
+      {k:"clim",           l:"Climatisation",       t:"choix", options:["Centralisée","Split","Aucune"]},
+      {k:"etat",           l:"État",                t:"choix", options:["Neuf","Bon état","À rafraîchir","Brut de béton"]},
+    ],
+  },
+  entrepot: {
+    label:"Entrepôt ou local industriel", famille:"Professionnel", icone:"🏭",
+    resume:(d)=>[d.surface_couverte&&`${d.surface_couverte} m² couverts`, d.hauteur&&`${d.hauteur} m sous plafond`],
+    champs:[
+      {k:"surface_couverte",l:"Surface couverte (m²)", t:"nombre", requis:true},
+      {k:"surface_terrain", l:"Surface du terrain (m²)", t:"nombre"},
+      {k:"hauteur",         l:"Hauteur sous plafond (m)", t:"nombre"},
+      {k:"quais",           l:"Quais de chargement",   t:"nombre"},
+      {k:"acces_camion",    l:"Accès poids lourds",    t:"choix", options:["Oui","Difficile","Non"]},
+      {k:"electricite",     l:"Puissance électrique",  t:"texte", aide:"Ex : triphasé 60 kVA"},
+    ],
+  },
+  hotel: {
+    label:"Hôtel ou résidence", famille:"Professionnel", icone:"🏨",
+    resume:(d)=>[d.chambres_hotel&&`${d.chambres_hotel} chambres`, d.categorie, d.exploitation],
+    champs:[
+      {k:"chambres_hotel", l:"Nombre de chambres",  t:"nombre", requis:true},
+      {k:"categorie",      l:"Catégorie",           t:"choix", options:["Non classé","1 étoile","2 étoiles","3 étoiles","4 étoiles","5 étoiles","Résidence meublée"]},
+      {k:"surface_totale", l:"Surface totale (m²)", t:"nombre"},
+      {k:"exploitation",   l:"Exploitation",        t:"choix", options:["En activité","À l'arrêt","En construction"]},
+      {k:"restaurant",     l:"Restaurant",          t:"choix", options:["Oui","Non"]},
+      {k:"piscine_h",      l:"Piscine",             t:"choix", options:["Oui","Non"]},
+      {k:"revenu_mensuel", l:"Chiffre d'affaires mensuel (FCFA)", t:"nombre", only:"vente"},
+    ],
+  },
+};
+
+// Champs communs à toutes les locations
+const CHAMPS_LOCATION = [
+  {k:"meuble",       l:"Meublé",                t:"choix", requis:true, options:["Meublé","Non meublé","Partiellement"]},
+  {k:"charges_loc",  l:"Charges mensuelles (FCFA)", t:"nombre"},
+  {k:"caution",      l:"Caution (nombre de mois)", t:"nombre"},
+  {k:"duree_bail",   l:"Durée du bail",         t:"choix", options:["Courte durée","1 an","2 ans","3 ans et plus","Négociable"]},
+  {k:"disponibilite",l:"Disponible à partir du", t:"texte", aide:"Ex : immédiatement, ou 1er décembre"},
+];
+
+const FAMILLES = ["Habitation","Terrain","Professionnel"];
+const naturesDeFamille = (fam) => Object.entries(NATURES).filter(([,v])=>v.famille===fam);
+
+// Les champs à afficher pour une nature et une transaction données
+function champsDe(nature, transaction) {
+  const n = NATURES[nature];
+  if (!n) return [];
+  const propres = n.champs.filter(c => !c.only || c.only === transaction);
+  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION] : propres;
+}
+
+// Résumé court d'un bien, pour les cartes
+function resumeBien(p) {
+  const d = p.details || {};
+  const n = NATURES[p.nature];
+  const base = n?.resume ? n.resume(d).filter(Boolean) : [];
+  if (base.length) return base.slice(0,3);
+  return [p.rooms&&`${p.rooms} pièces`, p.surface&&`${p.surface} m²`, p.tags?.[0]].filter(Boolean).slice(0,3);
+}
+
+const libelleNature = (p) => NATURES[p?.nature]?.label || p?.type || "Bien";
+
+// Caractéristiques d'une fiche : celles de la nature du bien, plus la surface.
+// Un champ non renseigné n'apparaît pas — mieux vaut rien qu'un tiret.
+function caracteristiques(p) {
+  const d = p.details || {};
+  const out = [["Nature", libelleNature(p)]];
+  if (p.surface) out.push(["Surface", new Intl.NumberFormat("fr-FR").format(p.surface) + " m²"]);
+  champsDe(p.nature, p.transaction).forEach(c => {
+    const v = d[c.k];
+    if (v === undefined || String(v).trim() === "") return;
+    const est = c.t === "nombre" && !isNaN(Number(v));
+    const unite = /\(m²\)/.test(c.l) ? " m²" : /hectares/.test(c.l) ? " ha" : /FCFA/.test(c.l) ? " FCFA" : "";
+    out.push([c.l.replace(/\s*\([^)]*\)\s*$/, ""), est ? new Intl.NumberFormat("fr-FR").format(Number(v)) + unite : String(v)]);
+  });
+  if (out.length === 1 && p.rooms) out.push(["Pièces", String(p.rooms)]);
+  return out.slice(0, 10);
+}
+const libelleTransaction = (p) => p?.transaction === "location" ? "Location" : "Vente";
+
+// ─── BARÈMES DES SIMULATEURS ──────────────────────
+// ⚠️ IMPORTANT — Ces fourchettes sont INDICATIVES et n'ont pas encore été
+// vérifiées pays par pays auprès de sources officielles. Tant qu'une entrée
+// porte verifie:false, le simulateur affiche un avertissement visible.
+// Pour corriger un pays : modifier les valeurs ci-dessous et passer verifie:true.
+
+// Frais à ajouter au prix d'achat, en % du prix du bien : [mini, maxi]
+const FRAIS_ACQUISITION = {
+  "Sénégal":      {enregistrement:[5,10], notaire:[2,4], divers:[1,3], verifie:false},
+  "Côte d'Ivoire":{enregistrement:[4,8],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Cameroun":     {enregistrement:[5,10], notaire:[2,5], divers:[1,3], verifie:false},
+  "Mali":         {enregistrement:[3,7],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Burkina Faso": {enregistrement:[3,8],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Bénin":        {enregistrement:[4,8],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Togo":         {enregistrement:[3,8],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Niger":        {enregistrement:[3,7],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Gabon":        {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Congo":        {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Tchad":        {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
+  "Centrafrique": {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
+};
+
+// Coût de construction au m², en euros : [mini, maxi]
+const COUT_M2 = {
+  economique: {label:"Économique",  aide:"Parpaing, tôle, finitions simples",        prix:[150,260]},
+  standard:   {label:"Standard",    aide:"Carrelage, menuiserie alu, peinture",      prix:[260,420]},
+  superieur:  {label:"Haut standing",aide:"Matériaux importés, climatisation, piscine",prix:[420,750]},
+};
+const BAREMES_VERIFIES = false;   // passer à true une fois les chiffres confirmés
+
+function fourchette(prix, [min,max]) {
+  return [Math.round(prix*min/100), Math.round(prix*max/100)];
+}
+
 // ─── ADRESSES DES ANNONCES ────────────────────────
 // Une annonce = une vraie page, partageable sur WhatsApp et indexable.
 const idPublic = (p) => String(p.id).startsWith("db-") ? String(p.id).slice(3) : `demo-${p.id}`;
@@ -855,6 +1127,507 @@ function lireRoute() {
 
 function correspond(p, id) {
   return idPublic(p) === id || String(p.id) === id || String(p.id) === `db-${id}`;
+}
+
+
+// ─── SIMULATEURS ──────────────────────────────────
+function AvertissementBareme() {
+  if (BAREMES_VERIFIES) return null;
+  return (
+    <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"10px",padding:"13px 15px",marginBottom:"16px"}}>
+      <div style={{fontSize:"13.5px",color:"#6D4C1B",fontFamily:F,lineHeight:1.6}}>
+        <strong>Estimation indicative.</strong> Les taux utilisés sont des ordres de grandeur, non des barèmes officiels. Ils varient selon le pays, la nature du bien et la date. Faites confirmer les montants par un notaire avant tout engagement.
+      </div>
+    </div>
+  );
+}
+
+const champSim = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"9px",padding:"12px 14px",fontSize:"16px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
+const labelSim = {fontSize:"12.5px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"};
+const carteResultat = {background:`linear-gradient(160deg,${C.forest},${C.forestDark})`,borderRadius:"14px",padding:"20px",marginTop:"18px"};
+
+function LigneResultat({ label, valeur, fort }) {
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:"12px",padding:fort?"12px 0 0":"6px 0",borderTop:fort?"1px solid rgba(255,255,255,0.18)":"none",marginTop:fort?"8px":0}}>
+      <span style={{fontSize:fort?"15px":"14px",color:fort?C.white:"rgba(255,255,255,0.7)",fontFamily:F,fontWeight:fort?700:400}}>{label}</span>
+      <span style={{fontSize:fort?"20px":"15px",color:fort?C.gold:"rgba(255,255,255,0.92)",fontFamily:F,fontWeight:700,whiteSpace:"nowrap"}}>{valeur}</span>
+    </div>
+  );
+}
+
+// ── 1. Budget total d'achat ──
+function SimuBudget() {
+  const [prix, setPrix] = useState("");
+  const [pays, setPays] = useState("Sénégal");
+  const [devise, setDevise] = useState("EUR");
+  const p = parseFloat(String(prix).replace(/\s/g,"")) || 0;
+  const prixEur = devise==="EUR" ? p : p/655.957;
+  const f = FRAIS_ACQUISITION[pays] || FRAIS_ACQUISITION["Sénégal"];
+  const enr = fourchette(prixEur, f.enregistrement);
+  const not = fourchette(prixEur, f.notaire);
+  const div = fourchette(prixEur, f.divers);
+  const totMin = Math.round(prixEur + enr[0] + not[0] + div[0]);
+  const totMax = Math.round(prixEur + enr[1] + not[1] + div[1]);
+  const fmt = (a,b) => a===b ? fmtEUR(a) : `${fmtEUR(a)} – ${fmtEUR(b)}`;
+
+  return (
+    <div>
+      <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
+        Le prix affiché n'est jamais le prix payé. Ce calcul ajoute les frais d'enregistrement, de notaire et les frais annexes pour vous donner le budget réel à prévoir.
+      </p>
+      <AvertissementBareme/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
+        <div>
+          <label style={labelSim}>Prix du bien</label>
+          <div style={{display:"flex",gap:"8px"}}>
+            <input type="number" inputMode="numeric" placeholder="Ex : 45000" value={prix} onChange={e=>setPrix(e.target.value)} style={{...champSim,flex:1}}/>
+            <select value={devise} onChange={e=>setDevise(e.target.value)} style={{...champSim,width:"auto",flexShrink:0}}>
+              <option value="EUR">€</option><option value="XOF">FCFA</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style={labelSim}>Pays</label>
+          <select value={pays} onChange={e=>setPays(e.target.value)} style={champSim}>
+            {Object.keys(FRAIS_ACQUISITION).map(k=><option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+      </div>
+      {p>0 && (
+        <div style={carteResultat}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Budget à prévoir</div>
+          <LigneResultat label="Prix du bien" valeur={fmtEUR(Math.round(prixEur))}/>
+          <LigneResultat label="Droits d'enregistrement" valeur={fmt(enr[0],enr[1])}/>
+          <LigneResultat label="Frais de notaire" valeur={fmt(not[0],not[1])}/>
+          <LigneResultat label="Frais annexes" valeur={fmt(div[0],div[1])}/>
+          <LigneResultat label="Total estimé" valeur={fmt(totMin,totMax)} fort/>
+          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:F}}>
+            Soit {fmtXOF(Math.round(totMin*655.957))} à {fmtXOF(Math.round(totMax*655.957))}
+          </div>
+          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
+            Prévoyez en plus le coût d'une vérification du titre foncier avant signature.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 2. Coût de construction ──
+function SimuConstruction() {
+  const [surface, setSurface] = useState("");
+  const [niveau, setNiveau] = useState("standard");
+  const s = parseFloat(surface) || 0;
+  const n = COUT_M2[niveau];
+  const min = Math.round(s*n.prix[0]), max = Math.round(s*n.prix[1]);
+  const postes = [["Gros œuvre",0.42],["Second œuvre",0.28],["Finitions",0.20],["Études et divers",0.10]];
+
+  return (
+    <div>
+      <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
+        Vous avez un terrain et vous voulez bâtir ? Cette estimation donne l'ordre de grandeur du budget, et sa répartition entre les grands postes du chantier.
+      </p>
+      <AvertissementBareme/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
+        <div>
+          <label style={labelSim}>Surface à construire (m²)</label>
+          <input type="number" inputMode="numeric" placeholder="Ex : 150" value={surface} onChange={e=>setSurface(e.target.value)} style={champSim}/>
+        </div>
+        <div>
+          <label style={labelSim}>Niveau de finition</label>
+          <div style={{display:"grid",gap:"8px"}}>
+            {Object.entries(COUT_M2).map(([k,v])=>(
+              <button key={k} onClick={()=>setNiveau(k)} style={{textAlign:"left",background:niveau===k?C.forest:C.white,color:niveau===k?C.white:C.dark,border:`1px solid ${niveau===k?C.forest:C.sand}`,borderRadius:"10px",padding:"13px 15px",cursor:"pointer",fontFamily:F,transition:"all 0.15s"}}>
+                <div style={{fontSize:"15px",fontWeight:700,marginBottom:"2px"}}>{v.label}</div>
+                <div style={{fontSize:"13px",opacity:0.75}}>{v.aide} · {v.prix[0]}–{v.prix[1]} €/m²</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {s>0 && (
+        <div style={carteResultat}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Budget de construction</div>
+          {postes.map(([nom,part])=>(
+            <LigneResultat key={nom} label={nom} valeur={`${fmtEUR(Math.round(min*part))} – ${fmtEUR(Math.round(max*part))}`}/>
+          ))}
+          <LigneResultat label={`Total pour ${s} m²`} valeur={`${fmtEUR(min)} – ${fmtEUR(max)}`} fort/>
+          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:F}}>
+            Soit {fmtXOF(Math.round(min*655.957))} à {fmtXOF(Math.round(max*655.957))}
+          </div>
+          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
+            Hors prix du terrain, viabilisation, clôture et frais d'architecte.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 3. Épargne ──
+function SimuEpargne() {
+  const [objectif, setObjectif] = useState("");
+  const [deja, setDeja] = useState("");
+  const [mensuel, setMensuel] = useState("");
+  const o = parseFloat(objectif)||0, d = parseFloat(deja)||0, m = parseFloat(mensuel)||0;
+  const reste = Math.max(0, o-d);
+  const mois = m>0 ? Math.ceil(reste/m) : 0;
+  const annees = Math.floor(mois/12), moisRestants = mois%12;
+  const duree = mois===0 ? "—" : annees>0 ? `${annees} an${annees>1?"s":""}${moisRestants?` et ${moisRestants} mois`:""}` : `${mois} mois`;
+  const dateFin = new Date(); dateFin.setMonth(dateFin.getMonth()+mois);
+
+  return (
+    <div>
+      <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
+        Combien de temps pour réunir la somme ? Indiquez votre objectif, ce que vous avez déjà mis de côté et ce que vous pouvez épargner chaque mois.
+      </p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
+        <div><label style={labelSim}>Objectif (€)</label>
+          <input type="number" inputMode="numeric" placeholder="Ex : 45000" value={objectif} onChange={e=>setObjectif(e.target.value)} style={champSim}/></div>
+        <div><label style={labelSim}>Déjà épargné (€)</label>
+          <input type="number" inputMode="numeric" placeholder="Ex : 8000" value={deja} onChange={e=>setDeja(e.target.value)} style={champSim}/></div>
+        <div><label style={labelSim}>Épargne mensuelle (€)</label>
+          <input type="number" inputMode="numeric" placeholder="Ex : 400" value={mensuel} onChange={e=>setMensuel(e.target.value)} style={champSim}/></div>
+      </div>
+      {o>0 && m>0 && (
+        <div style={carteResultat}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Votre horizon</div>
+          <LigneResultat label="Reste à réunir" valeur={fmtEUR(reste)}/>
+          <LigneResultat label="Nombre de versements" valeur={mois===0?"—":`${mois} mois`}/>
+          <LigneResultat label="Durée" valeur={duree} fort/>
+          {mois>0 && (
+            <div style={{marginTop:"12px",fontSize:"13.5px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6}}>
+              Objectif atteint vers <strong style={{color:C.gold}}>{dateFin.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</strong>, soit {fmtXOF(Math.round(o*655.957))} au total.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SIMULATEURS = [
+  {id:"budget",       titre:"Budget total d'achat", resume:"Le prix, plus tous les frais",       composant:SimuBudget},
+  {id:"construction", titre:"Coût de construction", resume:"Bâtir sur votre terrain",            composant:SimuConstruction},
+  {id:"epargne",      titre:"Épargne et horizon",   resume:"En combien de temps y arriver",      composant:SimuEpargne},
+];
+
+function Simulateurs() {
+  const [actif, setActif] = useState("budget");
+  const S = (SIMULATEURS.find(s=>s.id===actif)||SIMULATEURS[0]).composant;
+  return (
+    <div>
+      <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"6px",marginBottom:"18px"}}>
+        {SIMULATEURS.map(s=>(
+          <button key={s.id} onClick={()=>setActif(s.id)} style={{flexShrink:0,textAlign:"left",background:actif===s.id?C.forest:C.white,color:actif===s.id?C.white:C.dark,border:`1px solid ${actif===s.id?C.forest:C.sand}`,borderRadius:"11px",padding:"12px 16px",cursor:"pointer",fontFamily:F,minWidth:"170px"}}>
+            <div style={{fontSize:"14.5px",fontWeight:700,marginBottom:"2px"}}>{s.titre}</div>
+            <div style={{fontSize:"12.5px",opacity:0.72}}>{s.resume}</div>
+          </button>
+        ))}
+      </div>
+      <S/>
+    </div>
+  );
+}
+
+
+// ─── OUTILS À TÉLÉCHARGER ─────────────────────────
+// Les fichiers sont déposés dans le bucket Supabase "documents".
+const DOCUMENTS = [
+  {
+    id:"checklist-terrain",
+    titre:"Check-list : vérifier un terrain avant d'acheter",
+    resume:"Les 24 points à contrôler, les documents à exiger et les questions à poser au vendeur.",
+    pages:"4 pages · PDF",
+    fichier:"checklist-verifier-terrain.pdf",
+  },
+  {
+    id:"budget-construction",
+    titre:"Tableau de suivi d'un chantier",
+    resume:"Suivez votre budget poste par poste et comparez les devis de vos artisans.",
+    pages:"Tableur · XLSX",
+    fichier:"suivi-chantier-sokile.xlsx",
+  },
+  {
+    id:"questions-agence",
+    titre:"20 questions à poser avant de signer",
+    resume:"À emporter lors d'une visite ou d'un rendez-vous chez le notaire.",
+    pages:"2 pages · PDF",
+    fichier:"questions-avant-signature.pdf",
+  },
+];
+const urlDocument = (f) => `${SUPABASE_URL}/storage/v1/object/public/documents/${f}`;
+
+function Telechargements({ user }) {
+  const [ouvert, setOuvert] = useState(null);
+  return (
+    <div>
+      <p style={{margin:"0 0 18px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65,maxWidth:"640px"}}>
+        Des documents à emporter sur le terrain, chez le notaire ou devant un devis. Gratuits, sans contrepartie autre que votre adresse email.
+      </p>
+      <div className="sok-grid">
+        {DOCUMENTS.map(d=>(
+          <div key={d.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"20px",display:"flex",flexDirection:"column"}}>
+            <div style={{fontSize:"11.5px",fontWeight:700,color:C.terra,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:F,marginBottom:"8px"}}>{d.pages}</div>
+            <h3 style={{margin:"0 0 8px",fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,lineHeight:1.3}}>{d.titre}</h3>
+            <p style={{margin:"0 0 16px",fontSize:"14.5px",color:C.sub,fontFamily:F,lineHeight:1.6,flex:1}}>{d.resume}</p>
+            <button onClick={()=>setOuvert(d)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"10px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Télécharger</button>
+          </div>
+        ))}
+      </div>
+      {ouvert&&<DemandeDocument doc={ouvert} user={user} onClose={()=>setOuvert(null)}/>}
+    </div>
+  );
+}
+
+function DemandeDocument({ doc, user, onClose }) {
+  const [email, setEmail] = useState(user?.email||"");
+  const [prenom, setPrenom] = useState(user?.name||"");
+  const [consent, setConsent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [pret, setPret] = useState(false);
+
+  const valide = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email) && consent;
+
+  const envoyer = async () => {
+    if (!valide) return;
+    setErreur(""); setLoading(true);
+    const r = await ecrire("leads", {
+      name: prenom || "—", email, status: "telechargement",
+      message: `TÉLÉCHARGEMENT | ${doc.titre} | consentement newsletter : oui`,
+    }).catch(e=>({ok:false,statut:0,motif:String(e)}));
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    setPret(true);
+  };
+
+  return (
+    <ModalShell title={doc.titre} subtitle={doc.pages} onClose={onClose}>
+      {pret ? (
+        <div style={{textAlign:"center",padding:"10px 0"}}>
+          <div style={{fontSize:"40px",marginBottom:"10px"}}>📄</div>
+          <h3 style={{margin:"0 0 8px",color:C.dark,fontFamily:FT,fontSize:"19px"}}>Votre document est prêt</h3>
+          <p style={{color:C.sub,fontSize:"14.5px",fontFamily:F,lineHeight:1.6,marginBottom:"18px"}}>Le téléchargement démarre en cliquant ci-dessous.</p>
+          <a href={urlDocument(doc.fichier)} download target="_blank" rel="noopener noreferrer"
+             style={{display:"block",background:C.terra,color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none"}}>Télécharger le document</a>
+          <button onClick={onClose} style={{marginTop:"10px",background:"transparent",border:"none",color:C.sub,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Fermer</button>
+        </div>
+      ) : (<>
+        <p style={{margin:"0 0 16px",fontSize:"14.5px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
+          Indiquez votre adresse pour accéder au document.
+        </p>
+        <div style={{marginBottom:"12px"}}>
+          <label style={lbl}>Prénom</label>
+          <input style={inp} value={prenom} onChange={e=>setPrenom(e.target.value)} placeholder="Facultatif"/>
+        </div>
+        <div style={{marginBottom:"14px"}}>
+          <label style={lbl}>Email *</label>
+          <input type="email" style={inp} value={email} onChange={e=>setEmail(e.target.value)} placeholder="vous@exemple.com"/>
+        </div>
+        <label style={{display:"flex",gap:"10px",alignItems:"flex-start",marginBottom:"16px",cursor:"pointer"}}>
+          <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:"3px",width:18,height:18,flexShrink:0,accentColor:C.forest}}/>
+          <span style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55}}>
+            J'accepte que Sokilé conserve mon adresse pour m'envoyer ce document et, occasionnellement, ses prochaines publications. Je peux me désinscrire à tout moment en écrivant à {CONTACT_MAIL}. <a href="/confidentialite.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>Politique de confidentialité</a>
+          </span>
+        </label>
+        <BandeauErreur texte={erreur} onRetry={envoyer}/>
+        <button onClick={envoyer} disabled={!valide||loading} style={{width:"100%",background:valide?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:valide?"pointer":"default",fontFamily:F}}>
+          {loading?"Un instant…":"Recevoir le document"}
+        </button>
+      </>)}
+    </ModalShell>
+  );
+}
+
+
+// ─── ACTUALITÉ IMMOBILIÈRE ────────────────────────
+// Les articles vivent dans la table Supabase "articles".
+// L'écriture est protégée par une règle RLS côté serveur : seul le compte
+// dont l'email figure dans la politique peut publier. Masquer le bouton
+// ne protégerait rien, c'est le serveur qui refuse.
+const EMAIL_REDACTION = "contact@sokile.com";   // doit correspondre à la politique SQL
+
+// Écriture authentifiée : on envoie le jeton de l'utilisateur, pas la clé publique
+async function ecrireAuth(chemin, donnees, token, methode="POST") {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    method: methode,
+    headers: {
+      "Content-Type":"application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${token}`,
+      "Prefer": "return=representation",
+    },
+    body: JSON.stringify(donnees),
+  });
+  if (res.ok) return { ok:true, data: await res.json().catch(()=>null) };
+  let motif=""; try { const j=await res.json(); motif=j.message||j.hint||j.details||""; } catch(e){}
+  return { ok:false, statut:res.status, motif };
+}
+
+const peutRediger = (user) => !!user?.token && user?.email === EMAIL_REDACTION;
+
+function dateCourte(iso) {
+  if (!iso) return "";
+  try { return new Date(iso).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); }
+  catch(e) { return ""; }
+}
+
+function Actualite({ user }) {
+  const [articles, setArticles] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [lecture, setLecture] = useState(null);
+  const [edition, setEdition] = useState(null);   // null | {} | article
+
+  const charger = () => {
+    setChargement(true);
+    // un an d'historique, les plus récents d'abord
+    const limite = new Date(); limite.setFullYear(limite.getFullYear()-1);
+    fetch(`${SUPABASE_URL}/rest/v1/articles?publie=eq.true&date_publication=gte.${limite.toISOString()}&select=*&order=date_publication.desc&limit=60`,
+      {headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+      .then(r=>r.ok?r.json():[])
+      .then(rows=>setArticles(Array.isArray(rows)?rows:[]))
+      .catch(()=>setArticles([]))
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, []);
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"14px",flexWrap:"wrap",marginBottom:"18px"}}>
+        <p style={{margin:0,fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65,maxWidth:"620px"}}>
+          Ce qui bouge dans l'immobilier en Afrique de l'Ouest et Centrale : réformes foncières, prix, nouveaux quartiers, financement.
+        </p>
+        {peutRediger(user)&&(
+          <button onClick={()=>setEdition({})} style={{background:C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"12px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,flexShrink:0}}>+ Écrire un article</button>
+        )}
+      </div>
+
+      {chargement ? (
+        <p style={{color:C.sub,fontFamily:F,fontSize:"15px"}}>Chargement…</p>
+      ) : articles.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"36px 22px",textAlign:"center"}}>
+          <p style={{margin:0,fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.6}}>
+            Aucun article pour le moment.{peutRediger(user)?" Cliquez sur « Écrire un article » pour publier le premier.":" Revenez bientôt."}
+          </p>
+        </div>
+      ) : (
+        <div className="sok-grid">
+          {articles.map(a=>(
+            <article key={a.id} onClick={()=>setLecture(a)} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
+              {a.image_url&&<div style={{height:170,backgroundImage:`url('${a.image_url}')`,backgroundSize:"cover",backgroundPosition:"center"}}/>}
+              <div style={{padding:"18px",flex:1,display:"flex",flexDirection:"column"}}>
+                <div style={{fontSize:"11.5px",fontWeight:700,color:C.terra,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:F,marginBottom:"7px"}}>
+                  {a.pays||"Afrique de l'Ouest & Centrale"} · {dateCourte(a.date_publication)}
+                </div>
+                <h3 style={{margin:"0 0 8px",fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,lineHeight:1.3}}>{a.titre}</h3>
+                <p style={{margin:0,fontSize:"14.5px",color:C.sub,fontFamily:F,lineHeight:1.6,flex:1}}>{a.chapo}</p>
+                {peutRediger(user)&&(
+                  <button onClick={e=>{e.stopPropagation();setEdition(a);}} style={{alignSelf:"flex-start",marginTop:"12px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Modifier</button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {lecture&&<LectureArticle a={lecture} onClose={()=>setLecture(null)}/>}
+      {edition&&<EditeurArticle article={edition} user={user} onClose={()=>setEdition(null)} onEnregistre={()=>{setEdition(null);charger();}}/>}
+    </div>
+  );
+}
+
+function LectureArticle({ a, onClose }) {
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:2500,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
+      <div style={{background:C.white,borderRadius:"16px",maxWidth:"720px",width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        {a.image_url&&<div style={{height:240,backgroundImage:`url('${a.image_url}')`,backgroundSize:"cover",backgroundPosition:"center",borderRadius:"16px 16px 0 0"}}/>}
+        <div style={{padding:"24px"}}>
+          <button onClick={onClose} style={{float:"right",background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:C.sub}}>✕</button>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.terra,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:F,marginBottom:"9px"}}>
+            {a.pays||"Afrique de l'Ouest & Centrale"} · {dateCourte(a.date_publication)}
+          </div>
+          <h1 style={{margin:"0 0 12px",fontFamily:FT,fontSize:"clamp(23px,3.2vw,32px)",fontWeight:500,color:C.dark,lineHeight:1.25}}>{a.titre}</h1>
+          <p style={{margin:"0 0 18px",fontSize:"17px",color:C.sub,fontFamily:F,lineHeight:1.65,fontWeight:500}}>{a.chapo}</p>
+          <div style={{fontSize:"16px",color:C.dark,fontFamily:F,lineHeight:1.75,whiteSpace:"pre-line"}}>{a.contenu}</div>
+          {a.source_url&&(
+            <p style={{marginTop:"20px",paddingTop:"14px",borderTop:`1px solid ${C.sand}`,fontSize:"14px",fontFamily:F}}>
+              Source : <a href={a.source_url} target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>{a.source_nom||a.source_url}</a>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditeurArticle({ article, user, onClose, onEnregistre }) {
+  const nouveau = !article?.id;
+  const [f, setF] = useState({
+    titre: article.titre||"", chapo: article.chapo||"", contenu: article.contenu||"",
+    pays: article.pays||"", image_url: article.image_url||"",
+    source_nom: article.source_nom||"", source_url: article.source_url||"",
+    publie: article.publie!==undefined ? article.publie : true,
+  });
+  const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const set = (k,v)=>setF(p=>({...p,[k]:v}));
+  const manque = !f.titre.trim() || !f.chapo.trim() || f.contenu.trim().length<80;
+
+  const enregistrer = async () => {
+    if (manque) { setErreur("Titre, chapô et un contenu d'au moins 80 caractères sont nécessaires."); return; }
+    setErreur(""); setLoading(true);
+    const corps = {...f, date_publication: article.date_publication || new Date().toISOString()};
+    const r = nouveau
+      ? await ecrireAuth("articles", corps, user.token).catch(e=>({ok:false,statut:0,motif:String(e)}))
+      : await ecrireAuth(`articles?id=eq.${article.id}`, corps, user.token, "PATCH").catch(e=>({ok:false,statut:0,motif:String(e)}));
+    setLoading(false);
+    if (!r.ok) {
+      setErreur(r.statut===401||r.statut===403
+        ? "Votre compte n'est pas autorisé à publier. Vérifiez que vous êtes connectée avec " + EMAIL_REDACTION + "."
+        : messageErreur(r));
+      return;
+    }
+    onEnregistre();
+  };
+
+  return (
+    <ModalShell title={nouveau?"Écrire un article":"Modifier l'article"} subtitle="Actualité immobilière" onClose={onClose}>
+      <div style={{marginBottom:"12px"}}><label style={lbl}>Titre *</label>
+        <input style={inp} value={f.titre} onChange={e=>set("titre",e.target.value)} placeholder="Ex : Le Sénégal réforme le cadastre"/></div>
+      <div style={{marginBottom:"12px"}}><label style={lbl}>Chapô *</label>
+        <textarea style={{...inp,minHeight:"70px",resize:"vertical"}} value={f.chapo} onChange={e=>set("chapo",e.target.value)} placeholder="Deux lignes qui résument l'essentiel"/></div>
+      <div style={{marginBottom:"12px"}}><label style={lbl}>Article *</label>
+        <textarea style={{...inp,minHeight:"220px",resize:"vertical",lineHeight:1.6}} value={f.contenu} onChange={e=>set("contenu",e.target.value)} placeholder="Le texte. Laissez une ligne vide entre les paragraphes."/>
+        <div style={{fontSize:"12.5px",color:C.sub,fontFamily:F,marginTop:"4px"}}>{f.contenu.trim().length} caractères</div></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
+        <div><label style={lbl}>Pays concerné</label>
+          <select style={inp} value={f.pays} onChange={e=>set("pays",e.target.value)}>
+            <option value="">Toute la zone</option>
+            {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
+          </select></div>
+        <div><label style={lbl}>Image (adresse)</label>
+          <input style={inp} value={f.image_url} onChange={e=>set("image_url",e.target.value)} placeholder="https://…"/></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"14px"}}>
+        <div><label style={lbl}>Source (nom)</label>
+          <input style={inp} value={f.source_nom} onChange={e=>set("source_nom",e.target.value)} placeholder="Ex : Le Soleil"/></div>
+        <div><label style={lbl}>Source (lien)</label>
+          <input style={inp} value={f.source_url} onChange={e=>set("source_url",e.target.value)} placeholder="https://…"/></div>
+      </div>
+      <label style={{display:"flex",gap:"10px",alignItems:"center",marginBottom:"16px",cursor:"pointer"}}>
+        <input type="checkbox" checked={f.publie} onChange={e=>set("publie",e.target.checked)} style={{width:18,height:18,accentColor:C.forest}}/>
+        <span style={{fontSize:"14px",color:C.dark,fontFamily:F}}>Publier immédiatement</span>
+      </label>
+      <BandeauErreur texte={erreur} onRetry={enregistrer}/>
+      <button onClick={enregistrer} disabled={loading} style={{width:"100%",background:loading?"#bbb":C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:loading?"default":"pointer",fontFamily:F}}>
+        {loading?"Enregistrement…":(nouveau?"Publier l'article":"Enregistrer les modifications")}
+      </button>
+      <p style={{margin:"10px 0 0",fontSize:"12.5px",color:C.sub,fontFamily:F,textAlign:"center",lineHeight:1.5}}>
+        Les articles restent affichés un an, puis disparaissent automatiquement de la liste.
+      </p>
+    </ModalShell>
+  );
 }
 
 // ─── SIGNALER UNE ANNONCE ─────────────────────────
@@ -987,12 +1760,13 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"5px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={15}/>{p.country}</div>
         {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
         <div style={{fontSize:"19px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"9px",lineHeight:1.28}}>{p.title}</div>
-        <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
-          {p.rooms&&<span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{p.rooms} pièces</span>}
-          {p.rooms&&p.surface&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
-          {p.surface&&<span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{new Intl.NumberFormat("fr-FR").format(p.surface)} m²</span>}
-          {p.surface&&p.tags?.[0]&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
-          {p.tags?.[0]&&<span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{p.tags[0]}</span>}
+        <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"center"}}>
+          {resumeBien(p).map((x,i)=>(
+            <span key={i} style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              {i>0&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
+              <span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{x}</span>
+            </span>
+          ))}
         </div>
         <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"11px"}}>
           <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{fmtEUR(p.price_eur)}</div>
@@ -1044,7 +1818,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
           <p style={{margin:"0 0 12px",color:C.sub,fontSize:"13px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
           <p style={{margin:"0 0 14px",color:C.dark,fontSize:"14px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
-            {[["Surface",p.surface?`${new Intl.NumberFormat("fr-FR").format(p.surface)} m²`:"—"],["Pièces",p.rooms||"—"],["Salles de bain",p.bathrooms||"—"],["Pays",<><Flag name={p.country}/>{p.country}</>]].map(([l,v])=>(
+            {caracteristiques(p).map(([l,v])=>(
               <div key={l} style={{background:C.cream,borderRadius:"7px",padding:"9px"}}>
                 <div style={{fontSize:"12px",color:C.sub,marginBottom:"2px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
                 <div style={{fontSize:"15px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
@@ -1189,7 +1963,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires 
 
           {/* Caractéristiques */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:"9px",marginBottom:"20px"}}>
-            {[["Surface",p.surface?`${new Intl.NumberFormat("fr-FR").format(p.surface)} m²`:"—"],["Pièces",p.rooms||"—"],["Salles de bain",p.bathrooms||"—"],["Type",p.type||"—"]].map(([l,v])=>(
+            {caracteristiques(p).map(([l,v])=>(
               <div key={l} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"13px"}}>
                 <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"3px"}}>{l}</div>
                 <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
@@ -1723,6 +2497,7 @@ export default function App() {
   const [user, setUser] = useState(() => lireLocal(CLE_SESSION, null));
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
+  const [sousOnglet, setSousOnglet] = useState("guides");
   const [filterCountry, setFilterCountry] = useState("Tous");
   const [filterType, setFilterType] = useState("Tous");
   const [filterPriceMin, setFilterPriceMin] = useState("");
@@ -1853,7 +2628,7 @@ export default function App() {
     {id:"accueil",label:"Accueil",icon:Icon.home},
     {id:"biens",label:"Biens",icon:Icon.search},
     {id:"prestataires",label:"Prestataires",icon:Icon.group},
-    {id:"guides",label:"Guides",icon:Icon.book},
+    {id:"guides",label:"Ressources",icon:Icon.book},
     {id:"pro",label:"Espace pro",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
@@ -2214,16 +2989,29 @@ button,input,select,textarea{font-size:inherit}
               <h1 style={{fontFamily:FT,fontSize:"clamp(27px,5vw,40px)",fontWeight:400,color:C.white,lineHeight:1.15,margin:"0 0 9px"}}>Comprendre avant d'agir.</h1>
               <p style={{fontSize:"14px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.65,maxWidth:"680px",margin:0}}>Des informations pratiques pour rechercher un bien, choisir les bons professionnels et préparer votre projet immobilier en Afrique.</p>
             </div>
-            <div style={{padding:"22px 0"}}>
-              <div className="sok-guide-grid">
-                {GUIDES.map((g,i)=>(
-                  <div key={g.id} style={{display:"contents"}}>
-                    <GuideCard guide={g} onOpen={ouvrirGuide}/>
-                    {i===2&&<AdSlot className="sok-ad-inline" onClick={()=>setShowPub(true)}/>} 
-                  </div>
-                ))}
-              </div>
-              <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"22px"}}/>
+            {/* Sous-rubriques */}
+            <div style={{display:"flex",gap:"8px",overflowX:"auto",padding:"18px 0 4px"}}>
+              {[["guides","Guides"],["outils","Simulateurs"],["docs","À télécharger"],["actu","Actualité"]].map(([id,lbl])=>(
+                <button key={id} onClick={()=>setSousOnglet(id)} style={{flexShrink:0,background:sousOnglet===id?C.forest:C.white,color:sousOnglet===id?C.white:C.dark,border:`1px solid ${sousOnglet===id?C.forest:C.sand}`,borderRadius:"22px",padding:"10px 18px",fontSize:"14.5px",fontWeight:sousOnglet===id?700:500,cursor:"pointer",fontFamily:F}}>{lbl}</button>
+              ))}
+            </div>
+
+            <div style={{padding:"18px 0"}}>
+              {sousOnglet==="guides"&&(<>
+                <div className="sok-guide-grid">
+                  {GUIDES.map((g,i)=>(
+                    <div key={g.id} style={{display:"contents"}}>
+                      <GuideCard guide={g} onOpen={ouvrirGuide}/>
+                      {i===2&&<AdSlot className="sok-ad-inline" onClick={()=>setShowPub(true)}/>}
+                    </div>
+                  ))}
+                </div>
+                <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"22px"}}/>
+              </>)}
+
+              {sousOnglet==="outils"&&<Simulateurs/>}
+              {sousOnglet==="docs"&&<Telechargements user={user}/>}
+              {sousOnglet==="actu"&&<Actualite user={user}/>}
             </div>
           </div>
         )}
