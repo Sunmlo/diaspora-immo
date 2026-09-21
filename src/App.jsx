@@ -291,16 +291,17 @@ function compresserPhoto(file, maxSide = 1600, qualite = 0.82) {
   });
 }
 
-async function envoyerPhotos(files, onProgress) {
+async function envoyerPhotos(files, user, onProgress) {
+  if (!user?.id || !user?.token) throw new Error("AUTH_REQUIRED");
   const urls = [];
   for (let i = 0; i < files.length; i++) {
     try {
       const blob = await compresserPhoto(files[i]);
       if (!blob) continue;
-      const chemin = `annonces/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const chemin = `annonces/${user.id}/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}.jpg`;
       const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}/${chemin}`, {
         method: "POST",
-        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "image/jpeg", "x-upsert": "true" },
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${user.token}`, "Content-Type": "image/jpeg" },
         body: blob,
       });
       if (res.ok) urls.push(`${SUPABASE_URL}/storage/v1/object/public/${PHOTO_BUCKET}/${chemin}`);
@@ -313,13 +314,13 @@ async function envoyerPhotos(files, onProgress) {
 
 // ─── ENVOI FIABLE ─────────────────────────────────
 // Toute écriture passe par ici : on lit la réponse, on ne fait plus semblant.
-async function ecrire(table, donnees) {
+async function ecrire(table, donnees, accessToken = null) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Authorization": `Bearer ${accessToken || SUPABASE_KEY}`,
       "Prefer": "return=representation",
     },
     body: JSON.stringify(donnees),
@@ -370,6 +371,13 @@ async function signIn(email, password) {
   });
   return res.json();
 }
+async function refreshSession(refreshToken) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+    body:JSON.stringify({refresh_token:refreshToken}),
+  });
+  return res.json();
+}
 
 // ─── LOGIN MODAL ──────────────────────────────────
 function LoginModal({ onClose, onLogin }) {
@@ -399,11 +407,10 @@ function LoginModal({ onClose, onLogin }) {
       } else {
         const d = await signIn(email, password);
         if (d.error) setError("Email ou mot de passe incorrect");
-        else { const m=d.user?.user_metadata||{}; onLogin({email,name:m.name||email.split("@")[0],account_type:m.account_type||"particulier",agency:m.agency||"",phone:m.phone||"",token:d.access_token}); onClose(); }
+        else { const m=d.user?.user_metadata||{}; onLogin({id:d.user?.id,email,name:m.name||email.split("@")[0],account_type:m.account_type||"particulier",agency:m.agency||"",phone:m.phone||"",token:d.access_token,refresh_token:d.refresh_token}); onClose(); }
       }
     } catch(e) {
-      onLogin({email,name:name||email.split("@")[0],account_type:accountType,agency,token:"demo"});
-      onClose();
+      setError("Connexion impossible pour le moment. Vérifiez votre connexion et réessayez.");
     }
     setLoading(false);
   };
@@ -529,10 +536,10 @@ function PartnerModal({ onClose, user, defaultType }) {
   const ajouterPhotos = (liste) => {
     setPhotoErr("");
     const choisies = [...liste].filter(f=>f.type.startsWith("image/"));
-    const trop = choisies.filter(f=>f.size > 12*1024*1024);
-    const ok = choisies.filter(f=>f.size <= 12*1024*1024);
+    const trop = choisies.filter(f=>f.size > 8*1024*1024);
+    const ok = choisies.filter(f=>f.size <= 8*1024*1024);
     const place = MAX_PHOTOS - photos.length;
-    if (trop.length) setPhotoErr(`${trop.length} photo(s) ignorée(s) : plus de 12 Mo.`);
+    if (trop.length) setPhotoErr(`${trop.length} photo(s) ignorée(s) : plus de 8 Mo.`);
     else if (ok.length > place) setPhotoErr(`Vous pouvez ajouter ${MAX_PHOTOS} photos au maximum.`);
     const retenues = ok.slice(0, Math.max(0, place));
     setPhotos(p => [...p, ...retenues.map(f => ({ file: f, apercu: URL.createObjectURL(f) }))]);
@@ -563,6 +570,10 @@ function PartnerModal({ onClose, user, defaultType }) {
 
   const handleSubmit = async () => {
     setErreur("");
+    if (!user?.id || !user?.token) {
+      setErreur("Votre session a expiré. Reconnectez-vous avant de publier l'annonce.");
+      return;
+    }
     const vides = verifier();
     setManquants(vides.map(v=>v.k));
     if (vides.length) {
@@ -575,7 +586,7 @@ function PartnerModal({ onClose, user, defaultType }) {
     let urlsPhotos = [];
     try {
       setEnvoiPhoto(`Envoi des photos… 0/${photos.length}`);
-      urlsPhotos = await envoyerPhotos(photos.map(p=>p.file), (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
+      urlsPhotos = await envoyerPhotos(photos.map(p=>p.file), user, (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
       setEnvoiPhoto("");
     } catch(e){ setEnvoiPhoto(""); }
 
@@ -589,15 +600,16 @@ function PartnerModal({ onClose, user, defaultType }) {
     }
 
     const r = await ecrire("properties", {
+      owner_id:user.id,
       user_email:form.email, user_name:form.name, user_phone:`${form.phoneCode}${form.phone}`,
       title:form.title, type:form.type,
       country:form.country, city:form.city, neighborhood:form.neighborhood,
       description:form.description, price_eur:parseInt(form.price_eur)||null,
-      price_xof:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
+      price:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
       rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
-      features:form.features||[], status:"en_attente", advertiser_type:type,
+      tags:form.features||[], status:"en_attente", active:false, verified:false, advertiser_type:type,
       agency_name:form.agency||null, photos:urlsPhotos,
-    }).catch(e=>({ok:false,statut:0,motif:String(e)}));
+    }, user.token).catch(e=>({ok:false,statut:0,motif:String(e)}));
 
     if (!r.ok) {
       setLoading(false);
@@ -606,7 +618,7 @@ function PartnerModal({ onClose, user, defaultType }) {
     }
 
     // trace interne, sans conséquence pour l'utilisateur si elle échoue
-    ecrire("leads", {name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | ${type} | ${form.type} | ${form.country} - ${form.city} | ${form.price_eur}€ | ${urlsPhotos.length} photo(s)`,status:"annonce_en_attente"}).catch(()=>{});
+    ecrire("leads", {name:form.name,email:form.email,phone:`${form.phoneCode}${form.phone}`,message:`NOUVELLE ANNONCE en attente | ${type} | ${form.type} | ${form.country} - ${form.city} | ${form.price_eur}€ | ${urlsPhotos.length} photo(s)`,status:"annonce_en_attente"}, user.token).catch(()=>{});
 
     setLoading(false); setSent(true);
   };
@@ -1586,8 +1598,8 @@ function SiteFooter({ onNav, onPub }) {
         </div>
         <div style={{flex:"0 1 165px"}}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Informations</div>
-          <a href="/mentions-legales.html" style={link}>Mentions légales</a>
-          <a href="/confidentialite.html" style={link}>Confidentialité</a>
+          <a href="/mentions%20legales.html" style={link}>Mentions légales</a>
+          <a href="/confidentialites.html" style={link}>Confidentialité</a>
           <a href="/cgu.html" style={link}>Conditions d&apos;utilisation</a>
         </div>
         <div style={{flex:"0 1 200px"}}>
@@ -1635,14 +1647,27 @@ export default function App() {
   const [annFilter, setAnnFilter] = useState({spec:"Tous",pays:"Tous"});
   const openAnnuaire = (spec="Tous",pays="Tous") => { setAnnFilter({spec,pays}); setSelectedProp(null); switchTab("prestataires"); };
 
-  // Annonces réelles validées (status = validee)
+  // Rafraîchit automatiquement le jeton Supabase conservé en local.
   useEffect(()=>{
-    fetch(`${SUPABASE_URL}/rest/v1/properties?status=eq.validee&select=id,title,type,country,city,neighborhood,description,price_eur,price_xof,surface,rooms,bathrooms,features,advertiser_type,agency_name,photos,user_phone,user_name,created_at`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+    if (!user?.refresh_token) return;
+    refreshSession(user.refresh_token).then(d=>{
+      if (d?.access_token && d?.user) {
+        const m=d.user.user_metadata||{};
+        setUser(u=>({...u,id:d.user.id,email:d.user.email||u.email,name:m.name||u.name,account_type:m.account_type||u.account_type,agency:m.agency||u.agency,phone:m.phone||u.phone,token:d.access_token,refresh_token:d.refresh_token||u.refresh_token}));
+      } else if (d?.error) {
+        setUser(null);
+      }
+    }).catch(()=>{});
+  }, []);
+
+  // Annonces publiques validées, limitées pour garder un chargement rapide.
+  useEffect(()=>{
+    fetch(`${SUPABASE_URL}/rest/v1/public_properties?select=id,title,type,country,city,neighborhood,description,price_eur,price,surface,rooms,bathrooms,tags,advertiser_type,agency_name,agent_name,photos,user_phone,user_name,created_at,verified&order=created_at.desc&limit=24`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
       .then(r=>r.ok?r.json():[])
-      .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price_xof||0,features:r.features||[],tags:r.features||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:false,agent_name:r.agency_name||"Particulier"}))); })
+      .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"}))); })
       .catch(()=>{});
   },[]);
-  const ALL_PROPS = [...dbProps, ...PROPERTIES];
+  const ALL_PROPS = dbProps.length ? dbProps : PROPERTIES;
 
   // Le bouton Retour du navigateur ramène à la liste
   useEffect(()=>{
@@ -2238,7 +2263,7 @@ button,input,select,textarea{font-size:inherit}
         {route.nom==="accueil"&&tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"14px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
       </main>
 
-      <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);setShowPartner(true);}}/>
+      <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);user?setShowPartner(true):setShowLogin(true);}}/>
 
       {/* BOTTOM NAV */}
       <nav className="sok-bottomnav" style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(12px)",borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -3px 18px rgba(26,60,46,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
