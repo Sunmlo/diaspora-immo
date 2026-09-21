@@ -2967,7 +2967,7 @@ export default function App() {
 
   // Annonces publiques validées, limitées pour garder un chargement rapide.
   useEffect(()=>{
-    fetch(`${SUPABASE_URL}/rest/v1/public_properties?select=id,title,type,country,city,neighborhood,description,price_eur,price,surface,rooms,bathrooms,tags,advertiser_type,agency_name,agent_name,photos,user_phone,user_name,created_at,verified&order=created_at.desc&limit=24`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+    fetch(`${SUPABASE_URL}/rest/v1/public_properties?select=id,title,type,transaction,nature,details,country,city,neighborhood,description,price_eur,price,surface,rooms,bathrooms,tags,advertiser_type,agency_name,agent_name,photos,user_phone,user_name,created_at,verified&order=created_at.desc&limit=24`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
       .then(r=>r.ok?r.json():[])
       .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"}))); })
       .catch(()=>{});
