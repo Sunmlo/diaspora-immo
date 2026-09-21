@@ -127,6 +127,98 @@ const PROPERTIES = [
 ];
 
 const EQUIPEMENTS = ["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse"];
+
+// ─── GUIDES SOKILÉ ────────────────────────────────
+// Premiers contenus éditoriaux. Ils peuvent ensuite être remplacés par des
+// articles issus de la base de données sans modifier l'interface.
+const GUIDES = [
+  {
+    id:"verifier-terrain",
+    category:"Acheter",
+    country:"Afrique francophone",
+    icon:"📄",
+    title:"Acheter un terrain : les vérifications avant de signer",
+    excerpt:"Les documents, interlocuteurs et contrôles à prévoir avant tout engagement.",
+    reading:"6 min",
+    sections:[
+      {title:"Identifier le propriétaire",text:"Demandez l'identité complète du vendeur et vérifiez qu'elle correspond aux documents présentés. Une procuration doit également être contrôlée."},
+      {title:"Faire localiser la parcelle",text:"Faites confirmer les limites, la superficie, l'accès et la situation réelle du terrain par un professionnel compétent sur place."},
+      {title:"Contrôler les documents",text:"Les documents attendus varient selon le pays et le statut du terrain. Faites-les examiner par un notaire, un juriste ou l'administration compétente avant tout versement."},
+      {title:"Tracer chaque paiement",text:"Évitez les paiements en espèces sans justificatif. Conservez les échanges, reçus, contrats et preuves de virement."},
+    ],
+  },
+  {
+    id:"choisir-geometre",
+    category:"Prestataires",
+    country:"Tous pays",
+    icon:"📐",
+    title:"Comment choisir un géomètre pour votre projet ?",
+    excerpt:"Les questions à poser avant une délimitation, un bornage ou une construction.",
+    reading:"4 min",
+    sections:[
+      {title:"Vérifier son activité",text:"Demandez son identité professionnelle, sa zone d'intervention et des exemples de missions comparables."},
+      {title:"Définir la mission",text:"Précisez par écrit la parcelle concernée, les mesures attendues, les documents livrés, les délais et le prix."},
+      {title:"Comparer les propositions",text:"Un devis clair doit distinguer les honoraires, les déplacements, les démarches administratives et les éventuels frais supplémentaires."},
+    ],
+  },
+  {
+    id:"acheter-distance",
+    category:"Diaspora",
+    country:"International",
+    icon:"🌍",
+    title:"Acheter depuis l'étranger sans avancer à l'aveugle",
+    excerpt:"Une méthode simple pour organiser les visites, les documents et les paiements à distance.",
+    reading:"7 min",
+    sections:[
+      {title:"Créer une équipe locale",text:"Identifiez séparément la personne qui visite, le professionnel qui vérifie les documents et celui qui formalise la transaction."},
+      {title:"Exiger des preuves datées",text:"Demandez des vidéos récentes, la localisation précise et des documents lisibles. Vérifiez les informations auprès de sources indépendantes."},
+      {title:"Avancer par étapes",text:"Ne versez pas l'intégralité du prix avant les contrôles nécessaires. Chaque étape doit correspondre à un document ou à un engagement écrit."},
+    ],
+  },
+  {
+    id:"xof-xaf",
+    category:"Comprendre",
+    country:"Zone franc CFA",
+    icon:"💱",
+    title:"XOF et XAF : comprendre les deux francs CFA",
+    excerpt:"Deux monnaies distinctes, utilisées dans deux zones économiques différentes.",
+    reading:"3 min",
+    sections:[
+      {title:"Deux zones monétaires",text:"Le XOF est utilisé dans plusieurs pays d'Afrique de l'Ouest, tandis que le XAF circule dans plusieurs pays d'Afrique centrale."},
+      {title:"Afficher les prix clairement",text:"Sur Sokilé, le prix local reste la référence. La conversion en euros sert uniquement de repère et peut être arrondie."},
+      {title:"Prévoir les frais",text:"Pour une transaction réelle, renseignez-vous sur les frais bancaires, les justificatifs et les règles de transfert applicables."},
+    ],
+  },
+  {
+    id:"budget-construction",
+    category:"Construire",
+    country:"Tous pays",
+    icon:"🏗️",
+    title:"Préparer le budget d'une construction",
+    excerpt:"Terrain, études, matériaux, main-d'œuvre et imprévus : les postes à anticiper.",
+    reading:"5 min",
+    sections:[
+      {title:"Séparer terrain et construction",text:"Le coût d'acquisition du terrain ne doit pas masquer les dépenses de préparation, de raccordement et d'accès au chantier."},
+      {title:"Faire chiffrer le même projet",text:"Pour comparer plusieurs entreprises, transmettez un descriptif identique et demandez ce qui est inclus ou exclu de chaque devis."},
+      {title:"Conserver une marge",text:"Prévoyez une réserve pour les variations de prix, les adaptations techniques et les retards éventuels."},
+    ],
+  },
+  {
+    id:"eviter-fausses-annonces",
+    category:"Sécurité",
+    country:"Tous pays",
+    icon:"🛡️",
+    title:"Reconnaître une annonce immobilière à risque",
+    excerpt:"Les signaux qui doivent vous inciter à vérifier davantage avant de poursuivre.",
+    reading:"4 min",
+    sections:[
+      {title:"Un prix anormalement bas",text:"Un écart important avec les prix habituellement constatés doit conduire à demander davantage de justificatifs."},
+      {title:"Une urgence artificielle",text:"Méfiez-vous des demandes de paiement immédiat, des interlocuteurs qui refusent une visite ou qui évitent les questions précises."},
+      {title:"Des informations incohérentes",text:"Comparez les photos, la localisation, le nom du propriétaire et les documents. Une incohérence doit être éclaircie avant de continuer."},
+    ],
+  },
+];
+
 const fmtXOF = n => new Intl.NumberFormat("fr-FR").format(n)+" FCFA";
 const fmtEUR = n => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
 const typeColor = t => t==="Vente"?C.terra:t==="Location"?C.forest:t==="Terrain"?C.earth:t==="Commercial"?"#444":C.earth;
@@ -146,6 +238,7 @@ const Icon = {
   home: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
   search: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
   group: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>,
+  book: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H8a4 4 0 0 0-4 4v13a3 3 0 0 0 3 3h11a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H7a1 1 0 0 1 0-2h11v2zm0-4H8a4.9 4.9 0 0 0-2 .42V6a2 2 0 0 1 2-2h10v12z"/></svg>,
   star: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>,
   person: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
   searchSm: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
@@ -1378,9 +1471,9 @@ function HeroCarousel({ search, setSearch, onSearch }) {
       <div className="sok-hero-in" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",zIndex:1}}>
         <div style={{fontSize:"11px",fontWeight:700,color:"#E0C680",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique francophone</div>
         <h1 style={{margin:"0 0 10px",color:C.white,fontFamily:FT,fontSize:"clamp(28px,4.8vw,52px)",fontWeight:300,lineHeight:1.08,letterSpacing:"-0.03em",textShadow:"0 2px 10px rgba(0,0,0,0.38)"}}>
-          Trouvez votre prochain bien<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>en Afrique.</em>
+          Tout pour votre projet immobilier<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>en Afrique.</em>
         </h1>
-        <p style={{margin:"0 0 22px",color:"rgba(255,255,255,0.78)",fontSize:"14px",fontFamily:F}}>Des annonces en FCFA et en euros. Contactez directement l'annonceur.</p>
+        <p style={{margin:"0 0 22px",color:"rgba(255,255,255,0.78)",fontSize:"14px",fontFamily:F}}>Biens, professionnels et guides pratiques pour avancer sur place ou à distance.</p>
         <div className="sok-search" style={{background:C.light,borderRadius:"14px",boxShadow:"0 14px 40px rgba(0,0,0,0.34)",maxWidth:"760px",padding:"14px 14px 15px"}}>
           <div style={{fontSize:"13px",fontWeight:700,color:C.cacao,fontFamily:F,marginBottom:"9px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
           <div className="sok-search-row" style={{display:"flex",gap:"10px"}}>
@@ -1419,6 +1512,58 @@ function AdSlot({ onClick, style, className }) {
   );
 }
 
+// ─── CARTES ET LECTURE DES GUIDES ─────────────────
+function GuideCard({ guide, onOpen }) {
+  return (
+    <article onClick={()=>onOpen(guide)} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",cursor:"pointer",boxShadow:"0 8px 24px rgba(28,26,23,0.06)",display:"flex",flexDirection:"column",minHeight:"220px"}}>
+      <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"12px"}}>
+        <div style={{fontSize:"31px",lineHeight:1}}>{guide.icon}</div>
+        <span style={{background:"rgba(201,168,76,0.14)",border:"1px solid rgba(201,168,76,0.34)",color:C.gold,borderRadius:"20px",padding:"4px 10px",fontSize:"10.5px",fontWeight:700,fontFamily:F}}>{guide.category}</span>
+      </div>
+      <div style={{padding:"17px",display:"flex",flexDirection:"column",flex:1}}>
+        <div style={{fontSize:"11px",color:C.terra,fontWeight:700,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"7px"}}>{guide.country}</div>
+        <h3 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,lineHeight:1.3,margin:"0 0 8px"}}>{guide.title}</h3>
+        <p style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55,margin:"0 0 15px",flex:1}}>{guide.excerpt}</p>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px",paddingTop:"12px",borderTop:`1px solid ${C.sand}`}}>
+          <span style={{fontSize:"11.5px",color:C.sub,fontFamily:F}}>{guide.reading} de lecture</span>
+          <span style={{fontSize:"12.5px",color:C.terra,fontWeight:700,fontFamily:F}}>Lire le guide →</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function GuideModal({ guide, onClose, onFindPro }) {
+  if (!guide) return null;
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(13,32,25,0.78)",zIndex:250,display:"flex",alignItems:"center",justifyContent:"center",padding:"18px"}}>
+      <article onClick={e=>e.stopPropagation()} style={{width:"min(720px,100%)",maxHeight:"90vh",overflowY:"auto",background:C.cream,borderRadius:"16px",boxShadow:"0 24px 70px rgba(0,0,0,0.35)"}}>
+        <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"24px",position:"relative"}}>
+          <button onClick={onClose} aria-label="Fermer" style={{position:"absolute",top:"14px",right:"14px",width:"34px",height:"34px",borderRadius:"50%",border:"1px solid rgba(255,255,255,0.25)",background:"rgba(255,255,255,0.08)",color:C.white,fontSize:"20px",cursor:"pointer"}}>×</button>
+          <div style={{fontSize:"11px",color:C.gold,fontWeight:700,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"10px"}}>{guide.category} · {guide.country}</div>
+          <h2 style={{fontFamily:FT,fontSize:"clamp(25px,5vw,38px)",fontWeight:400,color:C.white,lineHeight:1.15,margin:"0 42px 10px 0"}}>{guide.title}</h2>
+          <p style={{color:"rgba(255,255,255,0.68)",fontSize:"14px",fontFamily:F,lineHeight:1.6,margin:0}}>{guide.excerpt}</p>
+        </div>
+        <div style={{padding:"24px"}}>
+          {guide.sections.map((section,i)=>(
+            <section key={section.title} style={{display:"grid",gridTemplateColumns:"34px minmax(0,1fr)",gap:"12px",marginBottom:"22px"}}>
+              <div style={{width:"30px",height:"30px",borderRadius:"50%",background:C.gold,color:C.forestDark,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:"13px",fontFamily:F}}>{i+1}</div>
+              <div>
+                <h3 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,margin:"1px 0 6px"}}>{section.title}</h3>
+                <p style={{fontFamily:F,fontSize:"14px",color:C.muted,lineHeight:1.7,margin:0}}>{section.text}</p>
+              </div>
+            </section>
+          ))}
+          <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"15px",fontSize:"12.5px",color:C.sub,fontFamily:F,lineHeight:1.6,marginTop:"4px"}}>
+            Ce guide fournit des informations générales. Les démarches et documents peuvent varier selon le pays et la situation du bien : faites confirmer votre dossier par un professionnel compétent.
+          </div>
+          <button onClick={()=>{onClose();onFindPro();}} style={{width:"100%",marginTop:"16px",background:C.forest,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Trouver un prestataire</button>
+        </div>
+      </article>
+    </div>
+  );
+}
+
 // ─── PIED DE PAGE ─────────────────────────────────
 function SiteFooter({ onNav, onPub }) {
   const link = {color:"rgba(255,255,255,0.72)",fontSize:"14px",fontFamily:F,textDecoration:"none",cursor:"pointer",background:"none",border:"none",padding:0,textAlign:"left",lineHeight:1.9,display:"block"};
@@ -1436,6 +1581,7 @@ function SiteFooter({ onNav, onPub }) {
           <a href="/about.html" style={link}>Qui sommes-nous</a>
           <button onClick={()=>onNav("biens")} style={link}>Voir les annonces</button>
           <button onClick={()=>onNav("prestataires")} style={link}>Trouver un prestataire</button>
+          <button onClick={()=>onNav("guides")} style={link}>Consulter les guides</button>
           <button onClick={onPub} style={link}>Publier un bien</button>
         </div>
         <div style={{flex:"0 1 165px"}}>
@@ -1481,6 +1627,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
+  const [selectedGuide, setSelectedGuide] = useState(null);
   const [savedProps, setSavedProps] = useState(() => lireLocal(CLE_FAVORIS, []));
   const [animIn, setAnimIn] = useState(true);
   const [showPub, setShowPub] = useState(false);
@@ -1574,9 +1721,12 @@ export default function App() {
     {id:"accueil",label:"Accueil",icon:Icon.home},
     {id:"biens",label:"Biens",icon:Icon.search},
     {id:"prestataires",label:"Prestataires",icon:Icon.group},
+    {id:"guides",label:"Guides",icon:Icon.book},
     {id:"pro",label:"Espace pro",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
+  // Cinq entrées seulement sur mobile pour conserver des libellés lisibles.
+  const MOBILE_NAV = NAV.filter(n=>n.id!=="pro");
 
   const inputBase = {border:`1px solid ${C.sand}`,borderRadius:"9px",padding:"11px 13px",fontSize:"15px",outline:"none",color:C.dark,fontFamily:F};
   const chipBase = (active) => ({background:active?C.forest:C.white,color:active?C.white:C.dark,border:`1px solid ${active?C.forest:C.sand}`,borderRadius:"22px",padding:"9px 16px",fontSize:"14px",fontWeight:active?700:500,cursor:"pointer",fontFamily:F,transition:"all 0.15s"});
@@ -1595,6 +1745,7 @@ button,input,select,textarea{font-size:inherit}
 
 /* la grille d'annonces */
 .sok-grid{display:grid;grid-template-columns:1fr;gap:16px}
+.sok-guide-grid{display:grid;grid-template-columns:1fr;gap:16px}
 
 /* la barre de recherche */
 .sok-search-row{flex-direction:column}
@@ -1614,6 +1765,7 @@ button,input,select,textarea{font-size:inherit}
 @media(min-width:600px){
   .sok-annonce-photo{height:380px}
   .sok-grid{grid-template-columns:1fr 1fr}
+  .sok-guide-grid{grid-template-columns:1fr 1fr}
   .sok-hero{height:420px}
   .sok-hero-in{padding:24px 28px 30px}
   .sok-card-img{height:210px}
@@ -1624,6 +1776,7 @@ button,input,select,textarea{font-size:inherit}
   .desktop-nav{display:flex!important}
   .sok-bottomnav{display:none!important}
   .sok-grid{grid-template-columns:1fr 1fr 1fr}
+  .sok-guide-grid{grid-template-columns:1fr 1fr 1fr}
   footer{padding-bottom:44px!important}
 }
 @media(min-width:1024px){
@@ -1718,7 +1871,7 @@ button,input,select,textarea{font-size:inherit}
 
             {/* Les bénéfices clés remplacent les statistiques tant que la plateforme est en lancement */}
             <div style={{display:"flex",background:C.light,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px",flexWrap:"wrap"}}>
-              {[["Afrique francophone","Recherche multipays"],["FCFA + euros","Prix faciles à comparer"],["Contact direct","WhatsApp ou téléphone"],["Publication gratuite","Particuliers et professionnels"]].map(([v,l],i)=>(
+              {[["Trouver un bien","Vente, location et terrains"],["Trouver un professionnel","Prestataires par pays"],["Comprendre","Guides pratiques"],["Contact direct","WhatsApp ou téléphone"]].map(([v,l],i)=>(
                 <div key={l} style={{flex:"1 1 170px",padding:"14px 10px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
                   <div style={{fontSize:"14px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
                   <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F}}>{l}</div>
@@ -1751,10 +1904,24 @@ button,input,select,textarea{font-size:inherit}
             <div onClick={()=>openAnnuaire()} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"16px 18px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",cursor:"pointer",flexWrap:"wrap"}}>
               <div>
                 <h3 style={{margin:"0 0 4px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>Besoin d'un géomètre, d'un notaire, d'un architecte ?</h3>
-                <p style={{margin:0,color:C.sub,fontSize:"13px",fontFamily:F}}>Des professionnels vérifiés dans le pays de votre projet</p>
+                <p style={{margin:0,color:C.sub,fontSize:"13px",fontFamily:F}}>Des professionnels référencés dans le pays de votre projet</p>
               </div>
               <button style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,flexShrink:0}}>Trouver un prestataire</button>
             </div>
+
+            {/* Aperçu des guides */}
+            <section style={{margin:"26px 0 28px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:"12px",marginBottom:"14px"}}>
+                <div>
+                  <div style={{fontSize:"11px",fontWeight:700,color:C.terra,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F,marginBottom:"4px"}}>Comprendre avant d'agir</div>
+                  <h2 style={{fontFamily:FT,fontSize:"22px",fontWeight:500,color:C.dark,margin:0}}>Les guides Sokilé</h2>
+                </div>
+                <span onClick={()=>switchTab("guides")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Voir tous →</span>
+              </div>
+              <div className="sok-guide-grid">
+                {GUIDES.slice(0,3).map(g=><GuideCard key={g.id} guide={g} onOpen={setSelectedGuide}/>)}
+              </div>
+            </section>
 
             {/* Pays — Option B fond vert sombre */}
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
@@ -1905,12 +2072,34 @@ button,input,select,textarea{font-size:inherit}
           </div>
         )}
 
+        {/* ── GUIDES ── */}
+        {route.nom==="accueil"&&tab==="guides"&&(
+          <div>
+            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"28px 20px",borderBottom:`3px solid ${C.gold}`}}>
+              <div style={{fontSize:"11px",fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.14em",fontFamily:F,marginBottom:"8px"}}>Le Guide Sokilé</div>
+              <h1 style={{fontFamily:FT,fontSize:"clamp(27px,5vw,40px)",fontWeight:400,color:C.white,lineHeight:1.15,margin:"0 0 9px"}}>Comprendre avant d'agir.</h1>
+              <p style={{fontSize:"14px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.65,maxWidth:"680px",margin:0}}>Des informations pratiques pour rechercher un bien, choisir les bons professionnels et préparer votre projet immobilier en Afrique.</p>
+            </div>
+            <div style={{padding:"22px 0"}}>
+              <div className="sok-guide-grid">
+                {GUIDES.map((g,i)=>(
+                  <div key={g.id} style={{display:"contents"}}>
+                    <GuideCard guide={g} onOpen={setSelectedGuide}/>
+                    {i===2&&<AdSlot className="sok-ad-inline" onClick={()=>setShowPub(true)}/>} 
+                  </div>
+                ))}
+              </div>
+              <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"22px"}}/>
+            </div>
+          </div>
+        )}
+
         {/* ── PRESTATAIRES (particuliers) ── */}
         {route.nom==="accueil"&&tab==="prestataires"&&(
           <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
-              <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels de confiance sur place</div>
-              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"560px"}}>Vous achetez ou faites construire à distance ? Faites vérifier un terrain, trouvez un notaire, un géomètre ou un architecte dans le pays de votre projet. Chaque prestataire est vérifié par Sokilé avant d'apparaître dans l'annuaire, et vous le contactez directement.</div>
+              <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels utiles sur place</div>
+              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Les fiches indiquent clairement si elles sont référencées, revendiquées ou contrôlées.</div>
             </div>
             <div style={{padding:"16px"}}>
               <Annuaire key={`${annFilter.spec}|${annFilter.pays}`} initialSpec={annFilter.spec} initialPays={annFilter.pays}/>
@@ -2053,7 +2242,7 @@ button,input,select,textarea{font-size:inherit}
 
       {/* BOTTOM NAV */}
       <nav className="sok-bottomnav" style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(12px)",borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -3px 18px rgba(26,60,46,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
-        {NAV.map(n=>(
+        {MOBILE_NAV.map(n=>(
           <button key={n.id} onClick={()=>switchTab(n.id)} style={{flex:1,background:"none",border:"none",padding:"11px 4px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",transition:"all 0.15s"}}>
             <span style={{color:tab===n.id?C.terra:C.sub}}>{n.icon}</span>
             <span style={{fontSize:"11.5px",fontWeight:tab===n.id?700:500,color:tab===n.id?C.terra:C.sub,fontFamily:F,letterSpacing:"0.01em"}}>{n.label}</span>
@@ -2063,6 +2252,7 @@ button,input,select,textarea{font-size:inherit}
 
       {/* MODALS */}
       <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
+      <GuideModal guide={selectedGuide} onClose={()=>setSelectedGuide(null)} onFindPro={()=>switchTab("prestataires")}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType}/>}
