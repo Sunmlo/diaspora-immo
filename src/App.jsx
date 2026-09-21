@@ -1617,7 +1617,10 @@ function SiteFooter({ onNav, onPub }) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState("accueil");
+  const [tab, setTab] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    return ["accueil","biens","prestataires","guides","pro","compte"].includes(requested) ? requested : "accueil";
+  });
   const [user, setUser] = useState(() => lireLocal(CLE_SESSION, null));
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
