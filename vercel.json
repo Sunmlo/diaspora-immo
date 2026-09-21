@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/annonce/:id", "destination": "/index.html" }
+    { "source": "/annonce/:id", "destination": "/index.html" },
+    { "source": "/guide/:id", "destination": "/index.html" }
   ]
 }
