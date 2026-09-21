@@ -1049,13 +1049,22 @@ function champsDe(nature, transaction) {
 // Résumé court d'un bien, pour les cartes
 function resumeBien(p) {
   const d = p.details || {};
-  const n = NATURES[p.nature];
+  const n = NATURES[natureDe(p)];
   const base = n?.resume ? n.resume(d).filter(Boolean) : [];
   if (base.length) return base.slice(0,3);
   return [p.rooms&&`${p.rooms} pièces`, p.surface&&`${p.surface} m²`, p.tags?.[0]].filter(Boolean).slice(0,3);
 }
 
-const libelleNature = (p) => NATURES[p?.nature]?.label || p?.type || "Bien";
+// Une annonce déposée avant la refonte n'a ni nature ni transaction en base.
+// On les déduit alors de son ancien champ « type », exactement comme le fait
+// le script SQL de reprise — ainsi l'affichage et les filtres restent cohérents.
+const transactionDe = (p) => p?.transaction || (/location/i.test(p?.type||"") ? "location" : "vente");
+const natureDe = (p) => p?.nature
+  || (/terrain/i.test(p?.type||"")      ? "terrain"
+   : /commercial/i.test(p?.type||"")    ? "commerce"
+   : /appartement/i.test(p?.title||"")  ? "appartement"
+   : "maison");
+const libelleNature = (p) => NATURES[natureDe(p)]?.label || p?.type || "Bien";
 
 // Caractéristiques d'une fiche : celles de la nature du bien, plus la surface.
 // Un champ non renseigné n'apparaît pas — mieux vaut rien qu'un tiret.
@@ -1063,7 +1072,7 @@ function caracteristiques(p) {
   const d = p.details || {};
   const out = [["Nature", libelleNature(p)]];
   if (p.surface) out.push(["Surface", new Intl.NumberFormat("fr-FR").format(p.surface) + " m²"]);
-  champsDe(p.nature, p.transaction).forEach(c => {
+  champsDe(natureDe(p), transactionDe(p)).forEach(c => {
     const v = d[c.k];
     if (v === undefined || String(v).trim() === "") return;
     const est = c.t === "nombre" && !isNaN(Number(v));
@@ -1073,40 +1082,172 @@ function caracteristiques(p) {
   if (out.length === 1 && p.rooms) out.push(["Pièces", String(p.rooms)]);
   return out.slice(0, 10);
 }
-const libelleTransaction = (p) => p?.transaction === "location" ? "Location" : "Vente";
+const libelleTransaction = (p) => transactionDe(p) === "location" ? "Location" : "Vente";
 
 // ─── BARÈMES DES SIMULATEURS ──────────────────────
-// ⚠️ IMPORTANT — Ces fourchettes sont INDICATIVES et n'ont pas encore été
-// vérifiées pays par pays auprès de sources officielles. Tant qu'une entrée
-// porte verifie:false, le simulateur affiche un avertissement visible.
-// Pour corriger un pays : modifier les valeurs ci-dessous et passer verifie:true.
+// Chaque chiffre affiché ici doit pouvoir être retrouvé dans une source
+// publique, citée sous le résultat. Là où aucune source fiable n'a été
+// trouvée, le simulateur n'affiche AUCUN chiffre et le dit : sur un achat
+// immobilier à distance, un nombre inventé coûte plus cher qu'un blanc.
+//
+// fiabilite : "solide"  → deux sources concordantes, dont une officielle
+//                          ou professionnelle récente
+//             "reserve" → une seule source, ou source ancienne
+//             "aucune"  → sources contradictoires ou introuvables : on n'affiche rien
+//
+// Recherche menée le 21 septembre 2026. À revoir chaque année : les lois de
+// finances modifient ces taux.
 
-// Frais à ajouter au prix d'achat, en % du prix du bien : [mini, maxi]
-const FRAIS_ACQUISITION = {
-  "Sénégal":      {enregistrement:[5,10], notaire:[2,4], divers:[1,3], verifie:false},
-  "Côte d'Ivoire":{enregistrement:[4,8],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Cameroun":     {enregistrement:[5,10], notaire:[2,5], divers:[1,3], verifie:false},
-  "Mali":         {enregistrement:[3,7],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Burkina Faso": {enregistrement:[3,8],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Bénin":        {enregistrement:[4,8],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Togo":         {enregistrement:[3,8],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Niger":        {enregistrement:[3,7],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Gabon":        {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Congo":        {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Tchad":        {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
-  "Centrafrique": {enregistrement:[4,9],  notaire:[2,4], divers:[1,3], verifie:false},
+const FCFA = 655.957;   // parité fixe du franc CFA
+
+// Sources citées plusieurs fois
+const SRC = {
+  db: (pays, code) => ({l:`Banque mondiale, Doing Business 2020 — ${pays}`, u:`https://archive.doingbusiness.org/content/dam/doingBusiness/country/${code}.pdf`, a:"données arrêtées en 2019"}),
 };
 
-// Coût de construction au m², en euros : [mini, maxi]
-const COUT_M2 = {
-  economique: {label:"Économique",  aide:"Parpaing, tôle, finitions simples",        prix:[150,260]},
-  standard:   {label:"Standard",    aide:"Carrelage, menuiserie alu, peinture",      prix:[260,420]},
-  superieur:  {label:"Haut standing",aide:"Matériaux importés, climatisation, piscine",prix:[420,750]},
+const BAREMES = {
+  "Sénégal": {
+    fiabilite:"solide",
+    enregistrement:{mode:"taux", taux:5},
+    notaire:{mode:"tranches", tranches:[[20000000,4.5],[80000000,3],[300000000,1.5],[null,0.75]],
+             reserve:"Barème du décret n° 2006-1366. Une source plus récente en décrit un autre : à faire confirmer par la Chambre des notaires."},
+    annexes:{mode:"taux", taux:0.9, libelle:"Publicité foncière"},
+    sources:[
+      {l:"PwC Worldwide Tax Summaries — Sénégal", u:"https://taxsummaries.pwc.com/senegal/corporate/other-taxes", a:"mis à jour en août 2026"},
+      SRC.db("Sénégal","s/senegal/SEN"),
+    ],
+  },
+  "Côte d'Ivoire": {
+    fiabilite:"solide",
+    enregistrement:{mode:"taux", taux:4},
+    notaire:{mode:"tranches", tranches:[[10000000,3],[30000000,2],[90000000,1],[null,0.5]],
+             reserve:"Les deux sources divergent sur la deuxième tranche, 1,5 % ou 2 %. Nous retenons la plus élevée, pour ne pas sous-estimer votre budget."},
+    annexes:{mode:"taux", taux:1.2, libelle:"Taxe de service et conservation foncière"},
+    note:"À la revente, c'est le vendeur qui acquitte 3 % d'impôt sur la plus-value.",
+    sources:[
+      {l:"PwC Worldwide Tax Summaries — Côte d'Ivoire", u:"https://taxsummaries.pwc.com/ivory-coast/corporate/other-taxes", a:"mis à jour en septembre 2026"},
+      SRC.db("Côte d'Ivoire","c/cote-divoire/CIV"),
+    ],
+  },
+  "Gabon": {
+    fiabilite:"solide",
+    enregistrement:{mode:"taux", taux:6, majorationVille:2,
+                    libelleVille:"Bien situé à Libreville ou Port-Gentil (+2 %)"},
+    notaire:null,
+    annexes:{mode:"taux", taux:1.6, libelle:"Enregistrement et évaluation domaniale"},
+    note:"Vendu par un promoteur assujetti, le bien supporte en outre 18 % de TVA. Nous n'avons trouvé aucun barème notarial gabonais : les émoluments du notaire ne sont pas comptés ci-dessus.",
+    sources:[
+      {l:"Direction générale des impôts du Gabon — Droits d'enregistrement", u:"https://dgi.ga/entreprises/imposition-des-entreprises-individuelles/droits-denregistrement-et-de-timbre/", a:"site de l'administration fiscale"},
+      SRC.db("Gabon","g/gabon/GAB"),
+    ],
+  },
+  "Cameroun": {
+    fiabilite:"reserve",
+    enregistrement:{mode:"nature", taux:{bati:10, terrain:5}},
+    notaire:{mode:"tranches", tranches:[[3000000,4],[10000000,3],[25000000,1.5],[50000000,0.75],[null,0.5]],
+             reserve:"Décret n° 95/038, modifié en juillet 2019 : le barème ci-dessus peut être dépassé."},
+    annexes:{mode:"taux", taux:2, libelle:"Inscription au livre foncier"},
+    note:"Le taux dépend de la nature du bien : 10 % pour un immeuble bâti en ville, 5 % pour un terrain urbain ou un bâti rural, 2 % pour un terrain rural (article 543 du Code général des impôts).",
+    sources:[
+      {l:"Fiscalité immobilière au Cameroun (citant l'art. 543 du CGI)", u:"https://georgesbakang.over-blog.com/2022/06/fiscalite-immobiliere-au-cameroun.html", a:"2022"},
+      SRC.db("Cameroun","c/cameroon/CMR"),
+    ],
+  },
+  "Burkina Faso": {
+    fiabilite:"reserve",
+    enregistrement:{mode:"taux", taux:8},
+    notaire:{mode:"tranches", tranches:[[2500000,7],[5000000,5],[10000000,3],[null,1]]},
+    annexes:{mode:"taux", taux:1.05, libelle:"Publication"},
+    note:"Un régime de forfaits a existé pour les logements de moins de 20 millions FCFA. Nous n'avons pas pu vérifier s'il est toujours en vigueur : demandez-le à votre notaire.",
+    sources:[SRC.db("Burkina Faso","b/burkina-faso/BFA")],
+  },
+  "Mali": {
+    fiabilite:"reserve",
+    enregistrement:{mode:"taux", taux:7},
+    notaire:null,
+    annexes:{mode:"taux", taux:1.4, libelle:"Évaluation domaniale et livre foncier"},
+    note:"Le barème des notaires maliens est dégressif de 5,5 % à 1,75 %, mais les seuils de tranches nous manquent : les émoluments ne sont pas comptés ci-dessus.",
+    sources:[SRC.db("Mali","m/mali/MLI")],
+  },
+  "Niger": {
+    fiabilite:"reserve",
+    enregistrement:{mode:"forfait", tranches:[[5000000,200000],[10000000,350000],[20000000,600000],[30000000,1000000],[null,1500000]]},
+    notaire:null,
+    annexes:null,
+    note:"Le Niger applique un droit forfaitaire par tranche de valeur, et non un pourcentage : un bien à 6 millions FCFA supporte 5,8 % de droits, un bien à 100 millions n'en supporte que 1,5 %.",
+    sources:[SRC.db("Niger","n/niger/NER")],
+  },
+  "Tchad": {
+    fiabilite:"reserve",
+    enregistrement:{mode:"taux", taux:5},
+    notaire:null,
+    annexes:{mode:"taux", taux:0.4, libelle:"Livre foncier"},
+    note:"Les émoluments du notaire tchadien sont plafonnés — 500 000 FCFA au maximum pour un bien de 10 à 50 millions — donc très faibles rapportés au prix. Les mutations doivent être enregistrées dans les trois mois.",
+    sources:[SRC.db("Tchad","c/chad/TCD")],
+  },
+  "Centrafrique": {
+    fiabilite:"reserve",
+    enregistrement:{mode:"taux", taux:7.5},
+    notaire:{mode:"taux", taux:2},
+    annexes:{mode:"taux", taux:1.4, libelle:"Publicité foncière"},
+    sources:[SRC.db("Centrafrique","c/central-african-republic/CAF")],
+  },
+  "Bénin": {
+    fiabilite:"aucune",
+    raison:"Nous n'avons pas trouvé le tarif des droits d'enregistrement béninois, et la seule enquête disponible n'en relève aucun sur la vente d'immeuble — ce qui est atypique. Plutôt qu'un chiffre plausible, nous préférons ne rien afficher.",
+    sources:[SRC.db("Bénin","b/benin/BEN")],
+  },
+  "Togo": {
+    fiabilite:"aucune",
+    raison:"Deux cabinets togolais décrivent deux régimes incompatibles : un droit forfaitaire de 35 000 FCFA d'un côté, des taux proportionnels de l'autre. Nous ne pouvons pas trancher.",
+    note:"À la revente, le vendeur acquitte 7 % d'impôt sur la plus-value, avec un abattement après cinq ans de détention.",
+    sources:[
+      {l:"Étude notariale Komi Tsakadi — la nouvelle fiscalité du titre foncier", u:"https://notaire-tsakadi.tg/article/la-nouvelle-fiscalite-du-titre-foncier-immatriculation-morcellement-mutation", a:"arrêté de 2018"},
+      {l:"Cabinet Bokodjin — implications fiscales de la vente d'immeuble", u:"https://cabinetbokodjin.com/blog/detail/les-implications-fiscales-de-la-vente-dimmeuble-apres-le-deces-du-proprietaire-en-droit-togolais-tout-ce-quil-faut-savoir-2023-12-20-234624", a:"2023"},
+    ],
+  },
+  "Congo": {
+    fiabilite:"aucune",
+    raison:"Deux sources sérieuses décrivent deux régimes incompatibles — 8 % du prix d'un côté, des forfaits par zone de l'autre — et aucune ne décrit l'état du droit en 2026.",
+    sources:[
+      SRC.db("Congo","c/congo-rep/COG"),
+      {l:"PwC Worldwide Tax Summaries — République du Congo", u:"https://taxsummaries.pwc.com/republic-of-congo/corporate/other-taxes", a:"mis à jour en août 2026"},
+    ],
+  },
 };
-const BAREMES_VERIFIES = false;   // passer à true une fois les chiffres confirmés
 
-function fourchette(prix, [min,max]) {
-  return [Math.round(prix*min/100), Math.round(prix*max/100)];
+// Barème de tranches, calculé tranche par tranche comme le fait un notaire.
+function baremeTranches(montant, tranches) {
+  let bas = 0, total = 0;
+  for (const [plafond, taux] of tranches) {
+    const haut = plafond === null ? Infinity : plafond;
+    total += Math.max(0, Math.min(montant, haut) - bas) * taux / 100;
+    bas = haut;
+    if (montant <= haut) break;
+  }
+  return total;
+}
+
+// Barème forfaitaire : un montant fixe selon la tranche de valeur.
+function baremeForfait(montant, tranches) {
+  for (const [plafond, forfait] of tranches) {
+    if (plafond === null || montant <= plafond) return forfait;
+  }
+  return tranches[tranches.length - 1][1];
+}
+
+// Calcule un poste de frais, en euros. Renvoie null si le poste est inconnu.
+function posteFrais(regle, prixEur, options) {
+  if (!regle) return null;
+  const prixFcfa = prixEur * FCFA;
+  if (regle.mode === "taux") {
+    const majo = (regle.majorationVille && options.grandeVille) ? regle.majorationVille : 0;
+    return prixEur * (regle.taux + majo) / 100;
+  }
+  if (regle.mode === "nature")   return prixEur * (regle.taux[options.nature] ?? regle.taux.bati) / 100;
+  if (regle.mode === "tranches") return baremeTranches(prixFcfa, regle.tranches) / FCFA;
+  if (regle.mode === "forfait")  return baremeForfait(prixFcfa, regle.tranches) / FCFA;
+  return null;
 }
 
 // ─── ADRESSES DES ANNONCES ────────────────────────
@@ -1131,16 +1272,6 @@ function correspond(p, id) {
 
 
 // ─── SIMULATEURS ──────────────────────────────────
-function AvertissementBareme() {
-  if (BAREMES_VERIFIES) return null;
-  return (
-    <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"10px",padding:"13px 15px",marginBottom:"16px"}}>
-      <div style={{fontSize:"13.5px",color:"#6D4C1B",fontFamily:F,lineHeight:1.6}}>
-        <strong>Estimation indicative.</strong> Les taux utilisés sont des ordres de grandeur, non des barèmes officiels. Ils varient selon le pays, la nature du bien et la date. Faites confirmer les montants par un notaire avant tout engagement.
-      </div>
-    </div>
-  );
-}
 
 const champSim = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"9px",padding:"12px 14px",fontSize:"16px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
 const labelSim = {fontSize:"12.5px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"};
@@ -1155,33 +1286,69 @@ function LigneResultat({ label, valeur, fort }) {
   );
 }
 
+// D'où sortent les chiffres : affiché sous chaque résultat.
+function Sources({ bareme }) {
+  if (!bareme) return null;
+  const etiquette = {
+    solide:  {t:"Chiffres sourcés",              c:"#2E7D32", bg:"#E8F5E9", bord:"#C8E6C9"},
+    reserve: {t:"Chiffres à confirmer",          c:"#6D4C1B", bg:"#FFF8E1", bord:"#FFE082"},
+    aucune:  {t:"Nous n'avons pas de chiffre fiable", c:"#A93226", bg:"#FDEDEC", bord:"#F5B7B1"},
+  }[bareme.fiabilite];
+  const reserves = [bareme.notaire?.reserve, bareme.note, bareme.raison].filter(Boolean);
+  return (
+    <div style={{background:etiquette.bg,border:`1px solid ${etiquette.bord}`,borderRadius:"11px",padding:"14px 16px",marginTop:"14px"}}>
+      <div style={{fontSize:"12px",fontWeight:700,color:etiquette.c,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"8px"}}>{etiquette.t}</div>
+      {reserves.map((r,i)=>(
+        <p key={i} style={{margin:"0 0 8px",fontSize:"13.5px",color:C.dark,fontFamily:F,lineHeight:1.6}}>{r}</p>
+      ))}
+      <div style={{fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.7}}>
+        {bareme.sources.map((s,i)=>(
+          <div key={i}>
+            <a href={s.u} target="_blank" rel="noopener noreferrer" style={{color:C.forest,textDecoration:"underline"}}>{s.l}</a>
+            {s.a?` — ${s.a}`:""}
+          </div>
+        ))}
+      </div>
+      <p style={{margin:"9px 0 0",fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.6}}>
+        Ces montants sont une estimation, pas un devis. Seul un notaire du pays peut vous donner le chiffre exact pour votre bien.
+      </p>
+    </div>
+  );
+}
+
 // ── 1. Budget total d'achat ──
 function SimuBudget() {
   const [prix, setPrix] = useState("");
   const [pays, setPays] = useState("Sénégal");
   const [devise, setDevise] = useState("EUR");
+  const [nature, setNature] = useState("bati");
+  const [grandeVille, setGrandeVille] = useState(false);
+
   const p = parseFloat(String(prix).replace(/\s/g,"")) || 0;
-  const prixEur = devise==="EUR" ? p : p/655.957;
-  const f = FRAIS_ACQUISITION[pays] || FRAIS_ACQUISITION["Sénégal"];
-  const enr = fourchette(prixEur, f.enregistrement);
-  const not = fourchette(prixEur, f.notaire);
-  const div = fourchette(prixEur, f.divers);
-  const totMin = Math.round(prixEur + enr[0] + not[0] + div[0]);
-  const totMax = Math.round(prixEur + enr[1] + not[1] + div[1]);
-  const fmt = (a,b) => a===b ? fmtEUR(a) : `${fmtEUR(a)} – ${fmtEUR(b)}`;
+  const prixEur = devise === "EUR" ? p : p / FCFA;
+  const b = BAREMES[pays];
+  const connu = b.fiabilite !== "aucune";
+  const options = { nature, grandeVille };
+
+  const enr = connu ? posteFrais(b.enregistrement, prixEur, options) : null;
+  const not = connu ? posteFrais(b.notaire,        prixEur, options) : null;
+  const ann = connu ? posteFrais(b.annexes,        prixEur, options) : null;
+  const fraisTotal = [enr, not, ann].reduce((a,x)=>a+(x||0), 0);
+  const total = prixEur + fraisTotal;
+  const part = prixEur > 0 ? (fraisTotal / prixEur * 100) : 0;
+  const eur = (x) => fmtEUR(Math.round(x));
 
   return (
     <div>
       <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-        Le prix affiché n'est jamais le prix payé. Ce calcul ajoute les frais d'enregistrement, de notaire et les frais annexes pour vous donner le budget réel à prévoir.
+        Le prix affiché n'est jamais le prix payé. Ce calcul ajoute les droits d'enregistrement, les frais de notaire et les frais de publicité foncière du pays.
       </p>
-      <AvertissementBareme/>
       <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
         <div>
           <label style={labelSim}>Prix du bien</label>
           <div style={{display:"flex",gap:"8px"}}>
             <input type="number" inputMode="numeric" placeholder="Ex : 45000" value={prix} onChange={e=>setPrix(e.target.value)} style={{...champSim,flex:1}}/>
-            <select value={devise} onChange={e=>setDevise(e.target.value)} style={{...champSim,width:"auto",flexShrink:0}}>
+            <select value={devise} onChange={e=>setDevise(e.target.value)} style={{...champSim,width:"auto",flexShrink:0}} aria-label="Devise">
               <option value="EUR">€</option><option value="XOF">FCFA</option>
             </select>
           </div>
@@ -1189,74 +1356,111 @@ function SimuBudget() {
         <div>
           <label style={labelSim}>Pays</label>
           <select value={pays} onChange={e=>setPays(e.target.value)} style={champSim}>
-            {Object.keys(FRAIS_ACQUISITION).map(k=><option key={k} value={k}>{k}</option>)}
+            {Object.keys(BAREMES).map(k=><option key={k} value={k}>{k}</option>)}
           </select>
         </div>
+        <div>
+          <label style={labelSim}>Nature du bien</label>
+          <div style={{display:"flex",gap:"8px"}}>
+            {[["bati","Maison, appartement, immeuble"],["terrain","Terrain nu"]].map(([k,l])=>(
+              <button key={k} onClick={()=>setNature(k)} style={{flex:1,background:nature===k?C.forest:C.white,color:nature===k?C.white:C.dark,border:`1px solid ${nature===k?C.forest:C.sand}`,borderRadius:"10px",padding:"11px 12px",fontSize:"13.5px",fontWeight:nature===k?700:500,cursor:"pointer",fontFamily:F,transition:"all .15s"}}>{l}</button>
+            ))}
+          </div>
+        </div>
+        {b.enregistrement?.majorationVille && (
+          <label style={{display:"flex",alignItems:"center",gap:"9px",cursor:"pointer"}}>
+            <input type="checkbox" checked={grandeVille} onChange={e=>setGrandeVille(e.target.checked)} style={{width:17,height:17,accentColor:C.terra}}/>
+            <span style={{fontSize:"14.5px",color:C.dark,fontFamily:F}}>{b.enregistrement.libelleVille}</span>
+          </label>
+        )}
       </div>
-      {p>0 && (
+
+      {p>0 && connu && (
         <div style={carteResultat}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Budget à prévoir</div>
-          <LigneResultat label="Prix du bien" valeur={fmtEUR(Math.round(prixEur))}/>
-          <LigneResultat label="Droits d'enregistrement" valeur={fmt(enr[0],enr[1])}/>
-          <LigneResultat label="Frais de notaire" valeur={fmt(not[0],not[1])}/>
-          <LigneResultat label="Frais annexes" valeur={fmt(div[0],div[1])}/>
-          <LigneResultat label="Total estimé" valeur={fmt(totMin,totMax)} fort/>
-          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:F}}>
-            Soit {fmtXOF(Math.round(totMin*655.957))} à {fmtXOF(Math.round(totMax*655.957))}
-          </div>
-          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
-            Prévoyez en plus le coût d'une vérification du titre foncier avant signature.
+          <LigneResultat label="Prix du bien" valeur={eur(prixEur)}/>
+          {enr!==null && <LigneResultat label="Droits d'enregistrement" valeur={eur(enr)}/>}
+          {not!==null ? <LigneResultat label="Frais de notaire" valeur={eur(not)}/>
+                      : <LigneResultat label="Frais de notaire" valeur="non chiffrés"/>}
+          {ann!==null && <LigneResultat label={b.annexes.libelle} valeur={eur(ann)}/>}
+          <LigneResultat label="Total à prévoir" valeur={eur(total)} fort/>
+          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.65)",fontFamily:F,lineHeight:1.6}}>
+            Soit {fmtXOF(Math.round(total*FCFA))}, dont {eur(fraisTotal)} de frais — {part.toFixed(1).replace(".",",")} % du prix.
           </div>
         </div>
       )}
+      {p>0 && !connu && (
+        <div style={{...carteResultat,background:C.cream,border:`1px solid ${C.sand}`}}>
+          <div style={{fontSize:"15px",color:C.dark,fontFamily:F,lineHeight:1.65}}>
+            Nous préférons ne rien calculer pour ce pays plutôt que d'afficher un chiffre dont nous ne sommes pas sûrs. Demandez le détail des frais à un notaire local avant de signer.
+          </div>
+        </div>
+      )}
+      <Sources bareme={b}/>
     </div>
   );
 }
 
 // ── 2. Coût de construction ──
+// Aucune source officielle ne publie de prix au m² dans ces pays : les
+// instituts de statistique ne publient que des indices d'évolution. Le
+// simulateur part donc du prix que l'utilisateur s'est vu proposer.
+const REFERENCE_M2 = {
+  l: "Banque mondiale, Revue du secteur du logement en Côte d'Ivoire",
+  u: "https://documents1.worldbank.org/curated/en/291761545026488944/txt/Rapport-Logement-CdI-FINAL.txt",
+  a: "2017",
+};
+
 function SimuConstruction() {
   const [surface, setSurface] = useState("");
-  const [niveau, setNiveau] = useState("standard");
+  const [prixM2, setPrixM2] = useState("");
+  const [devise, setDevise] = useState("XOF");
   const s = parseFloat(surface) || 0;
-  const n = COUT_M2[niveau];
-  const min = Math.round(s*n.prix[0]), max = Math.round(s*n.prix[1]);
+  const pm = parseFloat(String(prixM2).replace(/\s/g,"")) || 0;
+  const pm2Eur = devise === "EUR" ? pm : pm / FCFA;
+  const total = s * pm2Eur;
   const postes = [["Gros œuvre",0.42],["Second œuvre",0.28],["Finitions",0.20],["Études et divers",0.10]];
 
   return (
     <div>
-      <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-        Vous avez un terrain et vous voulez bâtir ? Cette estimation donne l'ordre de grandeur du budget, et sa répartition entre les grands postes du chantier.
+      <p style={{margin:"0 0 14px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
+        Vous avez un terrain et un devis ? Indiquez la surface et le prix au m² qu'on vous propose : le calcul donne le budget total et sa répartition entre les grands postes du chantier.
       </p>
-      <AvertissementBareme/>
+      <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"11px",padding:"14px 16px",marginBottom:"16px"}}>
+        <div style={{fontSize:"13.5px",color:"#6D4C1B",fontFamily:F,lineHeight:1.65}}>
+          <strong>Pourquoi c'est à vous de saisir le prix au m².</strong> Aucun des douze pays ne publie de coût de construction officiel au mètre carré : les instituts nationaux ne publient que des indices d'évolution. Nous ne voulons pas inventer un prix moyen sur lequel vous engageriez des dizaines de millions.
+          <div style={{marginTop:"9px"}}>
+            Le seul repère publié que nous ayons trouvé : en Côte d'Ivoire, un prix de revient de <strong>115 000 à 150 000 FCFA/m²</strong> pour du logement social — <a href={REFERENCE_M2.u} target="_blank" rel="noopener noreferrer" style={{color:C.forest}}>{REFERENCE_M2.l}</a>, {REFERENCE_M2.a}. Données anciennes et limitées au logement social : à ne prendre que comme ordre de grandeur.
+          </div>
+        </div>
+      </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
         <div>
           <label style={labelSim}>Surface à construire (m²)</label>
           <input type="number" inputMode="numeric" placeholder="Ex : 150" value={surface} onChange={e=>setSurface(e.target.value)} style={champSim}/>
         </div>
         <div>
-          <label style={labelSim}>Niveau de finition</label>
-          <div style={{display:"grid",gap:"8px"}}>
-            {Object.entries(COUT_M2).map(([k,v])=>(
-              <button key={k} onClick={()=>setNiveau(k)} style={{textAlign:"left",background:niveau===k?C.forest:C.white,color:niveau===k?C.white:C.dark,border:`1px solid ${niveau===k?C.forest:C.sand}`,borderRadius:"10px",padding:"13px 15px",cursor:"pointer",fontFamily:F,transition:"all 0.15s"}}>
-                <div style={{fontSize:"15px",fontWeight:700,marginBottom:"2px"}}>{v.label}</div>
-                <div style={{fontSize:"13px",opacity:0.75}}>{v.aide} · {v.prix[0]}–{v.prix[1]} €/m²</div>
-              </button>
-            ))}
+          <label style={labelSim}>Prix au m² qu'on vous propose</label>
+          <div style={{display:"flex",gap:"8px"}}>
+            <input type="number" inputMode="numeric" placeholder="Ex : 180000" value={prixM2} onChange={e=>setPrixM2(e.target.value)} style={{...champSim,flex:1}}/>
+            <select value={devise} onChange={e=>setDevise(e.target.value)} style={{...champSim,width:"auto",flexShrink:0}} aria-label="Devise">
+              <option value="XOF">FCFA</option><option value="EUR">€</option>
+            </select>
           </div>
         </div>
       </div>
-      {s>0 && (
+      {s>0 && pm>0 && (
         <div style={carteResultat}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Budget de construction</div>
-          {postes.map(([nom,part])=>(
-            <LigneResultat key={nom} label={nom} valeur={`${fmtEUR(Math.round(min*part))} – ${fmtEUR(Math.round(max*part))}`}/>
+          {postes.map(([nom,p])=>(
+            <LigneResultat key={nom} label={nom} valeur={fmtEUR(Math.round(total*p))}/>
           ))}
-          <LigneResultat label={`Total pour ${s} m²`} valeur={`${fmtEUR(min)} – ${fmtEUR(max)}`} fort/>
-          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:F}}>
-            Soit {fmtXOF(Math.round(min*655.957))} à {fmtXOF(Math.round(max*655.957))}
+          <LigneResultat label={`Total pour ${s} m²`} valeur={fmtEUR(Math.round(total))} fort/>
+          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.65)",fontFamily:F,lineHeight:1.6}}>
+            Soit {fmtXOF(Math.round(total*FCFA))}. La répartition entre postes est une clé usuelle du bâtiment, pas une règle du pays.
           </div>
           <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
-            Hors prix du terrain, viabilisation, clôture et frais d'architecte.
+            Hors prix du terrain, viabilisation, clôture et honoraires d'architecte.
           </div>
         </div>
       )}
@@ -1264,42 +1468,54 @@ function SimuConstruction() {
   );
 }
 
-// ── 3. Épargne ──
+// ── 3. Ce que vous aurez réuni ──
 function SimuEpargne() {
-  const [objectif, setObjectif] = useState("");
   const [deja, setDeja] = useState("");
   const [mensuel, setMensuel] = useState("");
-  const o = parseFloat(objectif)||0, d = parseFloat(deja)||0, m = parseFloat(mensuel)||0;
-  const reste = Math.max(0, o-d);
-  const mois = m>0 ? Math.ceil(reste/m) : 0;
-  const annees = Math.floor(mois/12), moisRestants = mois%12;
-  const duree = mois===0 ? "—" : annees>0 ? `${annees} an${annees>1?"s":""}${moisRestants?` et ${moisRestants} mois`:""}` : `${mois} mois`;
+  const [mois, setMois] = useState(36);
+  const d = parseFloat(deja) || 0, m = parseFloat(mensuel) || 0;
+  const verse = m * mois;
+  const total = d + verse;
+  const annees = Math.floor(mois/12), reste = mois%12;
+  const duree = annees > 0 ? `${annees} an${annees>1?"s":""}${reste?` et ${reste} mois`:""}` : `${mois} mois`;
   const dateFin = new Date(); dateFin.setMonth(dateFin.getMonth()+mois);
+  const raccourcis = [12,24,36,60,84,120];
 
   return (
     <div>
       <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-        Combien de temps pour réunir la somme ? Indiquez votre objectif, ce que vous avez déjà mis de côté et ce que vous pouvez épargner chaque mois.
+        Combien aurez-vous réuni ? Indiquez ce que vous avez déjà mis de côté, ce que vous pouvez épargner chaque mois, et l'échéance que vous vous fixez.
       </p>
       <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
-        <div><label style={labelSim}>Objectif (€)</label>
-          <input type="number" inputMode="numeric" placeholder="Ex : 45000" value={objectif} onChange={e=>setObjectif(e.target.value)} style={champSim}/></div>
         <div><label style={labelSim}>Déjà épargné (€)</label>
           <input type="number" inputMode="numeric" placeholder="Ex : 8000" value={deja} onChange={e=>setDeja(e.target.value)} style={champSim}/></div>
         <div><label style={labelSim}>Épargne mensuelle (€)</label>
           <input type="number" inputMode="numeric" placeholder="Ex : 400" value={mensuel} onChange={e=>setMensuel(e.target.value)} style={champSim}/></div>
+        <div>
+          <label style={labelSim}>Horizon</label>
+          <div style={{display:"flex",gap:"7px",flexWrap:"wrap",marginBottom:"10px"}}>
+            {raccourcis.map(n=>(
+              <button key={n} onClick={()=>setMois(n)} style={{background:mois===n?C.forest:C.white,color:mois===n?C.white:C.dark,border:`1px solid ${mois===n?C.forest:C.sand}`,borderRadius:"20px",padding:"8px 15px",fontSize:"13.5px",fontWeight:mois===n?700:500,cursor:"pointer",fontFamily:F,transition:"all .15s"}}>
+                {n%12===0?`${n/12} an${n>12?"s":""}`:`${n} mois`}
+              </button>
+            ))}
+          </div>
+          <input type="range" min="6" max="180" step="1" value={mois} onChange={e=>setMois(parseInt(e.target.value))} style={{width:"100%",accentColor:C.terra}} aria-label="Nombre de mois"/>
+          <div style={{fontSize:"13.5px",color:C.sub,fontFamily:F,marginTop:"4px"}}>{mois} mois, soit {duree}</div>
+        </div>
       </div>
-      {o>0 && m>0 && (
+      {m>0 && (
         <div style={carteResultat}>
-          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Votre horizon</div>
-          <LigneResultat label="Reste à réunir" valeur={fmtEUR(reste)}/>
-          <LigneResultat label="Nombre de versements" valeur={mois===0?"—":`${mois} mois`}/>
-          <LigneResultat label="Durée" valeur={duree} fort/>
-          {mois>0 && (
-            <div style={{marginTop:"12px",fontSize:"13.5px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6}}>
-              Objectif atteint vers <strong style={{color:C.gold}}>{dateFin.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</strong>, soit {fmtXOF(Math.round(o*655.957))} au total.
-            </div>
-          )}
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Ce que vous aurez réuni</div>
+          <LigneResultat label="Déjà épargné" valeur={fmtEUR(Math.round(d))}/>
+          <LigneResultat label={`${mois} versements de ${fmtEUR(Math.round(m))}`} valeur={fmtEUR(Math.round(verse))}/>
+          <LigneResultat label={`Montant disponible en ${dateFin.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}`} valeur={fmtEUR(Math.round(total))} fort/>
+          <div style={{marginTop:"12px",fontSize:"13.5px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6}}>
+            Soit <strong style={{color:C.gold}}>{fmtXOF(Math.round(total*FCFA))}</strong> au terme de {duree}.
+          </div>
+          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
+            Calcul sans intérêts ni inflation : c'est la somme de vos versements. Pensez à garder de côté les frais d'acquisition, que le premier simulateur chiffre.
+          </div>
         </div>
       )}
     </div>
@@ -1308,8 +1524,8 @@ function SimuEpargne() {
 
 const SIMULATEURS = [
   {id:"budget",       titre:"Budget total d'achat", resume:"Le prix, plus tous les frais",       composant:SimuBudget},
-  {id:"construction", titre:"Coût de construction", resume:"Bâtir sur votre terrain",            composant:SimuConstruction},
-  {id:"epargne",      titre:"Épargne et horizon",   resume:"En combien de temps y arriver",      composant:SimuEpargne},
+  {id:"construction", titre:"Coût de construction", resume:"Chiffrer un devis au m²",            composant:SimuConstruction},
+  {id:"epargne",      titre:"Épargne",             resume:"Ce que vous aurez réuni",            composant:SimuEpargne},
 ];
 
 function Simulateurs() {
@@ -2172,7 +2388,8 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
         {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</div>}
         <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
-          <span style={{background:typeColor(p.type),color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"3px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
+          <span style={{background:transactionDe(p)==="location"?C.forest:C.terra,color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 9px",borderRadius:"4px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{transactionDe(p)==="location"?"À louer":"À vendre"}</span>
+          <span style={{background:"rgba(255,255,255,0.92)",color:C.dark,fontSize:"11px",fontWeight:600,padding:"3px 9px",borderRadius:"4px",fontFamily:F}}>{libelleNature(p)}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:"5px"}}>
             <span onClick={e=>{e.stopPropagation();onSave&&onSave(p);}} style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"15px"}}>{saved?"❤️":"🤍"}</span>
             <span style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={shareWA}>{Icon.wa}</span>
@@ -2924,7 +3141,8 @@ export default function App() {
   // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
   const [apercu, setApercu] = useState("");
   const [filterCountry, setFilterCountry] = useState("Tous");
-  const [filterType, setFilterType] = useState("Tous");
+  const [filterTransaction, setFilterTransaction] = useState("tous");
+  const [filterNature, setFilterNature] = useState("Tous");
   const [filterPriceMin, setFilterPriceMin] = useState("");
   const [filterPriceMax, setFilterPriceMax] = useState("");
   const [filterSurfaceMin, setFilterSurfaceMin] = useState("");
@@ -3005,20 +3223,35 @@ export default function App() {
   useEffect(()=>{ user ? ecrireLocal(CLE_SESSION, user) : effacerLocal(CLE_SESSION); }, [user]);
   useEffect(()=>{ ecrireLocal(CLE_FAVORIS, savedProps); }, [savedProps]);
 
-  const types = ["Tous","Vente","Location","Terrain","Commercial"];
+  // Les natures réellement présentes dans les annonces affichables, groupées par famille.
+  const naturesDispo = FAMILLES.map(fam => [fam, Object.entries(NATURES).filter(([,n])=>n.famille===fam)]);
   const rooms = ["Tous","1+","2+","3+","4+","5+"];
   const sorts = [{id:"recent",label:"Plus récent"},{id:"price_asc",label:"Prix ↑"},{id:"price_desc",label:"Prix ↓"},{id:"surface_asc",label:"Surface ↑"},{id:"surface_desc",label:"Surface ↓"}];
 
-  const toggleEquipement = eq => setFilterEquipements(prev=>prev.includes(eq)?prev.filter(e=>e!==eq):[...prev,eq]);
-  const resetFilters = () => { setFilterCountry("Tous"); setFilterType("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setFilterVerified(false); setSortBy("recent"); setSearch(""); };
+  // Ce qui est actif est rappelé sous la barre, et se retire d'un clic.
+  const rappels = [
+    filterTransaction!=="tous" && {cle:"tr",   texte:filterTransaction==="vente"?"À vendre":"À louer", retirer:()=>setFilterTransaction("tous")},
+    filterRegion!=="Tous"      && {cle:"reg",  texte:filterRegion,  retirer:()=>setFilterRegion("Tous")},
+    filterCountry!=="Tous"     && {cle:"pays", texte:filterCountry, retirer:()=>setFilterCountry("Tous")},
+    filterNature!=="Tous"      && {cle:"nat",  texte:NATURES[filterNature]?.label||filterNature, retirer:()=>setFilterNature("Tous")},
+    (filterPriceMin||filterPriceMax) && {cle:"prix", texte:`${filterPriceMin?fmtEUR(+filterPriceMin):"0 €"} – ${filterPriceMax?fmtEUR(+filterPriceMax):"sans limite"}`, retirer:()=>{setFilterPriceMin("");setFilterPriceMax("");}},
+    (filterSurfaceMin||filterSurfaceMax) && {cle:"surf", texte:`${filterSurfaceMin||0} – ${filterSurfaceMax||"…"} m²`, retirer:()=>{setFilterSurfaceMin("");setFilterSurfaceMax("");}},
+    filterRooms!=="Tous"       && {cle:"pieces", texte:`${filterRooms} pièces`, retirer:()=>setFilterRooms("Tous")},
+    filterVerified             && {cle:"verif",  texte:"Annonces modérées", retirer:()=>setFilterVerified(false)},
+    ...filterEquipements.map(eq=>({cle:"eq-"+eq, texte:eq, retirer:()=>toggleEquipement(eq)})),
+  ].filter(Boolean);
 
-  const activeFiltersCount = [filterCountry!=="Tous",filterType!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0,filterVerified].filter(Boolean).length;
+  const toggleEquipement = eq => setFilterEquipements(prev=>prev.includes(eq)?prev.filter(e=>e!==eq):[...prev,eq]);
+  const resetFilters = () => { setFilterCountry("Tous"); setFilterTransaction("tous"); setFilterNature("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setFilterVerified(false); setSortBy("recent"); setSearch(""); };
+
+  const activeFiltersCount = [filterCountry!=="Tous",filterTransaction!=="tous",filterNature!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0,filterVerified].filter(Boolean).length;
   const filteredCountries = filterRegion==="Tous"?COUNTRIES_ANNONCES:COUNTRIES_ANNONCES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
 
   let filtered = ALL_PROPS.filter(p=>{
     const mc=filterCountry==="Tous"||p.country===filterCountry;
     const mr=filterRegion==="Tous"||filteredCountries.map(c=>c.name).includes(p.country);
-    const mt=filterType==="Tous"||p.type===filterType;
+    const mt=filterNature==="Tous"||natureDe(p)===filterNature;
+    const mtr=filterTransaction==="tous"||transactionDe(p)===filterTransaction;
     const q=sansAccent(search);
     const ms=!q||[p.title,p.city,p.country,p.neighborhood,p.description,p.agency_name].some(s=>sansAccent(s).includes(q));
     const mpMin=!filterPriceMin||p.price_eur>=parseInt(filterPriceMin);
@@ -3028,7 +3261,7 @@ export default function App() {
     const mrm=filterRooms==="Tous"||!p.rooms||(p.rooms>=parseInt(filterRooms));
     const meq=filterEquipements.length===0||filterEquipements.every(eq=>p.features?.includes(eq));
     const mv=!filterVerified||p.verified;
-    return mc&&mr&&mt&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq&&mv;
+    return mc&&mr&&mt&&mtr&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq&&mv;
   });
   // "Plus récent" : les vraies annonces d'abord, puis par date de dépôt
   const quand = (x) => x.created_at ? new Date(x.created_at).getTime() : 0;
@@ -3095,6 +3328,108 @@ button,input,select,textarea{font-size:inherit}
 @media(max-width:520px){.sok-search-tags{display:none!important}}
 @media(max-width:520px){.sok-search{padding:14px 13px 15px!important}}
 .sok-card-img{height:200px}
+
+
+/* ─── L'ESPACE DE RECHERCHE ───────────────────────────────
+   Une barre unique, des filtres qui ne s'imposent que si on les
+   demande, et des rappels de ce qui est actif. Tout tient sur une
+   ligne dès qu'il y a la place. */
+.sok-recherche{position:sticky;top:78px;z-index:40;background:#F5F0E8;
+  padding:12px 0 10px;margin:0 -2px 4px;transition:box-shadow .25s}
+.sok-rech-haut{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+
+/* Acheter / Louer / Tout */
+.sok-segment{display:inline-flex;background:#FFFFFF;border:1px solid #E8DFD0;
+  border-radius:12px;padding:3px;gap:2px;flex-shrink:0}
+.sok-segment button{border:none;background:transparent;color:#1C1A17;
+  border-radius:9px;padding:9px 17px;font-size:14.5px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;
+  transition:background .18s,color .18s}
+.sok-segment button:hover{background:#F5F0E8}
+.sok-segment button.on{background:#1A3C2E;color:#fff}
+.sok-segment button.on:hover{background:#1A3C2E}
+
+/* le champ de recherche */
+.sok-rech-champ{flex:1 1 240px;display:flex;align-items:center;gap:9px;
+  background:#fff;border:1px solid #E8DFD0;border-radius:12px;padding:0 14px;
+  transition:border-color .18s,box-shadow .18s}
+.sok-rech-champ:focus-within{border-color:#1A3C2E;box-shadow:0 0 0 3px rgba(26,60,46,.10)}
+.sok-rech-champ .loupe{font-size:19px;color:#8F8676;line-height:1}
+.sok-rech-champ input{flex:1;min-width:0;border:none;outline:none;background:transparent;
+  padding:13px 0;font-size:15.5px;color:#1C1A17;font-family:'DM Sans',sans-serif}
+.sok-rech-champ .vider{border:none;background:#F5F0E8;color:#7A7264;border-radius:50%;
+  width:22px;height:22px;font-size:15px;line-height:1;cursor:pointer;flex-shrink:0}
+
+/* le bouton Filtres */
+.sok-rech-filtres{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;
+  background:#fff;border:1px solid #E8DFD0;border-radius:12px;padding:0 17px;
+  font-size:14.5px;font-weight:600;color:#1C1A17;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:border-color .18s,background .18s}
+.sok-rech-filtres:hover{border-color:#1A3C2E}
+.sok-rech-filtres.on{background:#1A3C2E;border-color:#1A3C2E;color:#fff}
+.sok-rech-filtres b{background:#B85C3A;color:#fff;border-radius:11px;
+  min-width:20px;height:20px;display:inline-flex;align-items:center;
+  justify-content:center;font-size:12px;padding:0 5px}
+
+/* la bande des pays */
+.sok-pays{display:flex;gap:7px;overflow-x:auto;padding:11px 2px 3px;
+  scrollbar-width:none;-ms-overflow-style:none}
+.sok-pays::-webkit-scrollbar{display:none}
+.sok-pays button{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;
+  background:#fff;border:1px solid #E8DFD0;color:#1C1A17;border-radius:22px;
+  padding:7px 14px;font-size:13.5px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .16s}
+.sok-pays button:hover{border-color:#B85C3A}
+.sok-pays button.on{background:#B85C3A;border-color:#B85C3A;color:#fff;font-weight:700}
+
+/* les rappels de filtres actifs */
+.sok-actifs{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:10px 0 0}
+.sok-actifs .pastille{display:inline-flex;align-items:center;gap:7px;background:#fff;
+  border:1px solid #E8DFD0;border-radius:20px;padding:5px 7px 5px 13px;font-size:13px;
+  color:#1C1A17;font-family:'DM Sans',sans-serif;animation:sokPop .18s ease-out}
+.sok-actifs .pastille button{border:none;background:#F5F0E8;color:#7A7264;
+  border-radius:50%;width:19px;height:19px;font-size:13px;line-height:1;cursor:pointer}
+.sok-actifs .pastille button:hover{background:#B85C3A;color:#fff}
+.sok-actifs .tout{border:none;background:transparent;color:#B85C3A;font-size:13px;
+  font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline}
+@keyframes sokPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+
+/* le panneau des filtres */
+.sok-panneau{background:#fff;border:1px solid #E8DFD0;border-radius:14px;
+  padding:18px;margin-top:12px;animation:sokOuvre .22s ease-out}
+@keyframes sokOuvre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sok-panneau h4{margin:0 0 9px;font-size:12px;font-weight:700;color:#8F8676;
+  text-transform:uppercase;letter-spacing:.08em;font-family:'DM Sans',sans-serif}
+.sok-panneau .bloc{margin-bottom:18px}
+.sok-panneau .bloc:last-child{margin-bottom:0}
+.sok-fam{margin-bottom:12px}
+.sok-fam > span{display:block;font-size:12.5px;color:#7A7264;margin-bottom:6px;
+  font-family:'DM Sans',sans-serif}
+.sok-nat{display:flex;gap:7px;flex-wrap:wrap}
+.sok-nat button{display:inline-flex;align-items:center;gap:6px;background:#fff;
+  border:1px solid #E8DFD0;color:#1C1A17;border-radius:10px;padding:8px 13px;
+  font-size:13.5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .16s}
+.sok-nat button:hover{border-color:#1A3C2E}
+.sok-nat button.on{background:#1A3C2E;border-color:#1A3C2E;color:#fff;font-weight:600}
+
+/* la ligne résultats + tri */
+.sok-compte{display:flex;justify-content:space-between;align-items:center;
+  gap:12px;margin:18px 0 13px;flex-wrap:wrap}
+.sok-compte .n{font-size:15px;color:#1C1A17;font-family:'DM Sans',sans-serif;margin:0}
+.sok-compte .n b{font-weight:700}
+.sok-tri{display:flex;align-items:center;gap:7px}
+.sok-tri label{font-size:13px;color:#8F8676;font-family:'DM Sans',sans-serif}
+.sok-tri select{border:1px solid #E8DFD0;background:#fff;border-radius:9px;
+  padding:7px 10px;font-size:13.5px;color:#1C1A17;font-family:'DM Sans',sans-serif;
+  font-weight:600;cursor:pointer;outline:none}
+.sok-tri select:focus{border-color:#1A3C2E}
+
+@media(max-width:560px){
+  .sok-recherche{top:70px}
+  .sok-segment{width:100%}
+  .sok-segment button{flex:1;padding:9px 6px;text-align:center}
+  .sok-rech-filtres{flex:1;justify-content:center;padding:11px 17px}
+}
 
 /* la colonne publicitaire, sur ordinateur seulement */
 .sok-aside{display:none}
@@ -3207,10 +3542,16 @@ button,input,select,textarea{font-size:inherit}
 
             {/* Filtres rapides */}
             <div style={{background:C.white,borderBottom:`1px solid ${C.sand}`,padding:"10px 20px",display:"flex",gap:"7px",overflowX:"auto",marginBottom:"1px"}}>
-              {["Tous","Vente","Location","Terrain","Commercial"].map(t=>(
-                <button key={t} onClick={()=>setFilterType(t)} style={chipBase(filterType===t)}>{t}</button>
+              {[
+                ["Acheter",  ()=>{setFilterTransaction("vente");setFilterNature("Tous");}, filterTransaction==="vente"&&filterNature==="Tous"],
+                ["Louer",    ()=>{setFilterTransaction("location");setFilterNature("Tous");}, filterTransaction==="location"&&filterNature==="Tous"],
+                ["Terrains", ()=>{setFilterTransaction("tous");setFilterNature("terrain");}, filterNature==="terrain"],
+                ["Immeubles",()=>{setFilterTransaction("tous");setFilterNature("immeuble");}, filterNature==="immeuble"],
+                ["Locaux pro",()=>{setFilterTransaction("tous");setFilterNature("commerce");}, filterNature==="commerce"],
+              ].map(([l,action,actif])=>(
+                <button key={l} onClick={()=>{action();switchTab("biens");}} style={chipBase(actif)}>{l}</button>
               ))}
-              <button onClick={()=>setFilterVerified(!filterVerified)} style={chipBase(filterVerified)}>Annonces modérées</button>
+              <button onClick={()=>{setFilterVerified(!filterVerified);switchTab("biens");}} style={chipBase(filterVerified)}>Annonces modérées</button>
             </div>
 
             {/* Les bénéfices clés remplacent les statistiques tant que la plateforme est en lancement */}
@@ -3302,87 +3643,134 @@ button,input,select,textarea{font-size:inherit}
 
         {/* ── BIENS ── */}
         {route.nom==="accueil"&&tab==="biens"&&(
-          <div style={{paddingTop:"20px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
-              <h2 style={{fontFamily:FT,fontSize:"23px",fontWeight:500,color:C.dark,margin:0}}>Trouver un bien</h2>
-              <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
+          <div style={{paddingTop:"18px"}}>
+
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:"14px",flexWrap:"wrap"}}>
+              <div style={{minWidth:"220px"}}>
+                <h2 style={{fontFamily:FT,fontSize:"27px",fontWeight:500,color:C.dark,margin:0,lineHeight:1.15}}>Trouver un bien</h2>
+                <p style={{margin:"5px 0 0",fontSize:"14.5px",color:C.sub,fontFamily:F,lineHeight:1.5}}>Maisons, appartements, terrains et locaux professionnels, dans douze pays.</p>
+              </div>
+              <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"22px",padding:"9px 17px",fontWeight:600,fontSize:"13.5px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Me prévenir par email</button>
             </div>
 
-            <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
-              <input type="text" placeholder="Rechercher par ville, quartier, pays..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"7px",padding:"9px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",marginBottom:"10px",fontFamily:F}}/>
-              <div style={{marginBottom:"8px"}}>
-                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Région</div>
-                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                  {["Tous","Afrique de l'Ouest","Afrique Centrale"].map(r=><button key={r} onClick={()=>setFilterRegion(r)} style={chipBase(filterRegion===r)}>{r}</button>)}
+            {/* ── LA BARRE DE RECHERCHE ── */}
+            <div className="sok-recherche">
+              <div className="sok-rech-haut">
+                <div className="sok-segment">
+                  {[["tous","Tout"],["vente","Acheter"],["location","Louer"]].map(([k,l])=>(
+                    <button key={k} className={filterTransaction===k?"on":""} onClick={()=>setFilterTransaction(k)}>{l}</button>
+                  ))}
                 </div>
-              </div>
-              <div style={{marginBottom:"8px"}}>
-                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pays</div>
-                <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
-                  <button onClick={()=>setFilterCountry("Tous")} style={chipBase(filterCountry==="Tous")}>Tous</button>
-                  {filteredCountries.map(c=><button key={c.name} onClick={()=>setFilterCountry(c.name)} style={{...chipBase(filterCountry===c.name),background:filterCountry===c.name?C.terra:C.white,borderColor:filterCountry===c.name?C.terra:C.sand}}><Flag flag={c.flag} size={14}/>{c.name}</button>)}
+                <div className="sok-rech-champ">
+                  <span className="loupe" aria-hidden="true">⌕</span>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Ville, quartier, pays…" aria-label="Rechercher un bien"/>
+                  {search&&<button className="vider" onClick={()=>setSearch("")} aria-label="Effacer la recherche">×</button>}
                 </div>
+                <button className={`sok-rech-filtres${showFilters?" on":""}`} onClick={()=>setShowFilters(!showFilters)} aria-expanded={showFilters}>
+                  Filtres{activeFiltersCount>0&&<b>{activeFiltersCount}</b>}
+                </button>
               </div>
-              <div>
-                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Type</div>
-                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                  {types.map(t=><button key={t} onClick={()=>setFilterType(t)} style={{...chipBase(filterType===t),background:filterType===t?C.terra:C.white,borderColor:filterType===t?C.terra:C.sand}}>{t}</button>)}
+
+              <div className="sok-pays">
+                <button className={filterCountry==="Tous"?"on":""} onClick={()=>setFilterCountry("Tous")}>Tous les pays</button>
+                {filteredCountries.map(c=>(
+                  <button key={c.name} className={filterCountry===c.name?"on":""} onClick={()=>setFilterCountry(filterCountry===c.name?"Tous":c.name)}>
+                    <Flag flag={c.flag} size={14}/>{c.name}
+                  </button>
+                ))}
+              </div>
+
+              {rappels.length>0&&(
+                <div className="sok-actifs">
+                  {rappels.map(r=>(
+                    <span key={r.cle} className="pastille">{r.texte}<button onClick={r.retirer} aria-label={`Retirer le filtre ${r.texte}`}>×</button></span>
+                  ))}
+                  <button className="tout" onClick={resetFilters}>Tout effacer</button>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div style={{display:"flex",gap:"7px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
-              <button onClick={()=>setShowFilters(!showFilters)} style={{...chipBase(showFilters),display:"flex",alignItems:"center",gap:"4px"}}>
-                Filtres avancés {activeFiltersCount>0&&<span style={{background:showFilters?"rgba(255,255,255,0.3)":C.terra,color:C.white,borderRadius:"10px",padding:"0 5px",fontSize:"12px"}}>{activeFiltersCount}</span>}
-              </button>
-              <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 10px",fontSize:"13px",color:C.dark,fontFamily:F,fontWeight:500,cursor:"pointer",background:C.white}}>
-                {sorts.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-              {activeFiltersCount>0&&<button onClick={resetFilters} style={{background:"#FEE2E2",color:"#DC2626",border:"none",borderRadius:"20px",padding:"5px 12px",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:F}}>✕ Réinitialiser</button>}
-            </div>
-
+            {/* ── LE PANNEAU DES FILTRES ── */}
             {showFilters&&(
-              <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"12px",marginBottom:"12px"}}>
+              <div className="sok-panneau">
+                <div className="bloc">
+                  <h4>Nature du bien</h4>
+                  <div className="sok-nat" style={{marginBottom:"14px"}}>
+                    <button className={filterNature==="Tous"?"on":""} onClick={()=>setFilterNature("Tous")}>Toutes les natures</button>
+                  </div>
+                  {naturesDispo.map(([fam,liste])=>(
+                    <div key={fam} className="sok-fam">
+                      <span>{fam}</span>
+                      <div className="sok-nat">
+                        {liste.map(([k,n])=>(
+                          <button key={k} className={filterNature===k?"on":""} onClick={()=>setFilterNature(filterNature===k?"Tous":k)}>{n.icone} {n.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bloc">
+                  <h4>Région</h4>
+                  <div className="sok-nat">
+                    {["Tous","Afrique de l'Ouest","Afrique Centrale"].map(r=>(
+                      <button key={r} className={filterRegion===r?"on":""} onClick={()=>{setFilterRegion(r);setFilterCountry("Tous");}}>{r==="Tous"?"Les deux":r}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bloc" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(195px,1fr))",gap:"18px"}}>
                   <div>
-                    <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Budget (€)</label>
-                    <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
-                      <input type="number" placeholder="Min" value={filterPriceMin} onChange={e=>setFilterPriceMin(e.target.value)} style={{...inputBase,flex:1}}/>
-                      <span style={{color:C.sub,fontSize:"14px"}}>—</span>
-                      <input type="number" placeholder="Max" value={filterPriceMax} onChange={e=>setFilterPriceMax(e.target.value)} style={{...inputBase,flex:1}}/>
+                    <h4>Budget (€)</h4>
+                    <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                      <input type="number" inputMode="numeric" placeholder="Min" value={filterPriceMin} onChange={e=>setFilterPriceMin(e.target.value)} style={{...inputBase,flex:1}}/>
+                      <span style={{color:C.sub}}>—</span>
+                      <input type="number" inputMode="numeric" placeholder="Max" value={filterPriceMax} onChange={e=>setFilterPriceMax(e.target.value)} style={{...inputBase,flex:1}}/>
                     </div>
                   </div>
                   <div>
-                    <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Surface (m²)</label>
-                    <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
-                      <input type="number" placeholder="Min" value={filterSurfaceMin} onChange={e=>setFilterSurfaceMin(e.target.value)} style={{...inputBase,flex:1}}/>
-                      <span style={{color:C.sub,fontSize:"14px"}}>—</span>
-                      <input type="number" placeholder="Max" value={filterSurfaceMax} onChange={e=>setFilterSurfaceMax(e.target.value)} style={{...inputBase,flex:1}}/>
+                    <h4>Surface (m²)</h4>
+                    <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                      <input type="number" inputMode="numeric" placeholder="Min" value={filterSurfaceMin} onChange={e=>setFilterSurfaceMin(e.target.value)} style={{...inputBase,flex:1}}/>
+                      <span style={{color:C.sub}}>—</span>
+                      <input type="number" inputMode="numeric" placeholder="Max" value={filterSurfaceMax} onChange={e=>setFilterSurfaceMax(e.target.value)} style={{...inputBase,flex:1}}/>
                     </div>
                   </div>
                   <div>
-                    <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"5px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Pièces</label>
-                    <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
-                      {rooms.map(r=><button key={r} onClick={()=>setFilterRooms(r)} style={{...chipBase(filterRooms===r),padding:"4px 9px",borderRadius:"5px"}}>{r}</button>)}
+                    <h4>Pièces</h4>
+                    <div className="sok-nat">
+                      {rooms.map(r=><button key={r} className={filterRooms===r?"on":""} onClick={()=>setFilterRooms(r)}>{r}</button>)}
                     </div>
                   </div>
                 </div>
-                <div style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"12px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"}}>Équipements</label>
-                  <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                    {EQUIPEMENTS.map(eq=><button key={eq} onClick={()=>toggleEquipement(eq)} style={{...chipBase(filterEquipements.includes(eq)),background:filterEquipements.includes(eq)?C.terra:C.white,borderColor:filterEquipements.includes(eq)?C.terra:C.sand,borderRadius:"5px"}}>{filterEquipements.includes(eq)?"✓ ":""}{eq}</button>)}
+
+                <div className="bloc">
+                  <h4>Équipements</h4>
+                  <div className="sok-nat">
+                    {EQUIPEMENTS.map(eq=>(
+                      <button key={eq} className={filterEquipements.includes(eq)?"on":""} onClick={()=>toggleEquipement(eq)}>{filterEquipements.includes(eq)?"✓ ":""}{eq}</button>
+                    ))}
                   </div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:"7px"}}>
-                  <button onClick={()=>setFilterVerified(!filterVerified)} style={{width:18,height:18,borderRadius:"3px",border:`1.5px solid ${filterVerified?C.terra:C.sand}`,background:filterVerified?C.terra:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontSize:"13px"}}>{filterVerified?"✓":""}</button>
-                  <span style={{fontSize:"14px",color:C.dark,fontWeight:500,cursor:"pointer",fontFamily:F}} onClick={()=>setFilterVerified(!filterVerified)}>Biens vérifiés uniquement</span>
+
+                <div className="bloc">
+                  <div style={{display:"flex",alignItems:"center",gap:"9px",cursor:"pointer"}} onClick={()=>setFilterVerified(!filterVerified)}>
+                    <span style={{width:19,height:19,borderRadius:"4px",border:`1.5px solid ${filterVerified?C.terra:C.sand}`,background:filterVerified?C.terra:"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontSize:"13px",flexShrink:0}}>{filterVerified?"✓":""}</span>
+                    <span style={{fontSize:"14.5px",color:C.dark,fontFamily:F}}>N'afficher que les annonces passées en modération</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
-              <p style={{color:C.sub,fontSize:"13px",margin:0,fontFamily:F}}>{filtered.length} bien{filtered.length>1?"s":""} trouvé{filtered.length>1?"s":""}</p>
-              <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
+            {/* ── RÉSULTATS ── */}
+            <div className="sok-compte">
+              <p className="n"><b>{filtered.length}</b> bien{filtered.length>1?"s":""} {filterTransaction==="location"?"à louer":filterTransaction==="vente"?"à vendre":"trouvé"}{filtered.length>1&&filterTransaction==="tous"?"s":""}{filterCountry!=="Tous"?` · ${filterCountry}`:""}</p>
+              <div className="sok-tri">
+                <label htmlFor="sok-tri">Trier par</label>
+                <select id="sok-tri" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+                  {sorts.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="sok-biens">
@@ -3627,7 +4015,7 @@ button,input,select,textarea{font-size:inherit}
       {/* MODALS */}
       <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>} 
-      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={vu}/>}
+      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,transaction:filterTransaction,nature:filterNature,search}} user={vu}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {showServiceForm&&vu&&<ServiceFormModal onClose={()=>setShowServiceForm(false)} user={vu}/>} 
