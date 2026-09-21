@@ -1630,6 +1630,429 @@ function EditeurArticle({ article, user, onClose, onEnregistre }) {
   );
 }
 
+
+// ─── ESPACE ADMINISTRATEUR ────────────────────────
+// Tout passe par le jeton de l'utilisateur : c'est la base de données qui
+// autorise ou refuse, via la fonction est_admin(). Masquer l'onglet ne
+// protégerait rien.
+const estAdmin = (user) => !!user?.token && user?.email === EMAIL_REDACTION;
+
+async function lireAuth(chemin, token) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${token}`},
+  });
+  if (!res.ok) return { ok:false, statut:res.status };
+  return { ok:true, data: await res.json().catch(()=>[]) };
+}
+
+async function appelerFonction(nom, token) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${nom}`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${token}`},
+    body:"{}",
+  });
+  if (!res.ok) return null;
+  return res.json().catch(()=>null);
+}
+
+const RUBRIQUES_ADMIN = [
+  {id:"moderation",   label:"Modération"},
+  {id:"demandes",     label:"Demandes"},
+  {id:"prestataires", label:"Prestataires"},
+  {id:"chiffres",     label:"Chiffres"},
+  {id:"apercu",       label:"Aperçu"},
+];
+
+function EspaceAdmin({ user, onApercu, apercu }) {
+  const [rub, setRub] = useState("moderation");
+  if (!estAdmin(user)) return null;
+  return (
+    <div>
+      <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"24px 20px",borderBottom:`3px solid ${C.gold}`,marginBottom:"18px",borderRadius:"0 0 14px 14px"}}>
+        <div style={{fontSize:"11px",fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.14em",fontFamily:F,marginBottom:"7px"}}>Administration</div>
+        <h1 style={{fontFamily:FT,fontSize:"clamp(24px,4vw,32px)",fontWeight:400,color:C.white,margin:0,lineHeight:1.2}}>Piloter Sokilé</h1>
+      </div>
+      <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"6px",marginBottom:"18px"}}>
+        {RUBRIQUES_ADMIN.map(r=>(
+          <button key={r.id} onClick={()=>setRub(r.id)} style={{flexShrink:0,background:rub===r.id?C.forest:C.white,color:rub===r.id?C.white:C.dark,border:`1px solid ${rub===r.id?C.forest:C.sand}`,borderRadius:"22px",padding:"10px 18px",fontSize:"14.5px",fontWeight:rub===r.id?700:500,cursor:"pointer",fontFamily:F}}>{r.label}</button>
+        ))}
+      </div>
+      {rub==="moderation"&&<AdminModeration user={user}/>}
+      {rub==="demandes"&&<AdminDemandes user={user}/>}
+      {rub==="prestataires"&&<AdminPrestataires user={user}/>}
+      {rub==="chiffres"&&<AdminChiffres user={user}/>}
+      {rub==="apercu"&&<AdminApercu apercu={apercu} onApercu={onApercu}/>}
+    </div>
+  );
+}
+
+// ── Modération des annonces ──
+function AdminModeration({ user }) {
+  const [liste, setListe] = useState([]);
+  const [statut, setStatut] = useState("en_attente");
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+  const [ouvert, setOuvert] = useState(null);
+  const [motif, setMotif] = useState("");
+
+  const charger = () => {
+    setChargement(true); setErreur("");
+    lireAuth(`properties?status=eq.${statut}&select=*&order=created_at.desc&limit=100`, user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée par le serveur. Vérifiez que vous êtes connectée avec "+EMAIL_REDACTION+"."); })
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, [statut]);
+
+  const decider = async (p, nouveau, motifRejet) => {
+    const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, motif_rejet:motifRejet||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
+      .catch(e=>({ok:false,statut:0}));
+    if (!r.ok) { setErreur("La modification a été refusée par le serveur."); return; }
+    setOuvert(null); setMotif(""); charger();
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {[["en_attente","En attente"],["validee","Publiées"],["rejetee","Rejetées"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setStatut(k)} style={{background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:"20px",padding:"9px 16px",fontSize:"14px",fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>
+        ))}
+        <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"20px",padding:"9px 14px",fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Actualiser</button>
+      </div>
+      <BandeauErreur texte={erreur}/>
+      {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
+       : liste.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>
+          {statut==="en_attente"?"Aucune annonce en attente. Tout est traité.":"Aucune annonce dans cette catégorie."}
+        </div>
+      ) : (
+        <div style={{display:"grid",gap:"12px"}}>
+          {liste.map(p=>(
+            <div key={p.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",display:"flex",flexWrap:"wrap"}}>
+              <div style={{width:150,minHeight:120,flexShrink:0,backgroundColor:C.forest,backgroundImage:p.photos?.[0]?`url('${p.photos[0]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center"}}/>
+              <div style={{flex:1,minWidth:240,padding:"15px 17px"}}>
+                <div style={{fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"4px"}}>
+                  {libelleTransaction(p)} · {libelleNature(p)} · {p.city}, {p.country} · {dateCourte(p.created_at)}
+                </div>
+                <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"5px"}}>{p.title}</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)} · {p.photos?.length||0} photo(s)</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>
+                  {p.user_name} · {p.user_email} · {p.user_phone}
+                </div>
+                <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+                  <button onClick={()=>setOuvert(p)} style={{background:"transparent",border:`1px solid ${C.forest}`,color:C.forest,borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Examiner</button>
+                  {statut!=="validee"&&<button onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier</button>}
+                  {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Rejeter…</button>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {ouvert&&(
+        <ModalShell title={ouvert.title} subtitle={`${libelleTransaction(ouvert)} · ${libelleNature(ouvert)}`} onClose={()=>setOuvert(null)}>
+          {ouvert.photos?.length>0&&(
+            <div style={{display:"flex",gap:"8px",overflowX:"auto",marginBottom:"14px"}}>
+              {ouvert.photos.map((u,i)=><div key={i} style={{width:110,height:82,flexShrink:0,borderRadius:"8px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center"}}/>)}
+            </div>
+          )}
+          <div style={{fontSize:"14.5px",color:C.dark,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-line",marginBottom:"14px"}}>{ouvert.description}</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"8px",marginBottom:"16px"}}>
+            {caracteristiques(ouvert).map(([l,v])=>(
+              <div key={l} style={{background:C.cream,borderRadius:"8px",padding:"9px 11px"}}>
+                <div style={{fontSize:"11px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>{l}</div>
+                <div style={{fontSize:"14.5px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <label style={lbl}>Motif de rejet (si vous rejetez)</label>
+          <textarea style={{...inp,minHeight:"70px",resize:"vertical",marginBottom:"14px"}} value={motif} onChange={e=>setMotif(e.target.value)} placeholder="Ex : photos ne correspondant pas au bien, prix incohérent…"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
+            <button onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
+            <button onClick={()=>decider(ouvert,"rejetee",motif)} style={{background:"#C0392B",color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Rejeter</button>
+          </div>
+        </ModalShell>
+      )}
+    </div>
+  );
+}
+
+
+// ── Les demandes reçues ──
+const NATURES_DEMANDE = {
+  prestataire:         {label:"Candidature prestataire", couleur:"#2D6A4F"},
+  publicite:           {label:"Demande de publicité",    couleur:"#C9A84C"},
+  alerte:              {label:"Alerte email",            couleur:"#8F8676"},
+  signalement:         {label:"Signalement",             couleur:"#A93226"},
+  telechargement:      {label:"Téléchargement",          couleur:"#B85C3A"},
+  annonce_en_attente:  {label:"Dépôt d'annonce",         couleur:"#1A3C2E"},
+};
+
+function AdminDemandes({ user }) {
+  const [liste, setListe] = useState([]);
+  const [filtre, setFiltre] = useState("nouvelles");
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+
+  const charger = () => {
+    setChargement(true); setErreur("");
+    const f = filtre==="nouvelles" ? "&traite=is.false" : filtre==="traitees" ? "&traite=is.true" : "";
+    lireAuth(`leads?select=*${f}&order=created_at.desc&limit=200`, user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée par le serveur."); })
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, [filtre]);
+
+  const marquer = async (d, traite) => {
+    const r = await ecrireAuth(`leads?id=eq.${d.id}`, {traite, traite_le: traite?new Date().toISOString():null}, user.token, "PATCH")
+      .catch(()=>({ok:false}));
+    if (r.ok) charger(); else setErreur("La modification a été refusée par le serveur.");
+  };
+
+  const parType = liste.reduce((acc,d)=>{ const k=d.status||"autre"; (acc[k]=acc[k]||[]).push(d); return acc; }, {});
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {[["nouvelles","À traiter"],["traitees","Traitées"],["toutes","Toutes"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setFiltre(k)} style={{background:filtre===k?C.terra:C.white,color:filtre===k?C.white:C.dark,border:`1px solid ${filtre===k?C.terra:C.sand}`,borderRadius:"20px",padding:"9px 16px",fontSize:"14px",fontWeight:filtre===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>
+        ))}
+        <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"20px",padding:"9px 14px",fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Actualiser</button>
+      </div>
+      <BandeauErreur texte={erreur}/>
+      {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
+       : liste.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>Rien à afficher ici.</div>
+      ) : Object.entries(parType).map(([type,items])=>{
+        const n = NATURES_DEMANDE[type] || {label:type, couleur:C.sub};
+        return (
+          <div key={type} style={{marginBottom:"22px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"10px"}}>
+              <span style={{width:9,height:9,borderRadius:"50%",background:n.couleur,flexShrink:0}}/>
+              <span style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.08em"}}>{n.label}</span>
+              <span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>({items.length})</span>
+            </div>
+            <div style={{display:"grid",gap:"9px"}}>
+              {items.map(d=>(
+                <div key={d.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"11px",padding:"13px 15px",opacity:d.traite?0.6:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",gap:"12px",flexWrap:"wrap",marginBottom:"6px"}}>
+                    <div style={{fontSize:"15px",fontWeight:700,color:C.dark,fontFamily:F}}>{d.name||"—"}</div>
+                    <div style={{fontSize:"12.5px",color:C.sub,fontFamily:F}}>{dateCourte(d.created_at)}</div>
+                  </div>
+                  <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"6px"}}>
+                    {d.email&&<a href={`mailto:${d.email}`} style={{color:C.terra}}>{d.email}</a>}{d.phone?` · ${d.phone}`:""}
+                  </div>
+                  <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6,marginBottom:"9px",whiteSpace:"pre-line"}}>{d.message}</div>
+                  <button onClick={()=>marquer(d, !d.traite)} style={{background:"transparent",border:`1px solid ${d.traite?C.sand:C.forest}`,color:d.traite?C.sub:C.forest,borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>
+                    {d.traite?"Remettre à traiter":"Marquer comme traitée"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Annuaire des prestataires ──
+function AdminPrestataires({ user }) {
+  const [liste, setListe] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+  const [edition, setEdition] = useState(null);
+
+  const charger = () => {
+    setChargement(true); setErreur("");
+    lireAuth("prestataires?select=*&order=cree_le.desc", user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée. La table prestataires existe-t-elle ? (script admin.sql)"); })
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, []);
+
+  const supprimer = async (p) => {
+    const r = await ecrireAuth(`prestataires?id=eq.${p.id}`, {}, user.token, "DELETE").catch(()=>({ok:false}));
+    if (r.ok) charger(); else setErreur("La suppression a été refusée par le serveur.");
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap",marginBottom:"16px"}}>
+        <p style={{margin:0,fontSize:"14.5px",color:C.sub,fontFamily:F,maxWidth:"520px",lineHeight:1.6}}>
+          Les fiches publiées ici alimentent l'annuaire visible par les visiteurs.
+        </p>
+        <button onClick={()=>setEdition({})} style={{background:C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"12px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>+ Ajouter</button>
+      </div>
+      <BandeauErreur texte={erreur}/>
+      {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
+       : liste.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>
+          Aucun prestataire enregistré. Les fiches d'exemple actuelles sont écrites dans le code ; ajoutez ici les vrais professionnels.
+        </div>
+      ) : (
+        <div style={{display:"grid",gap:"10px"}}>
+          {liste.map(p=>(
+            <div key={p.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap"}}>
+              <div style={{fontSize:"26px",flexShrink:0}}>{p.emoji||"🏛️"}</div>
+              <div style={{flex:1,minWidth:200}}>
+                <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",marginBottom:"3px"}}>
+                  <span style={{fontSize:"16px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.nom}</span>
+                  {p.verifie&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Vérifié</span>}
+                  {!p.publie&&<span style={{background:C.sand,color:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Masqué</span>}
+                </div>
+                <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"3px"}}>{(p.specialites||[]).join(", ")}</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.pays||[]).join(" · ")}</div>
+              </div>
+              <div style={{display:"flex",gap:"7px"}}>
+                <button onClick={()=>setEdition(p)} style={{background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Modifier</button>
+                <button onClick={()=>supprimer(p)} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Retirer</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {edition&&<EditeurPrestataire p={edition} user={user} onClose={()=>setEdition(null)} onFait={()=>{setEdition(null);charger();}}/>}
+    </div>
+  );
+}
+
+function EditeurPrestataire({ p, user, onClose, onFait }) {
+  const nouveau = !p?.id;
+  const [f, setF] = useState({
+    nom:p.nom||"", specialites:(p.specialites||[]).join(", "), pays:(p.pays||[]).join(", "),
+    description:p.description||"", zones:p.zones||"", tarifs:p.tarifs||"",
+    email:p.email||"", telephone:p.telephone||"", site:p.site||"", emoji:p.emoji||"🏛️",
+    verifie:!!p.verifie, publie:p.publie!==undefined?p.publie:true,
+  });
+  const [loading,setLoading]=useState(false); const [erreur,setErreur]=useState("");
+  const set=(k,v)=>setF(x=>({...x,[k]:v}));
+  const decouper = (s) => s.split(",").map(x=>x.trim()).filter(Boolean);
+
+  const enregistrer = async () => {
+    if (!f.nom.trim() || !f.specialites.trim()) { setErreur("Le nom et au moins une spécialité sont nécessaires."); return; }
+    setErreur(""); setLoading(true);
+    const corps = {...f, specialites:decouper(f.specialites), pays:decouper(f.pays)};
+    const r = nouveau
+      ? await ecrireAuth("prestataires", corps, user.token).catch(()=>({ok:false}))
+      : await ecrireAuth(`prestataires?id=eq.${p.id}`, corps, user.token, "PATCH").catch(()=>({ok:false}));
+    setLoading(false);
+    if (!r.ok) { setErreur("Enregistrement refusé par le serveur."); return; }
+    onFait();
+  };
+
+  return (
+    <ModalShell title={nouveau?"Ajouter un prestataire":"Modifier la fiche"} subtitle="Annuaire Sokilé" onClose={onClose}>
+      <div style={{display:"grid",gridTemplateColumns:"70px 1fr",gap:"10px",marginBottom:"12px"}}>
+        <div><label style={lbl}>Icône</label><input style={{...inp,textAlign:"center",fontSize:"20px"}} value={f.emoji} onChange={e=>set("emoji",e.target.value)}/></div>
+        <div><label style={lbl}>Nom ou société *</label><input style={inp} value={f.nom} onChange={e=>set("nom",e.target.value)} placeholder="Ex : Cabinet Diallo & Associés"/></div>
+      </div>
+      <div style={{marginBottom:"12px"}}><label style={lbl}>Spécialités * <span style={{fontWeight:400,textTransform:"none",color:C.sub}}>(séparées par des virgules)</span></label>
+        <input style={inp} value={f.specialites} onChange={e=>set("specialites",e.target.value)} placeholder="Géomètre, Vérification terrain"/></div>
+      <div style={{marginBottom:"12px"}}><label style={lbl}>Pays <span style={{fontWeight:400,textTransform:"none",color:C.sub}}>(séparés par des virgules)</span></label>
+        <input style={inp} value={f.pays} onChange={e=>set("pays",e.target.value)} placeholder="Sénégal, Côte d'Ivoire"/></div>
+      <div style={{marginBottom:"12px"}}><label style={lbl}>Description</label>
+        <textarea style={{...inp,minHeight:"74px",resize:"vertical"}} value={f.description} onChange={e=>set("description",e.target.value)}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
+        <div><label style={lbl}>Zones</label><input style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Dakar, Thiès"/></div>
+        <div><label style={lbl}>Tarifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="À partir de 150 000 FCFA"/></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
+        <div><label style={lbl}>Email</label><input style={inp} value={f.email} onChange={e=>set("email",e.target.value)}/></div>
+        <div><label style={lbl}>Téléphone</label><input style={inp} value={f.telephone} onChange={e=>set("telephone",e.target.value)} placeholder="+221…"/></div>
+      </div>
+      <div style={{marginBottom:"14px"}}><label style={lbl}>Site internet</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="https://…"/></div>
+      <div style={{display:"flex",gap:"18px",marginBottom:"16px",flexWrap:"wrap"}}>
+        <label style={{display:"flex",gap:"8px",alignItems:"center",cursor:"pointer",fontSize:"14px",fontFamily:F,color:C.dark}}>
+          <input type="checkbox" checked={f.verifie} onChange={e=>set("verifie",e.target.checked)} style={{width:17,height:17,accentColor:C.forest}}/>Vérifié par Sokilé</label>
+        <label style={{display:"flex",gap:"8px",alignItems:"center",cursor:"pointer",fontSize:"14px",fontFamily:F,color:C.dark}}>
+          <input type="checkbox" checked={f.publie} onChange={e=>set("publie",e.target.checked)} style={{width:17,height:17,accentColor:C.forest}}/>Visible dans l'annuaire</label>
+      </div>
+      <BandeauErreur texte={erreur} onRetry={enregistrer}/>
+      <button onClick={enregistrer} disabled={loading} style={{width:"100%",background:loading?"#bbb":C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:loading?"default":"pointer",fontFamily:F}}>
+        {loading?"Enregistrement…":(nouveau?"Ajouter à l'annuaire":"Enregistrer")}
+      </button>
+    </ModalShell>
+  );
+}
+
+// ── Les chiffres ──
+function AdminChiffres({ user }) {
+  const [s, setS] = useState(null);
+  const [erreur, setErreur] = useState("");
+  useEffect(()=>{
+    appelerFonction("statistiques_sokile", user.token)
+      .then(d=>{ if(d) setS(d); else setErreur("Les statistiques n'ont pas pu être calculées. Le script admin.sql a-t-il été exécuté ?"); });
+  }, []);
+  if (erreur) return <BandeauErreur texte={erreur}/>;
+  if (!s) return <p style={{color:C.sub,fontFamily:F}}>Calcul en cours…</p>;
+
+  const tuiles = [
+    ["Annonces publiées", s.annonces_publiees, C.forest],
+    ["En attente de modération", s.annonces_attente, s.annonces_attente>0?C.terra:C.forest],
+    ["Déposées cette semaine", s.annonces_semaine, C.forest],
+    ["Demandes à traiter", s.demandes_nouvelles, s.demandes_nouvelles>0?C.terra:C.forest],
+    ["Signalements en attente", s.signalements, s.signalements>0?"#A93226":C.forest],
+    ["Téléchargements", s.telechargements, C.forest],
+    ["Prestataires", s.prestataires, C.forest],
+    ["Articles publiés", s.articles, C.forest],
+  ];
+  const maxPays = Math.max(1, ...(s.par_pays||[]).map(x=>x.n));
+
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"11px",marginBottom:"24px"}}>
+        {tuiles.map(([l,v,c])=>(
+          <div key={l} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"16px"}}>
+            <div style={{fontSize:"30px",fontWeight:700,color:c,fontFamily:F,lineHeight:1.1}}>{v ?? 0}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"4px",lineHeight:1.4}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      {(s.par_pays||[]).length>0&&(
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"18px"}}>
+          <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"14px"}}>Annonces par pays</div>
+          {s.par_pays.map(x=>(
+            <div key={x.pays} style={{marginBottom:"10px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:"14px",fontFamily:F,color:C.dark,marginBottom:"4px"}}>
+                <span>{x.pays}</span><span style={{fontWeight:700}}>{x.n}</span>
+              </div>
+              <div style={{height:7,background:C.cream,borderRadius:"4px",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.round(x.n/maxPays*100)}%`,background:C.forest,borderRadius:"4px"}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Aperçu des autres vues ──
+function AdminApercu({ apercu, onApercu }) {
+  const choix = [
+    ["", "Vue administratrice", "Ce que vous voyez normalement : l'onglet Administration et tous vos droits."],
+    ["particulier", "Vue particulier", "Ce que voit une personne connectée avec un compte particulier : dépôt d'annonce en mode particulier, pas d'espace pro."],
+    ["pro", "Vue professionnel", "Ce que voit une agence : l'espace pro, le dépôt en mode professionnel avec le nom d'agence."],
+    ["visiteur", "Vue visiteur", "Ce que voit quelqu'un qui n'est pas connecté : tout est consultable, rien n'est déposable."],
+  ];
+  return (
+    <div>
+      <p style={{margin:"0 0 18px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65,maxWidth:"620px"}}>
+        Naviguez sur le site comme le voient vos utilisateurs, sans vous déconnecter. Un bandeau vous rappellera que vous êtes en aperçu, et vous pourrez revenir d'un clic.
+      </p>
+      <div style={{display:"grid",gap:"10px"}}>
+        {choix.map(([v,titre,desc])=>(
+          <button key={v||"admin"} onClick={()=>onApercu(v)} style={{textAlign:"left",background:apercu===v?C.forest:C.white,color:apercu===v?C.white:C.dark,border:`1px solid ${apercu===v?C.forest:C.sand}`,borderRadius:"12px",padding:"16px 18px",cursor:"pointer",fontFamily:F}}>
+            <div style={{fontSize:"16px",fontWeight:700,marginBottom:"4px"}}>{titre}{apercu===v?" · en cours":""}</div>
+            <div style={{fontSize:"13.5px",opacity:0.75,lineHeight:1.55}}>{desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── SIGNALER UNE ANNONCE ─────────────────────────
 // Obligation d'hébergeur : permettre à chacun de signaler un contenu illicite.
 const MOTIFS_SIGNALEMENT = [
@@ -2498,6 +2921,8 @@ export default function App() {
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
   const [sousOnglet, setSousOnglet] = useState("guides");
+  // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
+  const [apercu, setApercu] = useState("");
   const [filterCountry, setFilterCountry] = useState("Tous");
   const [filterType, setFilterType] = useState("Tous");
   const [filterPriceMin, setFilterPriceMin] = useState("");
@@ -2548,6 +2973,12 @@ export default function App() {
       .catch(()=>{});
   },[]);
   const ALL_PROPS = dbProps.length ? dbProps : PROPERTIES;
+
+  // Pendant un aperçu, le reste du site voit un utilisateur transformé.
+  // La vraie session reste intacte : seules les vues changent.
+  const vu = !apercu ? user
+    : apercu === "visiteur" ? null
+    : {...user, email:`apercu-${apercu}@sokile.com`, account_type:apercu, agency:apercu==="pro"?(user?.agency||"Votre agence"):""};
 
   // Le bouton Retour du navigateur ramène à la liste
   useEffect(()=>{
@@ -2632,6 +3063,10 @@ export default function App() {
     {id:"pro",label:"Espace pro",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
+  // L'onglet d'administration n'apparaît que pour le compte de gestion,
+  // et disparaît pendant un aperçu — c'est tout l'intérêt de l'aperçu.
+  if (estAdmin(user) && !apercu) NAV.push({id:"admin",label:"Gestion",icon:Icon.briefcase});
+
   // Cinq entrées seulement sur mobile pour conserver des libellés lisibles.
   const MOBILE_NAV = NAV.filter(n=>n.id!=="pro");
 
@@ -2719,12 +3154,12 @@ button,input,select,textarea{font-size:inherit}
             </nav>
             <a href="/about.html" style={{background:C.gold,color:C.forestDark,border:`1px solid ${C.gold}`,fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"9px 12px",borderRadius:"8px",boxShadow:"0 3px 10px rgba(0,0,0,0.15)"}}>Qui sommes-nous</a>
 
-            {user?(
+            {vu?(
               <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.10)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
                 <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
-                  {user.name?.slice(0,2).toUpperCase()}
+                  {vu.name?.slice(0,2).toUpperCase()}
                 </div>
-                <span style={{fontSize:"13px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span>
+                <span style={{fontSize:"13px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{vu.name}</span>
               </div>
             ):(
               <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.45)",borderRadius:"8px",padding:"9px 13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
@@ -2804,8 +3239,8 @@ button,input,select,textarea{font-size:inherit}
                 <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
-                <button onClick={()=>{setPartnerType("particulier");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
-                <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
+                <button onClick={()=>{setPartnerType("particulier");vu?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
+                <button onClick={()=>{setPartnerType("pro");vu?setShowPartner(true):setShowLogin(true);}} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.25)",borderRadius:"7px",padding:"9px 16px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Professionnel</button>
               </div>
             </div>
 
@@ -2870,7 +3305,7 @@ button,input,select,textarea{font-size:inherit}
           <div style={{paddingTop:"20px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
               <h2 style={{fontFamily:FT,fontSize:"23px",fontWeight:500,color:C.dark,margin:0}}>Trouver un bien</h2>
-              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
+              <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"8px 14px",fontWeight:600,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Créer une alerte</button>
             </div>
 
             <div style={{background:C.white,borderRadius:"10px",padding:"14px",marginBottom:"10px",border:`1px solid ${C.sand}`}}>
@@ -2947,7 +3382,7 @@ button,input,select,textarea{font-size:inherit}
 
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
               <p style={{color:C.sub,fontSize:"13px",margin:0,fontFamily:F}}>{filtered.length} bien{filtered.length>1?"s":""} trouvé{filtered.length>1?"s":""}</p>
-              <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
+              <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"20px",padding:"4px 10px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:F}}>+ Alerte email</button>
             </div>
 
             <div className="sok-biens">
@@ -2963,7 +3398,7 @@ button,input,select,textarea{font-size:inherit}
                 <div style={{textAlign:"center",padding:"48px 20px",color:C.sub,gridColumn:"1/-1"}}>
                   <div style={{fontSize:"34px",marginBottom:"8px",opacity:0.4}}>○</div>
                   <p style={{fontFamily:F,fontSize:"15px"}}>Aucun bien ne correspond à votre recherche.</p>
-                  <button onClick={()=>user?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
+                  <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
                 </div>
               )}
             </div>
@@ -3010,8 +3445,8 @@ button,input,select,textarea{font-size:inherit}
               </>)}
 
               {sousOnglet==="outils"&&<Simulateurs/>}
-              {sousOnglet==="docs"&&<Telechargements user={user}/>}
-              {sousOnglet==="actu"&&<Actualite user={user}/>}
+              {sousOnglet==="docs"&&<Telechargements user={vu}/>}
+              {sousOnglet==="actu"&&<Actualite user={vu}/>}
             </div>
           </div>
         )}
@@ -3042,7 +3477,7 @@ button,input,select,textarea{font-size:inherit}
               <div style={{fontSize:"13px",color:"rgba(255,255,255,0.5)",fontFamily:F,marginBottom:"16px"}}>Rejoignez notre communauté en Afrique de l'Ouest et Centrale</div>
               <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                 {/* Déposer une annonce pro */}
-                <button onClick={()=>{setPartnerType("pro");user?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
+                <button onClick={()=>{setPartnerType("pro");vu?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>🏠</div>
                   <div>
                     <div style={{fontSize:"15px",fontWeight:700,color:C.white,fontFamily:F}}>Déposer une annonce</div>
@@ -3050,7 +3485,7 @@ button,input,select,textarea{font-size:inherit}
                   </div>
                 </button>
                 {/* Proposer un service */}
-                <button onClick={()=>user?setShowServiceForm(true):setShowLogin(true)} style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
+                <button onClick={()=>vu?setShowServiceForm(true):setShowLogin(true)} style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>🛠️</div>
                   <div>
                     <div style={{fontSize:"15px",fontWeight:700,fontFamily:F}}>Proposer mes services</div>
@@ -3058,7 +3493,7 @@ button,input,select,textarea{font-size:inherit}
                   </div>
                 </button>
                 {/* Publicité */}
-                <button onClick={()=>user?setShowPub(true):setShowLogin(true)} style={{width:"100%",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
+                <button onClick={()=>vu?setShowPub(true):setShowLogin(true)} style={{width:"100%",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>📢</div>
                   <div>
                     <div style={{fontSize:"15px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
@@ -3078,7 +3513,7 @@ button,input,select,textarea{font-size:inherit}
               </div>
 
               {/* Bouton rejoindre annuaire */}
-              <button onClick={()=>user?setShowServiceForm(true):setShowLogin(true)} style={{width:"100%",marginTop:"12px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>
+              <button onClick={()=>vu?setShowServiceForm(true):setShowLogin(true)} style={{width:"100%",marginTop:"12px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>
                 Rejoindre l'annuaire prestataires
               </button>
             </div>
@@ -3086,9 +3521,13 @@ button,input,select,textarea{font-size:inherit}
         )}
 
         {/* ── COMPTE ── */}
+        {route.nom==="accueil"&&tab==="admin"&&estAdmin(user)&&!apercu&&(
+          <EspaceAdmin user={user} apercu={apercu} onApercu={v=>{setApercu(v); if(v) switchTab("accueil");}}/>
+        )}
+
         {route.nom==="accueil"&&tab==="compte"&&(
           <div style={{paddingTop:"20px"}}>
-            {!user?(
+            {!vu?(
               <div style={{textAlign:"center",padding:"48px 20px"}}>
                 <div style={{width:56,height:56,borderRadius:"50%",background:C.cream,border:`1px solid ${C.sand}`,margin:"0 auto 16px",display:"flex",alignItems:"center",justifyContent:"center",color:C.sub}}>{Icon.person}</div>
                 <h2 style={{fontFamily:FT,fontSize:"23px",color:C.dark,margin:"0 0 8px"}}>Votre espace personnel</h2>
@@ -3100,11 +3539,11 @@ button,input,select,textarea{font-size:inherit}
               <>
                 <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"14px"}}>
                   <div style={{width:48,height:48,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",fontWeight:700,color:C.white,fontFamily:F}}>
-                    {user.name?.slice(0,2).toUpperCase()}
+                    {vu.name?.slice(0,2).toUpperCase()}
                   </div>
                   <div>
-                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{user.name}</h2>
-                    <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>{user.email}</p>
+                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{vu.name}</h2>
+                    <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>{vu.email}</p>
                     <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"12px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre Sokilé</span>
                   </div>
                 </div>
@@ -3129,8 +3568,8 @@ button,input,select,textarea{font-size:inherit}
                         </div>
                       )}
                     </div>
-                    <MesAnnonces user={user} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
-                    <MesDemandesPro user={user}/>
+                    <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
+                    <MesDemandesPro user={vu}/>
                     {/* Autres items */}
                     {[{label:"Messages agents",value:"Fonctionnalité à venir"},{label:"Mes alertes",value:"Fonctionnalité à venir"}].map(item=>(
                     <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
@@ -3162,7 +3601,18 @@ button,input,select,textarea{font-size:inherit}
         {route.nom==="accueil"&&tab==="compte"&&<div style={{textAlign:"center",padding:"4px 0 24px"}}><a href="/about.html" style={{color:C.terra,fontSize:"14px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Qui sommes-nous ?</a></div>}
       </main>
 
-      <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);user?setShowPartner(true):setShowLogin(true);}}/>
+      <SiteFooter onNav={switchTab} onPub={()=>{setPartnerType(null);vu?setShowPartner(true):setShowLogin(true);}}/>
+
+      {apercu&&(
+        <div style={{position:"fixed",left:0,right:0,bottom:"calc(70px + env(safe-area-inset-bottom))",zIndex:200,display:"flex",justifyContent:"center",padding:"0 14px",pointerEvents:"none"}}>
+          <div style={{pointerEvents:"auto",background:C.gold,color:C.forestDark,borderRadius:"30px",padding:"11px 16px",boxShadow:"0 6px 22px rgba(0,0,0,0.28)",display:"flex",alignItems:"center",gap:"13px",maxWidth:"560px",flexWrap:"wrap",justifyContent:"center"}}>
+            <span style={{fontSize:"14px",fontWeight:700,fontFamily:F}}>
+              Aperçu : vue {apercu==="pro"?"professionnel":apercu==="particulier"?"particulier":"visiteur"}
+            </span>
+            <button onClick={()=>{setApercu("");switchTab("admin");}} style={{background:C.forestDark,color:C.white,border:"none",borderRadius:"20px",padding:"8px 15px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Revenir à ma vue</button>
+          </div>
+        </div>
+      )}
 
       {/* BOTTOM NAV */}
       <nav className="sok-bottomnav" style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.96)",backdropFilter:"blur(12px)",borderTop:`1px solid ${C.sand}`,display:"flex",zIndex:99,boxShadow:"0 -3px 18px rgba(26,60,46,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
@@ -3177,11 +3627,11 @@ button,input,select,textarea{font-size:inherit}
       {/* MODALS */}
       <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>} 
-      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={user}/>}
-      {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={user} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
-      {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={user} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
-      {showServiceForm&&user&&<ServiceFormModal onClose={()=>setShowServiceForm(false)} user={user}/>} 
-      {showPub&&user&&<PubFormModal onClose={()=>setShowPub(false)} user={user}/>} 
+      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,type:filterType,search}} user={vu}/>}
+      {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
+      {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
+      {showServiceForm&&vu&&<ServiceFormModal onClose={()=>setShowServiceForm(false)} user={vu}/>} 
+      {showPub&&vu&&<PubFormModal onClose={()=>setShowPub(false)} user={vu}/>} 
     </div>
   );
 }
