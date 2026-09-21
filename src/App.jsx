@@ -2053,7 +2053,7 @@ button,input,select,textarea{font-size:inherit}
                 <span onClick={()=>switchTab("guides")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Voir tous →</span>
               </div>
               <div className="sok-guide-grid">
-                {GUIDES.slice(0,3).map(g=><GuideCard key={g.id} guide={g} onOpen={setSelectedGuide}/>)}
+                {GUIDES.slice(0,3).map(g=><GuideCard key={g.id} guide={g} onOpen={ouvrirGuide}/>)}
               </div>
             </section>
 
