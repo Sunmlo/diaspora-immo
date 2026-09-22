@@ -1681,7 +1681,8 @@ async function ecrireAuth(chemin, donnees, token, methode="POST") {
   return { ok:false, statut:res.status, motif };
 }
 
-const estEmailAdmin = (user) => String(user?.email||"").trim().toLowerCase() === EMAIL_REDACTION;\nconst peutRediger = (user) => estEmailAdmin(user);
+const estEmailAdmin = (user) => String(user?.email||"").trim().toLowerCase() === EMAIL_REDACTION;
+const peutRediger = (user) => estEmailAdmin(user);
 
 function dateCourte(iso) {
   if (!iso) return "";
