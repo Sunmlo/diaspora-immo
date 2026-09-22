@@ -3207,6 +3207,7 @@ const ETATS_DOSSIER = {
   validee:{label:"Publiée",color:C.success,bg:C.successBg},
   publiee:{label:"Publiée",color:C.success,bg:C.successBg},
   refusee:{label:"Refusée",color:"#9B2C2C",bg:"#FDE8E8"},
+  rejetee:{label:"Refusée",color:"#9B2C2C",bg:"#FDE8E8"},
   modifications_demandees:{label:"Modifications demandées",color:"#934C13",bg:"#FFF0E4"},
 };
 
@@ -3224,7 +3225,7 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
     {!loading&&!error&&rows.length===0&&<div style={{fontFamily:F,color:C.sub,fontSize:13,lineHeight:1.5}}>Vous n'avez pas encore déposé d'annonce.</div>}
     <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",gap:10,alignItems:"center"}}>
       <div style={{width:58,height:48,borderRadius:7,background:C.cream,overflow:"hidden",flexShrink:0}}>{p.photos?.[0]&&<img src={p.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>}</div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{p.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5}}>Note Sokilé : {p.moderation_note}</div>}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5}}>Motif Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
       <button onClick={()=>onEdit(p)} style={{border:`1px solid ${C.terra}`,background:C.white,color:C.terra,borderRadius:7,padding:"7px 10px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Modifier</button>
     </div>})}</div>
     <p style={{fontFamily:F,fontSize:12,color:C.sub,lineHeight:1.5,margin:"10px 0 0"}}>Toute modification repasse en validation avant sa remise en ligne.</p>
