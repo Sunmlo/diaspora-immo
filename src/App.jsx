@@ -314,13 +314,15 @@ async function envoyerPhotos(files, user, onProgress) {
 // ─── ENVOI FIABLE ─────────────────────────────────
 // Toute écriture passe par ici : on lit la réponse, on ne fait plus semblant.
 async function ecrire(table, donnees, accessToken = null) {
+  // Les demandes publiques sont en écriture seule : RETURNING exigerait un droit de lecture.
+  const writeOnly = table === "leads" || table === "reports";
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "apikey": SUPABASE_KEY,
       "Authorization": `Bearer ${accessToken || SUPABASE_KEY}`,
-      "Prefer": "return=representation",
+      "Prefer": writeOnly ? "return=minimal" : "return=representation",
     },
     body: JSON.stringify(donnees),
   });
