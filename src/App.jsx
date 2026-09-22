@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { GUIDES, guideReadingTime } from "./guides";
 import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession } from "./auth-session.mjs";
+import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
 const C = {
   // Charte Sokilé — mêmes teintes que la page « Qui sommes-nous »
@@ -1990,6 +1991,32 @@ function EspaceAdmin({ user, onApercu, apercu }) {
   );
 }
 
+function ReponseModeration({ table, dossier, value, onChange, onRefuse, busy, error }) {
+  const [apercu,setApercu]=useState(false);
+  const statut=table==="properties"?"rejetee":"refusee";
+  const champ=table==="properties"?"motif_rejet":"moderation_note";
+  const id=`reponse-${table}-${dossier.id}`;
+  let message=null, erreurApercu="";
+  if(apercu){
+    try { message=buildDecisionMessage(table,{...dossier,status:statut,[champ]:value}); }
+    catch(e){ erreurApercu=e.message; }
+  }
+  return <section style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${C.sand}`}}>
+    <label htmlFor={id} style={lbl}>Réponse personnalisée au déposant</label>
+    <p id={`${id}-aide`} style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:"0 0 9px"}}>Pour un refus ou une demande de précisions, expliquez ce qui pose problème dans ce dossier et indiquez les corrections possibles ou la raison d'un refus définitif. Ce texte sera visible dans le compte et repris dans l'email.</p>
+    <textarea id={id} aria-describedby={`${id}-aide`} value={value} disabled={busy} maxLength={MAX_RESPONSE_LENGTH} onChange={e=>{onChange(e.target.value);setApercu(false);}} style={{...inp,minHeight:130,resize:"vertical",marginBottom:5}} placeholder="Rédigez ici votre réponse après avoir examiné ce dossier…"/>
+    <div style={{fontFamily:F,fontSize:12,color:C.sub,marginBottom:12}}>30 caractères minimum pour justifier la décision · {Array.from(value.trim()).length} / {MAX_RESPONSE_LENGTH}</div>
+    <BandeauErreur texte={error||erreurApercu}/>
+    {!message&&<button type="button" disabled={busy} onClick={()=>setApercu(true)} style={{background:"transparent",color:"#A93226",border:"1px solid #A93226",borderRadius:9,padding:12,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F,width:"100%"}}>Préparer le refus</button>}
+    {message&&<section aria-label="Aperçu de la réponse de refus" style={{background:C.cream,border:`1px solid ${C.sand}`,padding:15,borderRadius:10}}>
+      <div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark}}>Relisez la réponse avant de confirmer</div>
+      <div style={{fontFamily:F,fontSize:12,color:C.sub,margin:"8px 0",wordBreak:"break-word"}}>À : {message.to[0]}<br/>{message.subject}</div>
+      <div style={{fontFamily:F,fontSize:14,lineHeight:1.7,color:C.dark,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{message.text}</div>
+      <button type="button" disabled={busy} onClick={onRefuse} style={{marginTop:14,width:"100%",background:"#A93226",color:C.white,border:0,borderRadius:9,padding:13,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F}}>{busy?"Enregistrement…":"Confirmer le refus et transmettre la réponse"}</button>
+    </section>}
+  </section>;
+}
+
 function AdminPublicites({ user }) {
   const [liste,setListe]=useState([]);
   const [statut,setStatut]=useState("en_attente");
@@ -1997,6 +2024,8 @@ function AdminPublicites({ user }) {
   const [erreur,setErreur]=useState("");
   const [ouverte,setOuverte]=useState(null);
   const [note,setNote]=useState("");
+  const [enregistrement,setEnregistrement]=useState(false);
+  const [erreurDecision,setErreurDecision]=useState("");
 
   const charger=()=>{
     setChargement(true); setErreur("");
@@ -2007,8 +2036,13 @@ function AdminPublicites({ user }) {
   useEffect(charger,[statut]);
 
   const decider=async (demande,nouveau)=>{
-    const r=await ecrireAuth(`advertising_requests?id=eq.${demande.id}`,{status:nouveau,moderation_note:note||null},user.token,"PATCH").catch(()=>({ok:false}));
-    if(!r.ok){setErreur("La décision n'a pas pu être enregistrée.");return;}
+    if(enregistrement)return;
+    const invalide=validateModerationResponse(nouveau,note);
+    if(invalide){setErreurDecision(invalide);return;}
+    setErreurDecision("");setEnregistrement(true);
+    const r=await ecrireAuth(`advertising_requests?id=eq.${demande.id}`,{status:nouveau,moderation_note:["validee","acceptee"].includes(nouveau)?null:note.trim()||null},user.token,"PATCH").catch(()=>({ok:false}));
+    setEnregistrement(false);
+    if(!r.ok){setErreurDecision("La décision n'a pas pu être enregistrée. Votre réponse est conservée ici pour réessayer.");return;}
     setOuverte(null);setNote("");charger();
   };
 
@@ -2021,7 +2055,7 @@ function AdminPublicites({ user }) {
     <BandeauErreur texte={erreur}/>
     {chargement?<p style={{color:C.sub,fontFamily:F}}>Chargement…</p>:liste.length===0?
       <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:14,padding:34,textAlign:"center",color:C.sub,fontFamily:F}}>Aucune demande dans cette catégorie.</div>:
-      <div style={{display:"grid",gap:10}}>{liste.map(d=><button key={d.id} onClick={()=>{setOuverte(d);setNote(d.moderation_note||"");}} style={{textAlign:"left",background:C.white,border:`1px solid ${C.sand}`,borderRadius:12,padding:"15px 17px",cursor:"pointer",fontFamily:F}}>
+      <div style={{display:"grid",gap:10}}>{liste.map(d=><button key={d.id} onClick={()=>{setOuverte(d);setNote(d.moderation_note||"");setErreurDecision("");}} style={{textAlign:"left",background:C.white,border:`1px solid ${C.sand}`,borderRadius:12,padding:"15px 17px",cursor:"pointer",fontFamily:F}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong style={{fontSize:16,color:C.dark}}>{d.company||d.contact_name}</strong><span style={{fontSize:12.5,color:C.sub}}>{dateCourte(d.created_at)}</span></div>
         <div style={{fontSize:13.5,color:C.terra,fontWeight:700,marginTop:4}}>{d.format}{d.objective?` · ${d.objective}`:""}</div>
         <div style={{fontSize:13.5,color:C.sub,marginTop:5}}>{(d.target_countries||[]).join(" · ")||"Tous pays"}{d.budget?` · Budget ${d.budget}`:""}{d.desired_period?` · ${d.desired_period}`:""}</div>
@@ -2030,13 +2064,12 @@ function AdminPublicites({ user }) {
       <div style={{display:"grid",gap:9,marginBottom:15}}>
         {[["Contact",ouverte.contact_name],["Email",ouverte.email],["Téléphone",ouverte.phone],["Format",ouverte.format],["Objectif",ouverte.objective],["Pays",(ouverte.target_countries||[]).join(", ")],["Budget",ouverte.budget],["Période",ouverte.desired_period],["Destination",ouverte.destination_url],["Message",ouverte.message]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
       </div>
-      <label style={lbl}>Note de suivi</label><textarea value={note} onChange={e=>setNote(e.target.value)} style={{...inp,minHeight:72,resize:"vertical",marginBottom:13}} placeholder="Tarif proposé, éléments manquants, prochaine étape…"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        <button onClick={()=>decider(ouverte,"en_cours")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Mettre en discussion</button>
-        <button onClick={()=>decider(ouverte,"acceptee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Accepter</button>
-        <button onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.forest,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander des précisions</button>
-        <button onClick={()=>decider(ouverte,"refusee")} style={{background:"#A93226",color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Refuser</button>
+        <button disabled={enregistrement} onClick={()=>decider(ouverte,"en_cours")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Mettre en discussion</button>
+        <button disabled={enregistrement} onClick={()=>decider(ouverte,"acceptee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Accepter</button>
+        <button disabled={enregistrement} onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.forest,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander des précisions</button>
       </div>
+      <ReponseModeration key={ouverte.id} table="advertising_requests" dossier={ouverte} value={note} onChange={v=>{setNote(v);setErreurDecision("");}} onRefuse={()=>decider(ouverte,"refusee")} busy={enregistrement} error={erreurDecision}/>
     </ModalShell>}
   </div>;
 }
@@ -2049,6 +2082,8 @@ function AdminModeration({ user }) {
   const [erreur, setErreur] = useState("");
   const [ouvert, setOuvert] = useState(null);
   const [motif, setMotif] = useState("");
+  const [enregistrement,setEnregistrement]=useState(false);
+  const [erreurDecision,setErreurDecision]=useState("");
 
   const charger = () => {
     setChargement(true); setErreur("");
@@ -2059,9 +2094,14 @@ function AdminModeration({ user }) {
   useEffect(charger, [statut]);
 
   const decider = async (p, nouveau, motifRejet) => {
-    const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, motif_rejet:motifRejet||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
+    if(enregistrement)return;
+    const invalide=validateModerationResponse(nouveau,motifRejet);
+    if(invalide){setErreurDecision(invalide);return;}
+    setErreurDecision("");setEnregistrement(true);
+    const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, motif_rejet:motifRejet?.trim()||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
       .catch(e=>({ok:false,statut:0}));
-    if (!r.ok) { setErreur("La modification a été refusée par le serveur."); return; }
+    setEnregistrement(false);
+    if (!r.ok) { setErreurDecision("La décision n'a pas pu être enregistrée. Votre réponse est conservée ici pour réessayer."); setErreur("La décision n'a pas pu être enregistrée."); return; }
     setOuvert(null); setMotif(""); charger();
   };
 
@@ -2094,9 +2134,9 @@ function AdminModeration({ user }) {
                   {p.user_name} · {p.user_email} · {p.user_phone}
                 </div>
                 <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
-                  <button onClick={()=>setOuvert(p)} style={{background:"transparent",border:`1px solid ${C.forest}`,color:C.forest,borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Examiner</button>
-                  {statut!=="validee"&&<button onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier</button>}
-                  {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Rejeter…</button>}
+                  <button onClick={()=>{setOuvert(p);setMotif(p.motif_rejet||"");setErreurDecision("");}} style={{background:"transparent",border:`1px solid ${C.forest}`,color:C.forest,borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Examiner</button>
+                  {statut!=="validee"&&<button disabled={enregistrement} onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier</button>}
+                  {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");setErreurDecision("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Rejeter…</button>}
                 </div>
               </div>
             </div>
@@ -2120,12 +2160,10 @@ function AdminModeration({ user }) {
               </div>
             ))}
           </div>
-          <label style={lbl}>Motif de rejet (si vous rejetez)</label>
-          <textarea style={{...inp,minHeight:"70px",resize:"vertical",marginBottom:"14px"}} value={motif} onChange={e=>setMotif(e.target.value)} placeholder="Ex : photos ne correspondant pas au bien, prix incohérent…"/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
-            <button onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
-            <button onClick={()=>decider(ouvert,"rejetee",motif)} style={{background:"#C0392B",color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Rejeter</button>
+            <button disabled={enregistrement} onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
           </div>
+          <ReponseModeration key={ouvert.id} table="properties" dossier={ouvert} value={motif} onChange={v=>{setMotif(v);setErreurDecision("");}} onRefuse={()=>decider(ouvert,"rejetee",motif)} busy={enregistrement} error={erreurDecision}/>
         </ModalShell>
       )}
     </div>
@@ -2219,6 +2257,8 @@ function AdminPrestataires({ user }) {
   const [statut, setStatut] = useState("en_attente");
   const [ouverte, setOuverte] = useState(null);
   const [note, setNote] = useState("");
+  const [enregistrement,setEnregistrement]=useState(false);
+  const [erreurDecision,setErreurDecision]=useState("");
 
   const charger = () => {
     setChargement(true); setErreur("");
@@ -2229,12 +2269,17 @@ function AdminPrestataires({ user }) {
   useEffect(charger, [statut]);
 
   const decider = async (p, nouveau) => {
+    if(enregistrement)return;
+    const invalide=validateModerationResponse(nouveau,note);
+    if(invalide){setErreurDecision(invalide);return;}
+    setErreurDecision("");setEnregistrement(true);
     const r = await ecrireAuth(`professionals?id=eq.${p.id}`, {
       status:nouveau,
       active:nouveau==="validee",
-      moderation_note:note||null,
+      moderation_note:["validee","acceptee"].includes(nouveau)?null:note.trim()||null,
     }, user.token, "PATCH").catch(()=>({ok:false}));
-    if (!r.ok) { setErreur("La décision a été refusée par le serveur. Vérifiez les droits administrateur Supabase."); return; }
+    setEnregistrement(false);
+    if (!r.ok) { setErreurDecision("La décision n'a pas pu être enregistrée. Votre réponse est conservée ici pour réessayer."); return; }
     setOuverte(null); setNote(""); charger();
   };
 
@@ -2260,7 +2305,7 @@ function AdminPrestataires({ user }) {
       ) : (
         <div style={{display:"grid",gap:"10px"}}>
           {liste.map(p=>(
-            <button key={p.id} onClick={()=>{setOuverte(p);setNote(p.moderation_note||"");}} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap",textAlign:"left",cursor:"pointer"}}>
+            <button key={p.id} onClick={()=>{setOuverte(p);setNote(p.moderation_note||"");setErreurDecision("");}} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap",textAlign:"left",cursor:"pointer"}}>
               <div style={{fontSize:"24px",flexShrink:0}}>🏛️</div>
               <div style={{flex:1,minWidth:200}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",marginBottom:"3px"}}>
@@ -2279,12 +2324,11 @@ function AdminPrestataires({ user }) {
         <div style={{display:"grid",gap:9,marginBottom:15}}>
           {[["Spécialité",ouverte.specialty],["Pays",(ouverte.countries||[]).join(", ")],["Zones",ouverte.zones],["Email",ouverte.email],["Téléphone",ouverte.phone],["Site",ouverte.website],["Immatriculation / ordre",ouverte.verification_reference],["Tarifs",ouverte.pricing],["Présentation",ouverte.description]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
         </div>
-        <label style={lbl}>Note de modération</label><textarea value={note} onChange={e=>setNote(e.target.value)} style={{...inp,minHeight:72,resize:"vertical",marginBottom:13}} placeholder="Vérifications effectuées ou éléments manquants…"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-          <button onClick={()=>decider(ouverte,"validee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Valider et publier</button>
-          <button onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander à compléter</button>
-          <button onClick={()=>decider(ouverte,"refusee")} style={{gridColumn:"1 / -1",background:"transparent",color:"#A93226",border:"1px solid #A93226",borderRadius:9,padding:11,fontWeight:700,cursor:"pointer",fontFamily:F}}>Refuser la fiche</button>
+          <button disabled={enregistrement} onClick={()=>decider(ouverte,"validee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Valider et publier</button>
+          <button disabled={enregistrement} onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander à compléter</button>
         </div>
+        <ReponseModeration key={ouverte.id} table="professionals" dossier={ouverte} value={note} onChange={v=>{setNote(v);setErreurDecision("");}} onRefuse={()=>decider(ouverte,"refusee")} busy={enregistrement} error={erreurDecision}/>
       </ModalShell>}
     </div>
   );
@@ -3227,7 +3271,7 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
     {!loading&&!error&&rows.length===0&&<div style={{fontFamily:F,color:C.sub,fontSize:13,lineHeight:1.5}}>Vous n'avez pas encore déposé d'annonce.</div>}
     <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",gap:10,alignItems:"center"}}>
       <div style={{width:58,height:48,borderRadius:7,background:C.cream,overflow:"hidden",flexShrink:0}}>{p.photos?.[0]&&<img src={p.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>}</div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5}}>Motif Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
       <button onClick={()=>onEdit(p)} style={{border:`1px solid ${C.terra}`,background:C.white,color:C.terra,borderRadius:7,padding:"7px 10px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Modifier</button>
     </div>})}</div>
     <p style={{fontFamily:F,fontSize:12,color:C.sub,lineHeight:1.5,margin:"10px 0 0"}}>Toute modification repasse en validation avant sa remise en ligne.</p>
@@ -3238,7 +3282,7 @@ function MesDemandesPro({user}) {
   const [items,setItems]=useState([]);
   useEffect(()=>{Promise.all([lire("professionals","select=id,business_name,status,moderation_note,created_at&order=created_at.desc",user.token),lire("advertising_requests","select=id,company,format,status,moderation_note,created_at&order=created_at.desc",user.token)]).then(([a,b])=>setItems([...(a.ok?(a.data||[]).map(x=>({...x,kind:"Annuaire",title:x.business_name})):[]),...(b.ok?(b.data||[]).map(x=>({...x,kind:"Publicité",title:x.company||x.format})):[])])).catch(()=>{});},[user.token]);
   if(!items.length) return null;
-  return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}><div style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,marginBottom:9}}>Mes demandes professionnelles</div><div style={{display:"grid",gap:7}}>{items.map(x=>{const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};return <div key={`${x.kind}-${x.id}`} style={{display:"flex",justifyContent:"space-between",gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}><div><div style={{fontFamily:F,fontSize:12,color:C.terra,fontWeight:700}}>{x.kind}</div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub}}>Note : {x.moderation_note}</div>}</div><span style={{alignSelf:"start",background:e.bg,color:e.color,borderRadius:20,padding:"3px 8px",fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span></div>})}</div></section>;
+  return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}><div style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,marginBottom:9}}>Mes demandes professionnelles</div><div style={{display:"grid",gap:7}}>{items.map(x=>{const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};return <div key={`${x.kind}-${x.id}`} style={{display:"flex",justifyContent:"space-between",gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}><div><div style={{fontFamily:F,fontSize:12,color:C.terra,fontWeight:700}}>{x.kind}</div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {x.moderation_note}</div>}</div><span style={{alignSelf:"start",background:e.bg,color:e.color,borderRadius:20,padding:"3px 8px",fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span></div>})}</div></section>;
 }
 
 export default function App() {
