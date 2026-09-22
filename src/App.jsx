@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { GUIDES, guideReadingTime } from "./guides";
+import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession } from "./auth-session.mjs";
 
 const C = {
   // Charte Sokilé — mêmes teintes que la page « Qui sommes-nous »
@@ -382,21 +383,21 @@ async function signUp(email, password, meta) {
     method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
     body:JSON.stringify({email,password,data:meta}),
   });
-  return res.json();
+  return readAuthResponse(res);
 }
 async function signIn(email, password) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
-    body:JSON.stringify({email,password}),
+    body:JSON.stringify({email:normalizeEmail(email),password}),
   });
-  return res.json();
+  return readAuthResponse(res);
 }
 async function refreshSession(refreshToken) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
     method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
     body:JSON.stringify({refresh_token:refreshToken}),
   });
-  return res.json();
+  return readAuthResponse(res);
 }
 
 // ─── LOGIN MODAL ──────────────────────────────────
@@ -426,8 +427,9 @@ function LoginModal({ onClose, onLogin }) {
         else setSuccess("Compte créé ! Vérifiez votre email.");
       } else {
         const d = await signIn(email, password);
-        if (d.error) setError("Email ou mot de passe incorrect");
-        else { const m=d.user?.user_metadata||{}; onLogin({id:d.user?.id,email,name:m.name||email.split("@")[0],account_type:m.account_type||"particulier",agency:m.agency||"",phone:m.phone||"",token:d.access_token,refresh_token:d.refresh_token}); onClose(); }
+        const session = userSessionFromAuth(d);
+        if (!session) setError(d.error?.message || "Connexion non confirmée par le serveur. Veuillez réessayer.");
+        else { onLogin(session); onClose(); }
       }
     } catch(e) {
       setError("Connexion impossible pour le moment. Vérifiez votre connexion et réessayez.");
@@ -1681,8 +1683,7 @@ async function ecrireAuth(chemin, donnees, token, methode="POST") {
   return { ok:false, statut:res.status, motif };
 }
 
-const estEmailAdmin = (user) => String(user?.email||"").trim().toLowerCase() === EMAIL_REDACTION;
-const peutRediger = (user) => estEmailAdmin(user);
+const peutRediger = (user) => isAdminSession(user, EMAIL_REDACTION);
 
 function dateCourte(iso) {
   if (!iso) return "";
@@ -1883,7 +1884,7 @@ function EditeurArticle({ article, user, onClose, onEnregistre }) {
 // Tout passe par le jeton de l'utilisateur : c'est la base de données qui
 // autorise ou refuse, via la fonction est_admin(). Masquer l'onglet ne
 // protégerait rien.
-const estAdmin = (user) => estEmailAdmin(user);
+const estAdmin = (user) => isAdminSession(user, EMAIL_REDACTION);
 
 async function lireAuth(chemin, token) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
