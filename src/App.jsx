@@ -1681,7 +1681,7 @@ async function ecrireAuth(chemin, donnees, token, methode="POST") {
   return { ok:false, statut:res.status, motif };
 }
 
-const peutRediger = (user) => !!user?.token && user?.email === EMAIL_REDACTION;
+const estEmailAdmin = (user) => String(user?.email||"").trim().toLowerCase() === EMAIL_REDACTION;\nconst peutRediger = (user) => estEmailAdmin(user);
 
 function dateCourte(iso) {
   if (!iso) return "";
@@ -1882,7 +1882,7 @@ function EditeurArticle({ article, user, onClose, onEnregistre }) {
 // Tout passe par le jeton de l'utilisateur : c'est la base de données qui
 // autorise ou refuse, via la fonction est_admin(). Masquer l'onglet ne
 // protégerait rien.
-const estAdmin = (user) => !!user?.token && user?.email === EMAIL_REDACTION;
+const estAdmin = (user) => estEmailAdmin(user);
 
 async function lireAuth(chemin, token) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
