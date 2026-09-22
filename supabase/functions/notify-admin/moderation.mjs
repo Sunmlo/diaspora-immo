@@ -1,0 +1,56 @@
+export const MIN_RESPONSE_LENGTH = 30;
+export const MAX_RESPONSE_LENGTH = 4000;
+
+const refusals = new Set(["rejetee", "refusee", "modifications_demandees"]);
+export function validateModerationResponse(status, response) {
+  if (!refusals.has(status)) return "";
+  const length = Array.from(String(response || "").trim()).length;
+  if (length < MIN_RESPONSE_LENGTH) return "Expliquez précisément votre décision et les suites possibles (30 caractères minimum).";
+  if (length > MAX_RESPONSE_LENGTH) return "La réponse doit contenir au maximum 4 000 caractères.";
+  return "";
+}
+
+const types = {
+  properties: { label: "annonce", accepted: "validee", refused: "rejetee" },
+  professionals: { label: "fiche prestataire", accepted: "validee", refused: "refusee" },
+  advertising_requests: { label: "demande de publicité", accepted: "acceptee", refused: "refusee" },
+};
+const oneLine = value => String(value || "").replace(/[\r\n\u0000-\u001f\u007f]/g, " ").trim();
+export function moderationResponse(table, record) {
+  return String((table === "properties" ? record.motif_rejet : record.moderation_note) || "").trim();
+}
+
+// Le texte de décision est rédigé par l'administration, jamais inventé ici.
+// La même fonction compose l'aperçu et l'email envoyé.
+export function buildDecisionMessage(table, record) {
+  const type = types[table];
+  if (!type) return null;
+  const refused = record.status === type.refused;
+  const incomplete = record.status === "modifications_demandees" && table !== "properties";
+  const accepted = record.status === type.accepted;
+  if (!refused && !incomplete && !accepted) return null;
+  const response = moderationResponse(table, record);
+  const error = validateModerationResponse(record.status, response);
+  if (error) throw new Error(error);
+  const email = String(table === "properties" ? record.user_email || "" : record.email || "").trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Le dossier ne contient pas d'adresse email valide.");
+  const name = oneLine(record.user_name || record.contact_name || record.business_name);
+  const title = oneLine(record.title || record.business_name || record.company || record.format || `Dossier ${record.id}`);
+  const decision = refused ? "Refus" : incomplete ? "Précisions demandées" : "Validation";
+  const introduction = refused
+    ? `Après examen, nous ne pouvons pas accepter votre ${type.label} « ${title} » en l'état.`
+    : incomplete
+      ? `Nous avons besoin de précisions pour poursuivre l'examen de votre ${type.label} « ${title} ».`
+      : table === "advertising_requests"
+        ? `Votre demande de publicité « ${title} » a été acceptée. L'équipe Sokilé vous contactera pour organiser la diffusion.`
+        : `Votre ${type.label} « ${title} » a été validée et publiée sur Sokilé.`;
+  return {
+    to: [email], reply_to: "contact@sokile.com",
+    subject: `Sokilé — ${decision} de votre ${type.label} : ${title}`,
+    text: [name ? `Bonjour ${name},` : "Bonjour,", introduction,
+      refused || incomplete ? response : "",
+      "Retrouvez la décision dans votre compte : https://www.sokile.com/?tab=compte",
+      "Pour échanger avec nous, répondez directement à cet email.", "L'équipe Sokilé",
+    ].filter(Boolean).join("\n\n"),
+  };
+}
