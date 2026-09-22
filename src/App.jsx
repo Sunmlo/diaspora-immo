@@ -625,6 +625,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const retirerPhoto = (i) => setPhotos(p => { const c=[...p]; try{URL.revokeObjectURL(c[i].apercu);}catch(e){} c.splice(i,1); return c; });
   const mettreEnCouverture = (i) => setPhotos(p => { const c=[...p]; const [x]=c.splice(i,1); return [x,...c]; });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const setDetail = (k,v) => setForm(f=>({...f,details:{...(f.details||{}),[k]:v}}));
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
   const champ = (k) => manquants.includes(k) ? {...inputStyle, border:"2px solid #C0392B", background:"#FDF3F2"} : inputStyle;
 
