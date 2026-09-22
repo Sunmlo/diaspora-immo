@@ -399,10 +399,31 @@ async function refreshSession(refreshToken) {
   });
   return readAuthResponse(res);
 }
+async function requestPasswordReset(email) {
+  const redirectTo = `${window.location.origin}/`;
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
+    method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+    body:JSON.stringify({email:normalizeEmail(email)}),
+  });
+  return readAuthResponse(res);
+}
+async function updatePassword(accessToken, password) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method:"PUT",
+    headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${accessToken}`},
+    body:JSON.stringify({password}),
+  });
+  return readAuthResponse(res);
+}
+function recoveryTokenFromUrl() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return params.get("type")==="recovery" ? params.get("access_token")||"" : "";
+}
 
 // ─── LOGIN MODAL ──────────────────────────────────
 function LoginModal({ onClose, onLogin }) {
-  const [mode, setMode] = useState("login");
+  const recoveryToken = recoveryTokenFromUrl();
+  const [mode, setMode] = useState(recoveryToken ? "reset" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -417,11 +438,29 @@ function LoginModal({ onClose, onLogin }) {
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"11px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
 
   const handleSubmit = async () => {
-    if (!email||!password) return;
+    if (mode==="forgot"&&!email) return;
+    if (mode==="reset"&&password.length<8) { setError("Choisissez un mot de passe d’au moins 8 caractères."); return; }
+    if ((mode==="login"||mode==="signup")&&(!email||!password)) return;
     if (mode==="signup"&&accountType==="pro"&&!agency) { setError("Indiquez le nom de votre agence ou société"); return; }
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setSuccess("");
     try {
-      if (mode==="signup") {
+      if (mode==="forgot") {
+        const d = await requestPasswordReset(email);
+        if (d.error) setError(d.error.message||"Impossible d’envoyer l’e-mail de réinitialisation.");
+        else setSuccess("Si un compte existe pour cette adresse, un lien de réinitialisation vient d’être envoyé. Vérifiez aussi vos courriers indésirables.");
+      } else if (mode==="reset") {
+        if (!recoveryToken) {
+          setError("Ce lien de réinitialisation est invalide ou expiré. Demandez un nouveau lien.");
+        } else {
+          const d = await updatePassword(recoveryToken,password);
+          if (d.error) setError(d.error.message||"Impossible de modifier le mot de passe.");
+          else {
+            window.history.replaceState({}, document.title, window.location.pathname+window.location.search);
+            setPassword(""); setMode("login");
+            setSuccess("Mot de passe modifié. Vous pouvez maintenant vous connecter.");
+          }
+        }
+      } else if (mode==="signup") {
         const d = await signUp(email, password, {name, phone:phone?`${phoneCode} ${phone}`:"", account_type:accountType, agency:accountType==="pro"?agency:""});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
         else setSuccess("Compte créé ! Vérifiez votre email.");
@@ -437,6 +476,12 @@ function LoginModal({ onClose, onLogin }) {
     setLoading(false);
   };
 
+  const canSubmit = !loading && (
+    mode==="forgot" ? Boolean(email) :
+    mode==="reset" ? password.length>=8 :
+    Boolean(email&&password) && !(mode==="signup"&&accountType==="pro"&&!agency)
+  );
+
   
 
   return (
@@ -447,7 +492,7 @@ function LoginModal({ onClose, onLogin }) {
           <div style={{width:40,height:40,borderRadius:"50%",background:C.gold,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={C.forest}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </div>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{mode==="login"?"Connexion":"Créer un compte"}</h2>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{mode==="login"?"Connexion":mode==="signup"?"Créer un compte":mode==="forgot"?"Mot de passe oublié":"Nouveau mot de passe"}</h2>
                   </div>
         <div style={{padding:"20px"}}>
 
@@ -465,8 +510,11 @@ function LoginModal({ onClose, onLogin }) {
             <div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence ou de la société *</label><input placeholder="Ex : Teranga Immobilier" value={agency} onChange={e=>setAgency(e.target.value)} style={inputStyle}/></div>
           )}
           {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
-          <div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>
-          <div style={{marginBottom:mode==="signup"?"10px":"16px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Mot de passe</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>
+          {mode!=="reset"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>}
+          {mode!=="forgot"&&<div style={{marginBottom:mode==="signup"?"10px":"8px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{mode==="reset"?"Nouveau mot de passe":"Mot de passe"}</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>}
+          {mode==="login"&&<div style={{textAlign:"right",marginBottom:"16px"}}><button type="button" onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{background:"none",border:"none",padding:0,color:C.terra,fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Mot de passe oublié ?</button></div>}
+          {mode==="forgot"&&<p style={{fontSize:"13px",lineHeight:1.5,color:C.sub,fontFamily:F,margin:"0 0 16px"}}>Saisissez votre adresse e-mail. Vous recevrez un lien sécurisé pour choisir un nouveau mot de passe.</p>}
+          {mode==="reset"&&<p style={{fontSize:"13px",lineHeight:1.5,color:C.sub,fontFamily:F,margin:"0 0 16px"}}>Choisissez au moins 8 caractères.</p>}
           {mode==="signup"&&(
             <div style={{marginBottom:"16px"}}>
               <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone (optionnel)</label>
@@ -480,11 +528,11 @@ function LoginModal({ onClose, onLogin }) {
           )}
           {error&&<div style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{error}</div>}
           {success&&<div style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{success}</div>}
-          <button onClick={handleSubmit} disabled={!email||!password||loading||(mode==="signup"&&accountType==="pro"&&!agency)} style={{width:"100%",background:email&&password?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:email&&password?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
-            {loading?"...":(mode==="login"?"Se connecter":"Créer mon compte")}
+          <button onClick={handleSubmit} disabled={!canSubmit} style={{width:"100%",background:canSubmit?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:canSubmit?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
+            {loading?"...":mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":mode==="forgot"?"Envoyer le lien":"Modifier le mot de passe"}
           </button>
           <div style={{textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F}}>
-            {mode==="login"?<>Pas encore de compte ? <span onClick={()=>{setMode("signup");setError("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>S'inscrire gratuitement</span></>:<>Déjà un compte ? <span onClick={()=>{setMode("login");setError("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Se connecter</span></>}
+            {mode==="login"?<>Pas encore de compte ? <span onClick={()=>{setMode("signup");setError("");setSuccess("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>S'inscrire gratuitement</span></>:mode==="signup"?<>Déjà un compte ? <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Se connecter</span></>:mode==="forgot"?<span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Retour à la connexion</span>:null}
           </div>
         </div>
       </div>
@@ -3216,7 +3264,7 @@ export default function App() {
   const [showAlert, setShowAlert] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLogin, setShowLogin] = useState(() => Boolean(recoveryTokenFromUrl()));
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [savedProps, setSavedProps] = useState(() => lireLocal(CLE_FAVORIS, []));
