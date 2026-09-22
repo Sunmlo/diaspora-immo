@@ -2006,7 +2006,7 @@ function ReponseModeration({ table, dossier, value, onChange, onRefuse, busy, er
     <p id={`${id}-aide`} style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:"0 0 9px"}}>Pour un refus ou une demande de précisions, expliquez ce qui pose problème dans ce dossier et indiquez les corrections possibles ou la raison d'un refus définitif. Ce texte sera visible dans le compte et repris dans l'email.</p>
     <textarea id={id} aria-describedby={`${id}-aide`} value={value} disabled={busy} maxLength={MAX_RESPONSE_LENGTH} onChange={e=>{onChange(e.target.value);setApercu(false);}} style={{...inp,minHeight:130,resize:"vertical",marginBottom:5}} placeholder="Rédigez ici votre réponse après avoir examiné ce dossier…"/>
     <div style={{fontFamily:F,fontSize:12,color:C.sub,marginBottom:12}}>30 caractères minimum pour justifier la décision · {Array.from(value.trim()).length} / {MAX_RESPONSE_LENGTH}</div>
-    <BandeauErreur texte={error||erreurApercu}/>
+    {(error||erreurApercu)&&<p role="alert" style={{background:"#FDE8E8",color:"#9B2C2C",padding:12,borderRadius:9,fontFamily:F,fontSize:14,lineHeight:1.6}}>{error||erreurApercu}</p>}
     {!message&&<button type="button" disabled={busy} onClick={()=>setApercu(true)} style={{background:"transparent",color:"#A93226",border:"1px solid #A93226",borderRadius:9,padding:12,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F,width:"100%"}}>Préparer le refus</button>}
     {message&&<section aria-label="Aperçu de la réponse de refus" style={{background:C.cream,border:`1px solid ${C.sand}`,padding:15,borderRadius:10}}>
       <div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark}}>Relisez la réponse avant de confirmer</div>
