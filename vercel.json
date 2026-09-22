@@ -1,4 +1,14 @@
 {
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        { "type": "host", "value": "diaspora-immo.vercel.app" }
+      ],
+      "destination": "https://www.sokile.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/annonce/:id", "destination": "/index.html" },
     { "source": "/guide/:id", "destination": "/index.html" }
