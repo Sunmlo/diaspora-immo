@@ -1,11 +1,11 @@
 {
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "has": [
         { "type": "host", "value": "diaspora-immo.vercel.app" }
       ],
-      "destination": "https://www.sokile.com/$1",
+      "destination": "https://www.sokile.com/:path*",
       "permanent": true
     }
   ],
