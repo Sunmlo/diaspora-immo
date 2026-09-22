@@ -3230,7 +3230,8 @@ export default function App() {
 
   // Rafraîchit automatiquement le jeton Supabase conservé en local.
   useEffect(()=>{
-    if (!user?.refresh_token) return;
+    if (!user) return;
+    if (!user.refresh_token) { setUser(null); return; }
     refreshSession(user.refresh_token).then(d=>{
       if (d?.access_token && d?.user) {
         const m=d.user.user_metadata||{};
