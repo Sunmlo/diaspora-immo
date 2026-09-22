@@ -1970,12 +1970,12 @@ function AdminPublicites({ user }) {
       <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:14,padding:34,textAlign:"center",color:C.sub,fontFamily:F}}>Aucune demande dans cette catégorie.</div>:
       <div style={{display:"grid",gap:10}}>{liste.map(d=><button key={d.id} onClick={()=>{setOuverte(d);setNote(d.moderation_note||"");}} style={{textAlign:"left",background:C.white,border:`1px solid ${C.sand}`,borderRadius:12,padding:"15px 17px",cursor:"pointer",fontFamily:F}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong style={{fontSize:16,color:C.dark}}>{d.company||d.contact_name}</strong><span style={{fontSize:12.5,color:C.sub}}>{dateCourte(d.created_at)}</span></div>
-        <div style={{fontSize:13.5,color:C.terra,fontWeight:700,marginTop:4}}>{d.format}</div>
+        <div style={{fontSize:13.5,color:C.terra,fontWeight:700,marginTop:4}}>{d.format}{d.objective?` · ${d.objective}`:""}</div>
         <div style={{fontSize:13.5,color:C.sub,marginTop:5}}>{(d.target_countries||[]).join(" · ")||"Tous pays"}{d.budget?` · Budget ${d.budget}`:""}{d.desired_period?` · ${d.desired_period}`:""}</div>
       </button>)}</div>}
     {ouverte&&<ModalShell title={ouverte.company||ouverte.contact_name} subtitle="Demande de publicité" onClose={()=>setOuverte(null)}>
       <div style={{display:"grid",gap:9,marginBottom:15}}>
-        {[["Contact",ouverte.contact_name],["Email",ouverte.email],["Téléphone",ouverte.phone],["Format",ouverte.format],["Pays",(ouverte.target_countries||[]).join(", ")],["Budget",ouverte.budget],["Période",ouverte.desired_period],["Destination",ouverte.destination_url],["Message",ouverte.message]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
+        {[["Contact",ouverte.contact_name],["Email",ouverte.email],["Téléphone",ouverte.phone],["Format",ouverte.format],["Objectif",ouverte.objective],["Pays",(ouverte.target_countries||[]).join(", ")],["Budget",ouverte.budget],["Période",ouverte.desired_period],["Destination",ouverte.destination_url],["Message",ouverte.message]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
       </div>
       <label style={lbl}>Note de suivi</label><textarea value={note} onChange={e=>setNote(e.target.value)} style={{...inp,minHeight:72,resize:"vertical",marginBottom:13}} placeholder="Tarif proposé, éléments manquants, prochaine étape…"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -2163,118 +2163,77 @@ function AdminPrestataires({ user }) {
   const [liste, setListe] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
-  const [edition, setEdition] = useState(null);
+  const [statut, setStatut] = useState("en_attente");
+  const [ouverte, setOuverte] = useState(null);
+  const [note, setNote] = useState("");
 
   const charger = () => {
     setChargement(true); setErreur("");
-    lireAuth("prestataires?select=*&order=cree_le.desc", user.token)
-      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée. La table prestataires existe-t-elle ? (script admin.sql)"); })
+    lireAuth(`professionals?status=eq.${statut}&select=*&order=created_at.desc&limit=100`, user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Les candidatures annuaire ne sont pas accessibles. Le script Supabase v34 doit être exécuté."); })
       .finally(()=>setChargement(false));
   };
-  useEffect(charger, []);
+  useEffect(charger, [statut]);
 
-  const supprimer = async (p) => {
-    const r = await ecrireAuth(`prestataires?id=eq.${p.id}`, {}, user.token, "DELETE").catch(()=>({ok:false}));
-    if (r.ok) charger(); else setErreur("La suppression a été refusée par le serveur.");
+  const decider = async (p, nouveau) => {
+    const r = await ecrireAuth(`professionals?id=eq.${p.id}`, {
+      status:nouveau,
+      active:nouveau==="validee",
+      moderation_note:note||null,
+    }, user.token, "PATCH").catch(()=>({ok:false}));
+    if (!r.ok) { setErreur("La décision a été refusée par le serveur. Vérifiez les droits administrateur Supabase."); return; }
+    setOuverte(null); setNote(""); charger();
   };
+
+  const libelles={en_attente:"À vérifier",validee:"Publiés",modifications_demandees:"À compléter",refusee:"Refusés"};
 
   return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap",marginBottom:"16px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap",marginBottom:"12px"}}>
         <p style={{margin:0,fontSize:"14.5px",color:C.sub,fontFamily:F,maxWidth:"520px",lineHeight:1.6}}>
-          Les fiches publiées ici alimentent l'annuaire visible par les visiteurs.
+          Vérifiez l'identité, l'immatriculation et les coordonnées avant toute publication dans l'annuaire.
         </p>
-        <button onClick={()=>setEdition({})} style={{background:C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"12px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>+ Ajouter</button>
+        <button onClick={charger} style={{background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:20,padding:"9px 14px",fontSize:13.5,cursor:"pointer",fontFamily:F}}>Actualiser</button>
+      </div>
+      <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:6,marginBottom:16}}>
+        {Object.entries(libelles).map(([k,l])=><button key={k} onClick={()=>setStatut(k)} style={{flexShrink:0,background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:20,padding:"9px 15px",fontSize:14,fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>)}
       </div>
       <BandeauErreur texte={erreur}/>
       {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
        : liste.length===0 ? (
         <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>
-          Aucun prestataire enregistré. Les fiches d'exemple actuelles sont écrites dans le code ; ajoutez ici les vrais professionnels.
+          Aucune candidature dans cette catégorie.
         </div>
       ) : (
         <div style={{display:"grid",gap:"10px"}}>
           {liste.map(p=>(
-            <div key={p.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap"}}>
-              <div style={{fontSize:"26px",flexShrink:0}}>{p.emoji||"🏛️"}</div>
+            <button key={p.id} onClick={()=>{setOuverte(p);setNote(p.moderation_note||"");}} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap",textAlign:"left",cursor:"pointer"}}>
+              <div style={{fontSize:"24px",flexShrink:0}}>🏛️</div>
               <div style={{flex:1,minWidth:200}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",marginBottom:"3px"}}>
-                  <span style={{fontSize:"16px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.nom}</span>
-                  {p.verifie&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Vérifié</span>}
-                  {!p.publie&&<span style={{background:C.sand,color:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Masqué</span>}
+                  <span style={{fontSize:"16px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.business_name}</span>
+                  {p.active&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Visible</span>}
                 </div>
-                <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"3px"}}>{(p.specialites||[]).join(", ")}</div>
-                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.pays||[]).join(" · ")}</div>
+                <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"3px"}}>{p.specialty}</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.countries||[]).join(" · ")}{p.zones?` · ${p.zones}`:""}</div>
               </div>
-              <div style={{display:"flex",gap:"7px"}}>
-                <button onClick={()=>setEdition(p)} style={{background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Modifier</button>
-                <button onClick={()=>supprimer(p)} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Retirer</button>
-              </div>
-            </div>
+              <span style={{fontSize:12.5,color:C.sub,fontFamily:F}}>{dateCourte(p.created_at)}</span>
+            </button>
           ))}
         </div>
       )}
-      {edition&&<EditeurPrestataire p={edition} user={user} onClose={()=>setEdition(null)} onFait={()=>{setEdition(null);charger();}}/>}
+      {ouverte&&<ModalShell title={ouverte.business_name} subtitle="Candidature à l'annuaire" onClose={()=>setOuverte(null)}>
+        <div style={{display:"grid",gap:9,marginBottom:15}}>
+          {[["Spécialité",ouverte.specialty],["Pays",(ouverte.countries||[]).join(", ")],["Zones",ouverte.zones],["Email",ouverte.email],["Téléphone",ouverte.phone],["Site",ouverte.website],["Immatriculation / ordre",ouverte.verification_reference],["Tarifs",ouverte.pricing],["Présentation",ouverte.description]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
+        </div>
+        <label style={lbl}>Note de modération</label><textarea value={note} onChange={e=>setNote(e.target.value)} style={{...inp,minHeight:72,resize:"vertical",marginBottom:13}} placeholder="Vérifications effectuées ou éléments manquants…"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <button onClick={()=>decider(ouverte,"validee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Valider et publier</button>
+          <button onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander à compléter</button>
+          <button onClick={()=>decider(ouverte,"refusee")} style={{gridColumn:"1 / -1",background:"transparent",color:"#A93226",border:"1px solid #A93226",borderRadius:9,padding:11,fontWeight:700,cursor:"pointer",fontFamily:F}}>Refuser la fiche</button>
+        </div>
+      </ModalShell>}
     </div>
-  );
-}
-
-function EditeurPrestataire({ p, user, onClose, onFait }) {
-  const nouveau = !p?.id;
-  const [f, setF] = useState({
-    nom:p.nom||"", specialites:(p.specialites||[]).join(", "), pays:(p.pays||[]).join(", "),
-    description:p.description||"", zones:p.zones||"", tarifs:p.tarifs||"",
-    email:p.email||"", telephone:p.telephone||"", site:p.site||"", emoji:p.emoji||"🏛️",
-    verifie:!!p.verifie, publie:p.publie!==undefined?p.publie:true,
-  });
-  const [loading,setLoading]=useState(false); const [erreur,setErreur]=useState("");
-  const set=(k,v)=>setF(x=>({...x,[k]:v}));
-  const decouper = (s) => s.split(",").map(x=>x.trim()).filter(Boolean);
-
-  const enregistrer = async () => {
-    if (!f.nom.trim() || !f.specialites.trim()) { setErreur("Le nom et au moins une spécialité sont nécessaires."); return; }
-    setErreur(""); setLoading(true);
-    const corps = {...f, specialites:decouper(f.specialites), pays:decouper(f.pays)};
-    const r = nouveau
-      ? await ecrireAuth("prestataires", corps, user.token).catch(()=>({ok:false}))
-      : await ecrireAuth(`prestataires?id=eq.${p.id}`, corps, user.token, "PATCH").catch(()=>({ok:false}));
-    setLoading(false);
-    if (!r.ok) { setErreur("Enregistrement refusé par le serveur."); return; }
-    onFait();
-  };
-
-  return (
-    <ModalShell title={nouveau?"Ajouter un prestataire":"Modifier la fiche"} subtitle="Annuaire Sokilé" onClose={onClose}>
-      <div style={{display:"grid",gridTemplateColumns:"70px 1fr",gap:"10px",marginBottom:"12px"}}>
-        <div><label style={lbl}>Icône</label><input style={{...inp,textAlign:"center",fontSize:"20px"}} value={f.emoji} onChange={e=>set("emoji",e.target.value)}/></div>
-        <div><label style={lbl}>Nom ou société *</label><input style={inp} value={f.nom} onChange={e=>set("nom",e.target.value)} placeholder="Ex : Cabinet Diallo & Associés"/></div>
-      </div>
-      <div style={{marginBottom:"12px"}}><label style={lbl}>Spécialités * <span style={{fontWeight:400,textTransform:"none",color:C.sub}}>(séparées par des virgules)</span></label>
-        <input style={inp} value={f.specialites} onChange={e=>set("specialites",e.target.value)} placeholder="Géomètre, Vérification terrain"/></div>
-      <div style={{marginBottom:"12px"}}><label style={lbl}>Pays <span style={{fontWeight:400,textTransform:"none",color:C.sub}}>(séparés par des virgules)</span></label>
-        <input style={inp} value={f.pays} onChange={e=>set("pays",e.target.value)} placeholder="Sénégal, Côte d'Ivoire"/></div>
-      <div style={{marginBottom:"12px"}}><label style={lbl}>Description</label>
-        <textarea style={{...inp,minHeight:"74px",resize:"vertical"}} value={f.description} onChange={e=>set("description",e.target.value)}/></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
-        <div><label style={lbl}>Zones</label><input style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Dakar, Thiès"/></div>
-        <div><label style={lbl}>Tarifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="À partir de 150 000 FCFA"/></div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
-        <div><label style={lbl}>Email</label><input style={inp} value={f.email} onChange={e=>set("email",e.target.value)}/></div>
-        <div><label style={lbl}>Téléphone</label><input style={inp} value={f.telephone} onChange={e=>set("telephone",e.target.value)} placeholder="+221…"/></div>
-      </div>
-      <div style={{marginBottom:"14px"}}><label style={lbl}>Site internet</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="https://…"/></div>
-      <div style={{display:"flex",gap:"18px",marginBottom:"16px",flexWrap:"wrap"}}>
-        <label style={{display:"flex",gap:"8px",alignItems:"center",cursor:"pointer",fontSize:"14px",fontFamily:F,color:C.dark}}>
-          <input type="checkbox" checked={f.verifie} onChange={e=>set("verifie",e.target.checked)} style={{width:17,height:17,accentColor:C.forest}}/>Vérifié par Sokilé</label>
-        <label style={{display:"flex",gap:"8px",alignItems:"center",cursor:"pointer",fontSize:"14px",fontFamily:F,color:C.dark}}>
-          <input type="checkbox" checked={f.publie} onChange={e=>set("publie",e.target.checked)} style={{width:17,height:17,accentColor:C.forest}}/>Visible dans l'annuaire</label>
-      </div>
-      <BandeauErreur texte={erreur} onRetry={enregistrer}/>
-      <button onClick={enregistrer} disabled={loading} style={{width:"100%",background:loading?"#bbb":C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:loading?"default":"pointer",fontFamily:F}}>
-        {loading?"Enregistrement…":(nouveau?"Ajouter à l'annuaire":"Enregistrer")}
-      </button>
-    </ModalShell>
   );
 }
 
@@ -2823,17 +2782,17 @@ function SentMessage({ title, text, onClose }) {
 }
 
 function ServiceFormModal({ onClose, user }) {
-  const [f, setF] = useState({name:user?.agency||user?.name||"",spec:"",pays:[],email:user?.email||"",phoneCode:"+221",phone:user?.phone||"",site:"",zones:"",tarifs:"",desc:""});
+  const [f, setF] = useState({name:user?.agency||user?.name||"",spec:"",pays:[],email:user?.email||"",phoneCode:"+221",phone:user?.phone||"",site:"",zones:"",tarifs:"",desc:"",reference:"",consent:false});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [erreur, setErreur] = useState("");
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const togglePays = n => set("pays", f.pays.includes(n)?f.pays.filter(x=>x!==n):[...f.pays,n]);
-  const ok = f.name && f.spec && f.email && f.pays.length>0;
+  const ok = f.name && f.spec && f.email && f.pays.length>0 && f.consent;
   const submit = async () => {
     if (!ok) return;
     setErreur(""); setLoading(true);
-    const r = await ecrire("professionals", {owner_id:user.id,business_name:f.name,specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email,phone:`${f.phoneCode}${f.phone}`,website:f.site||null,pricing:f.tarifs||null,description:f.desc||null,status:"en_attente",active:false},user.token)
+    const r = await ecrire("professionals", {owner_id:user.id,business_name:f.name,specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email,phone:f.phone?`${f.phoneCode}${f.phone}`:null,website:f.site||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,consent_at:new Date().toISOString(),status:"en_attente",active:false},user.token)
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
@@ -2841,7 +2800,8 @@ function ServiceFormModal({ onClose, user }) {
   };
   return (
     <ModalShell title="Rejoindre l'annuaire" subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
-      {sent ? <SentMessage title="Demande envoyée" text="Nous vérifions votre profil et revenons vers vous sous 48 h." onClose={onClose}/> : (<>
+      {sent ? <SentMessage title="Demande envoyée" text="Nous vérifions votre identité professionnelle et revenons vers vous sous 48 h." onClose={onClose}/> : (<>
+        <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>La fiche n'est jamais publiée automatiquement. Sokilé contrôle les coordonnées et, lorsque c'est possible, l'immatriculation ou l'ordre professionnel.</div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Nom ou société *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Spécialité *</label>
           <select style={inp} value={f.spec} onChange={e=>set("spec",e.target.value)}>
@@ -2866,8 +2826,10 @@ function ServiceFormModal({ onClose, user }) {
           </div>
         </div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Site web</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Immatriculation ou ordre professionnel</label><input style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="RCCM, IFU, numéro d'ordre…"/><div style={{fontSize:12.5,color:C.sub,fontFamily:F,marginTop:4}}>Facultatif, mais recommandé pour accélérer la vérification.</div></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Tarifs indicatifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Ex : à partir de 150 000 FCFA"/></div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Présentation</label><textarea rows={4} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Vos services, votre expérience, vos références…"/></div>
+        <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette activité et j'accepte que ces informations professionnelles soient vérifiées puis publiées dans l'annuaire.</span></label>
         <BandeauErreur texte={erreur} onRetry={submit}/>
         <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
@@ -2877,16 +2839,18 @@ function ServiceFormModal({ onClose, user }) {
 
 function PubFormModal({ onClose, user }) {
   const FORMATS = ["Bannière page d'accueil","Encart sous les pays couverts","Encart dans l'annuaire prestataires","Je ne sais pas encore"];
-  const [f, setF] = useState({name:user?.name||"",company:user?.agency||"",email:user?.email||"",phoneCode:"+221",phone:user?.phone||"",format:"",countries:[],budget:"",period:"",url:"",message:""});
+  const OBJECTIFS = ["Gagner en visibilité","Recevoir des contacts","Promouvoir un programme immobilier","Présenter un service professionnel"];
+  const [f, setF] = useState({name:user?.name||"",company:user?.agency||"",email:user?.email||"",phoneCode:"+221",phone:user?.phone||"",format:"",countries:[],budget:"",period:"",url:"",message:"",objective:"",consent:false});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [erreur, setErreur] = useState("");
   const set = (k,v) => setF(p=>({...p,[k]:v}));
-  const ok = f.name && f.email && f.format;
+  const toggleCountry = n => set("countries", f.countries.includes(n)?f.countries.filter(x=>x!==n):[...f.countries,n]);
+  const ok = f.name && f.email && f.format && f.objective && f.consent;
   const submit = async () => {
     if (!ok) return;
     setErreur(""); setLoading(true);
-    const r = await ecrire("advertising_requests", {owner_id:user.id,contact_name:f.name,company:f.company||null,email:f.email,phone:`${f.phoneCode}${f.phone}`,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:f.url||null,message:f.message||null,status:"en_attente"},user.token)
+    const r = await ecrire("advertising_requests", {owner_id:user.id,contact_name:f.name,company:f.company||null,email:f.email,phone:f.phone?`${f.phoneCode}${f.phone}`:null,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:f.url||null,message:f.message||null,objective:f.objective,consent_at:new Date().toISOString(),status:"en_attente"},user.token)
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
@@ -2895,6 +2859,7 @@ function PubFormModal({ onClose, user }) {
   return (
     <ModalShell title="Faire de la publicité" subtitle="Présentez votre activité aux acheteurs et vendeurs" color={C.gold} onClose={onClose}>
       {sent ? <SentMessage title="Demande envoyée" text="Nous vous recontactons avec nos formats et tarifs." onClose={onClose}/> : (<>
+        <div style={{background:"#FFF8E5",border:"1px solid #E8D59B",borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>Aucun paiement n'est demandé ici. Vous recevez d'abord une proposition précisant l'emplacement, la durée et le tarif.</div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Nom *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)}/></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Société</label><input style={inp} value={f.company} onChange={e=>set("company",e.target.value)}/></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Email *</label><input type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)}/></div>
@@ -2912,10 +2877,12 @@ function PubFormModal({ onClose, user }) {
             {FORMATS.map(x=><option key={x} value={x}>{x}</option>)}
           </select>
         </div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Pays ciblés</label><input style={inp} value={f.countries.join(", ")} onChange={e=>set("countries",e.target.value.split(",").map(x=>x.trim()).filter(Boolean))} placeholder="Sénégal, Côte d'Ivoire…"/></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Objectif principal *</label><select style={inp} value={f.objective} onChange={e=>set("objective",e.target.value)}><option value="">Choisir…</option>{OBJECTIFS.map(x=><option key={x} value={x}>{x}</option>)}</select></div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Pays ciblés</label><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{COUNTRIES_ANNONCES.map(c=>{const on=f.countries.includes(c.name);return <button key={c.name} type="button" onClick={()=>toggleCountry(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:20,padding:"4px 10px",fontSize:13,cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>;})}</div><div style={{fontSize:12.5,color:C.sub,fontFamily:F,marginTop:4}}>Aucun pays sélectionné = toute la zone Sokilé.</div></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}><div><label style={lbl}>Budget indicatif</label><input style={inp} value={f.budget} onChange={e=>set("budget",e.target.value)} placeholder="Ex : 300 €"/></div><div><label style={lbl}>Période</label><input style={inp} value={f.period} onChange={e=>set("period",e.target.value)} placeholder="Ex : novembre"/></div></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Lien de destination</label><input type="url" style={inp} value={f.url} onChange={e=>set("url",e.target.value)} placeholder="https://…"/></div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Votre message</label><textarea rows={3} style={{...inp,resize:"vertical"}} value={f.message} onChange={e=>set("message",e.target.value)} placeholder="Votre activité, votre budget, la période souhaitée…"/></div>
+        <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette société et demande à Sokilé de me contacter au sujet de cette campagne.</span></label>
         <BandeauErreur texte={erreur} onRetry={submit}/>
         <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.gold:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
