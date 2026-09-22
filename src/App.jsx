@@ -3235,10 +3235,12 @@ export default function App() {
       if (d?.access_token && d?.user) {
         const m=d.user.user_metadata||{};
         setUser(u=>({...u,id:d.user.id,email:d.user.email||u.email,name:m.name||u.name,account_type:m.account_type||u.account_type,agency:m.agency||u.agency,phone:m.phone||u.phone,token:d.access_token,refresh_token:d.refresh_token||u.refresh_token}));
-      } else if (d?.error) {
+      } else {
+        // Une session locale sans nouveau jeton valide ne doit jamais être
+        // présentée comme connectée : elle provoquerait des requêtes 401.
         setUser(null);
       }
-    }).catch(()=>{});
+    }).catch(()=>setUser(null));
   }, []);
 
   // Annonces publiques validées, limitées pour garder un chargement rapide.
