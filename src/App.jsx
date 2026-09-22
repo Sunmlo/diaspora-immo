@@ -1689,6 +1689,37 @@ function dateCourte(iso) {
   catch(e) { return ""; }
 }
 
+function BandeauActualites({ onOpen }) {
+  const [articles, setArticles] = useState([]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(()=>{
+    fetch(`${SUPABASE_URL}/rest/v1/articles?publie=eq.true&select=id,titre,pays,date_publication&order=date_publication.desc&limit=8`,
+      {headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
+      .then(r=>r.ok?r.json():[])
+      .then(rows=>setArticles(Array.isArray(rows)?rows:[]))
+      .catch(()=>setArticles([]));
+  },[]);
+
+  useEffect(()=>{
+    if (articles.length<2) return;
+    const timer=setInterval(()=>setIndex(i=>(i+1)%articles.length),5200);
+    return ()=>clearInterval(timer);
+  },[articles.length]);
+
+  const article=articles[index];
+  return (
+    <button className="sok-newsbar" onClick={onOpen} aria-label="Voir les actualités immobilières">
+      <span className="sok-newsbar-label"><i/>Le fil Sokilé</span>
+      <span className="sok-newsbar-story" key={article?.id||"intro"}>
+        {article ? <><b>{article.pays||"Afrique"}</b><span>{article.titre}</span></> : <span>Actualité immobilière, foncier et investissement en Afrique francophone</span>}
+      </span>
+      <span className="sok-newsbar-date">{article?dateCourte(article.date_publication):"Découvrir"}</span>
+      <span className="sok-newsbar-arrow" aria-hidden="true">→</span>
+    </button>
+  );
+}
+
 function Actualite({ user }) {
   const [articles, setArticles] = useState([]);
   const [chargement, setChargement] = useState(true);
@@ -1872,9 +1903,11 @@ async function appelerFonction(nom, token) {
 }
 
 const RUBRIQUES_ADMIN = [
-  {id:"moderation",   label:"Modération"},
+  {id:"moderation",   label:"Annonces"},
   {id:"demandes",     label:"Demandes"},
+  {id:"publicites",   label:"Publicités"},
   {id:"prestataires", label:"Prestataires"},
+  {id:"actualites",   label:"Actualités"},
   {id:"chiffres",     label:"Chiffres"},
   {id:"apercu",       label:"Aperçu"},
 ];
@@ -1895,11 +1928,64 @@ function EspaceAdmin({ user, onApercu, apercu }) {
       </div>
       {rub==="moderation"&&<AdminModeration user={user}/>}
       {rub==="demandes"&&<AdminDemandes user={user}/>}
+      {rub==="publicites"&&<AdminPublicites user={user}/>}
       {rub==="prestataires"&&<AdminPrestataires user={user}/>}
+      {rub==="actualites"&&<Actualite user={user}/>}
       {rub==="chiffres"&&<AdminChiffres user={user}/>}
       {rub==="apercu"&&<AdminApercu apercu={apercu} onApercu={onApercu}/>}
     </div>
   );
+}
+
+function AdminPublicites({ user }) {
+  const [liste,setListe]=useState([]);
+  const [statut,setStatut]=useState("en_attente");
+  const [chargement,setChargement]=useState(true);
+  const [erreur,setErreur]=useState("");
+  const [ouverte,setOuverte]=useState(null);
+  const [note,setNote]=useState("");
+
+  const charger=()=>{
+    setChargement(true); setErreur("");
+    lireAuth(`advertising_requests?status=eq.${statut}&select=*&order=created_at.desc&limit=100`,user.token)
+      .then(r=>{if(r.ok)setListe(r.data||[]);else setErreur("La liste des demandes publicitaires n'est pas accessible.");})
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger,[statut]);
+
+  const decider=async (demande,nouveau)=>{
+    const r=await ecrireAuth(`advertising_requests?id=eq.${demande.id}`,{status:nouveau,moderation_note:note||null},user.token,"PATCH").catch(()=>({ok:false}));
+    if(!r.ok){setErreur("La décision n'a pas pu être enregistrée.");return;}
+    setOuverte(null);setNote("");charger();
+  };
+
+  const libelles={en_attente:"À étudier",en_cours:"En discussion",acceptee:"Acceptées",refusee:"Refusées",modifications_demandees:"À compléter"};
+  return <div>
+    <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:6,marginBottom:16}}>
+      {Object.entries(libelles).map(([k,l])=><button key={k} onClick={()=>setStatut(k)} style={{flexShrink:0,background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:20,padding:"9px 15px",fontSize:14,fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>)}
+      <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:20,padding:"9px 14px",fontSize:13.5,cursor:"pointer",fontFamily:F}}>Actualiser</button>
+    </div>
+    <BandeauErreur texte={erreur}/>
+    {chargement?<p style={{color:C.sub,fontFamily:F}}>Chargement…</p>:liste.length===0?
+      <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:14,padding:34,textAlign:"center",color:C.sub,fontFamily:F}}>Aucune demande dans cette catégorie.</div>:
+      <div style={{display:"grid",gap:10}}>{liste.map(d=><button key={d.id} onClick={()=>{setOuverte(d);setNote(d.moderation_note||"");}} style={{textAlign:"left",background:C.white,border:`1px solid ${C.sand}`,borderRadius:12,padding:"15px 17px",cursor:"pointer",fontFamily:F}}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong style={{fontSize:16,color:C.dark}}>{d.company||d.contact_name}</strong><span style={{fontSize:12.5,color:C.sub}}>{dateCourte(d.created_at)}</span></div>
+        <div style={{fontSize:13.5,color:C.terra,fontWeight:700,marginTop:4}}>{d.format}</div>
+        <div style={{fontSize:13.5,color:C.sub,marginTop:5}}>{(d.target_countries||[]).join(" · ")||"Tous pays"}{d.budget?` · Budget ${d.budget}`:""}{d.desired_period?` · ${d.desired_period}`:""}</div>
+      </button>)}</div>}
+    {ouverte&&<ModalShell title={ouverte.company||ouverte.contact_name} subtitle="Demande de publicité" onClose={()=>setOuverte(null)}>
+      <div style={{display:"grid",gap:9,marginBottom:15}}>
+        {[["Contact",ouverte.contact_name],["Email",ouverte.email],["Téléphone",ouverte.phone],["Format",ouverte.format],["Pays",(ouverte.target_countries||[]).join(", ")],["Budget",ouverte.budget],["Période",ouverte.desired_period],["Destination",ouverte.destination_url],["Message",ouverte.message]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
+      </div>
+      <label style={lbl}>Note de suivi</label><textarea value={note} onChange={e=>setNote(e.target.value)} style={{...inp,minHeight:72,resize:"vertical",marginBottom:13}} placeholder="Tarif proposé, éléments manquants, prochaine étape…"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <button onClick={()=>decider(ouverte,"en_cours")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Mettre en discussion</button>
+        <button onClick={()=>decider(ouverte,"acceptee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Accepter</button>
+        <button onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.forest,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander des précisions</button>
+        <button onClick={()=>decider(ouverte,"refusee")} style={{background:"#A93226",color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Refuser</button>
+      </div>
+    </ModalShell>}
+  </div>;
 }
 
 // ── Modération des annonces ──
@@ -2363,6 +2449,7 @@ function lienMailSokile(p) {
 // ─── PROPERTY CARD ────────────────────────────────
 function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const [hov, setHov] = useState(false);
+  const photo = p.photos?.[0];
   const shareWA = (e) => {
     e && e.stopPropagation();
     const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nVu sur Sokilé — https://www.sokile.com`;
@@ -2382,7 +2469,11 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   return (
     <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:C.white,borderRadius:"14px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,boxShadow:hov?"0 8px 24px rgba(26,60,46,0.13)":"0 1px 4px rgba(26,60,46,0.05)",transform:hov?"translateY(-3px)":"none",transition:"all 0.22s ease"}}>
-      <div className="sok-card-img" style={{backgroundColor:C.forest,backgroundImage:p.photos?.[0]?`url('${p.photos[0]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
+      <div className="sok-card-img" style={{backgroundColor:C.forest,backgroundImage:photo?`url('${photo}')`:`radial-gradient(circle at 80% 18%,rgba(201,168,76,.28),transparent 24%),linear-gradient(145deg,${C.forestMid},${C.forestDark})`,backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
+        {!photo&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",color:"rgba(255,255,255,.78)",fontFamily:F}}>
+          <span style={{display:"flex",transform:"scale(1.55)",opacity:.72}}>{Icon.home}</span>
+          <span style={{fontSize:"12px",fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Photos à venir</span>
+        </div>}
         {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
@@ -3191,6 +3282,7 @@ export default function App() {
       .catch(()=>{});
   },[]);
   const ALL_PROPS = dbProps.length ? dbProps : PROPERTIES;
+  const comptesPays = ALL_PROPS.reduce((acc,p)=>{acc[p.country]=(acc[p.country]||0)+1;return acc;},{});
 
   // Pendant un aperçu, le reste du site voit un utilisateur transformé.
   // La vraie session reste intacte : seules les vues changent.
@@ -3246,6 +3338,7 @@ export default function App() {
 
   const activeFiltersCount = [filterCountry!=="Tous",filterTransaction!=="tous",filterNature!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0,filterVerified].filter(Boolean).length;
   const filteredCountries = filterRegion==="Tous"?COUNTRIES_ANNONCES:COUNTRIES_ANNONCES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
+  const paysActifs = filteredCountries.filter(c=>comptesPays[c.name]>0);
 
   let filtered = ALL_PROPS.filter(p=>{
     const mc=filterCountry==="Tous"||p.country===filterCountry;
@@ -3253,12 +3346,12 @@ export default function App() {
     const mt=filterNature==="Tous"||natureDe(p)===filterNature;
     const mtr=filterTransaction==="tous"||transactionDe(p)===filterTransaction;
     const q=sansAccent(search);
-    const ms=!q||[p.title,p.city,p.country,p.neighborhood,p.description,p.agency_name].some(s=>sansAccent(s).includes(q));
+    const ms=!q||[p.title,p.city,p.country,p.neighborhood,p.description,p.agency_name,libelleNature(p),libelleTransaction(p),...(p.tags||[])].some(s=>sansAccent(s).includes(q));
     const mpMin=!filterPriceMin||p.price_eur>=parseInt(filterPriceMin);
     const mpMax=!filterPriceMax||p.price_eur<=parseInt(filterPriceMax);
-    const msMin=!filterSurfaceMin||!p.surface||(p.surface>=parseInt(filterSurfaceMin));
-    const msMax=!filterSurfaceMax||!p.surface||(p.surface<=parseInt(filterSurfaceMax));
-    const mrm=filterRooms==="Tous"||!p.rooms||(p.rooms>=parseInt(filterRooms));
+    const msMin=!filterSurfaceMin||(p.surface&&p.surface>=parseInt(filterSurfaceMin));
+    const msMax=!filterSurfaceMax||(p.surface&&p.surface<=parseInt(filterSurfaceMax));
+    const mrm=filterRooms==="Tous"||(p.rooms&&p.rooms>=parseInt(filterRooms));
     const meq=filterEquipements.length===0||filterEquipements.every(eq=>p.features?.includes(eq));
     const mv=!filterVerified||p.verified;
     return mc&&mr&&mt&&mtr&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq&&mv;
@@ -3292,7 +3385,7 @@ export default function App() {
     {id:"accueil",label:"Accueil",icon:Icon.home},
     {id:"biens",label:"Biens",icon:Icon.search},
     {id:"prestataires",label:"Prestataires",icon:Icon.group},
-    {id:"guides",label:"Ressources",icon:Icon.book},
+    {id:"guides",label:"Conseils",icon:Icon.book},
     {id:"pro",label:"Espace pro",icon:Icon.briefcase},
     {id:"compte",label:"Compte",icon:Icon.person},
   ];
@@ -3312,6 +3405,22 @@ export default function App() {
 *{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 body{margin:0;line-height:1.55}
 button,input,select,textarea{font-size:inherit}
+
+.sok-newsbar{width:100%;border:0;background:#10271F;color:#fff;min-height:42px;
+  padding:8px max(16px,calc(50vw - 590px));display:flex;align-items:center;gap:12px;
+  cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;border-bottom:1px solid rgba(201,168,76,.32)}
+.sok-newsbar-label{display:flex;align-items:center;gap:7px;color:#E0C680;font-size:12px;
+  font-weight:800;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.sok-newsbar-label i{width:7px;height:7px;border-radius:50%;background:#E8A07E;box-shadow:0 0 0 5px rgba(232,160,126,.12)}
+.sok-newsbar-story{min-width:0;flex:1;display:flex;gap:9px;align-items:center;font-size:13.5px;
+  animation:sokNewsIn .35s ease-out;white-space:nowrap;overflow:hidden}
+.sok-newsbar-story b{color:#E8A07E;flex-shrink:0}.sok-newsbar-story span{overflow:hidden;text-overflow:ellipsis}
+.sok-newsbar-date{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap}.sok-newsbar-arrow{color:#E0C680;font-size:18px}
+@keyframes sokNewsIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.sok-home-actions{display:grid;grid-template-columns:1fr;gap:14px;margin:0 0 26px}
+.sok-home-explore{display:grid;grid-template-columns:1fr;gap:14px;margin:0 0 28px}
+.sok-home-lower{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:18px}
 
 /* le carrousel prend toute la largeur de l'écran */
 .sok-bleed{width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}
@@ -3381,6 +3490,9 @@ button,input,select,textarea{font-size:inherit}
   font-family:'DM Sans',sans-serif;transition:all .16s}
 .sok-pays button:hover{border-color:#B85C3A}
 .sok-pays button.on{background:#B85C3A;border-color:#B85C3A;color:#fff;font-weight:700}
+.sok-pays button small{font-size:10.5px;min-width:18px;height:18px;padding:0 5px;border-radius:10px;
+  display:inline-flex;align-items:center;justify-content:center;background:#F5F0E8;color:#7A7264;font-weight:700}
+.sok-pays button.on small{background:rgba(255,255,255,.2);color:#fff}
 
 /* les rappels de filtres actifs */
 .sok-actifs{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:10px 0 0}
@@ -3425,6 +3537,7 @@ button,input,select,textarea{font-size:inherit}
 .sok-tri select:focus{border-color:#1A3C2E}
 
 @media(max-width:560px){
+  .sok-newsbar{gap:8px;padding:8px 13px}.sok-newsbar-date{display:none}.sok-newsbar-label{font-size:10.5px}
   .sok-recherche{top:70px}
   .sok-segment{width:100%}
   .sok-segment button{flex:1;padding:9px 6px;text-align:center}
@@ -3454,6 +3567,9 @@ button,input,select,textarea{font-size:inherit}
   .sok-bottomnav{display:none!important}
   .sok-grid{grid-template-columns:1fr 1fr 1fr}
   .sok-guide-grid{grid-template-columns:1fr 1fr 1fr}
+  .sok-home-actions{grid-template-columns:1.25fr .75fr}
+  .sok-home-explore{grid-template-columns:1.35fr .65fr .65fr}
+  .sok-home-lower{grid-template-columns:1.45fr .55fr;align-items:stretch}
   footer{padding-bottom:44px!important}
 }
 @media(min-width:1024px){
@@ -3502,6 +3618,8 @@ button,input,select,textarea{font-size:inherit}
           </div>
         </div>
       </header>
+
+      {route.nom==="accueil"&&tab!=="admin"&&<BandeauActualites onOpen={()=>{setSousOnglet("actu");switchTab("guides");}}/>}
 
       <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transform:animIn?"translateY(0)":"translateY(6px)",transition:"all 0.2s ease"}}>
 
@@ -3573,8 +3691,9 @@ button,input,select,textarea{font-size:inherit}
               {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={ouvrirAnnonce} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
 
+            <div className="sok-home-actions">
             {/* CTA */}
-            <div style={{background:C.forest,borderRadius:"12px",padding:"20px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"16px",flexWrap:"wrap"}}>
+            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,borderRadius:"14px",padding:"22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"16px",flexWrap:"wrap",boxShadow:"0 12px 28px rgba(16,39,31,.14)"}}>
               <div>
                 <h3 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publiez votre bien gratuitement</h3>
                 <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
@@ -3586,12 +3705,13 @@ button,input,select,textarea{font-size:inherit}
             </div>
 
             {/* Accès annuaire */}
-            <div onClick={()=>openAnnuaire()} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"16px 18px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",cursor:"pointer",flexWrap:"wrap"}}>
+            <div onClick={()=>openAnnuaire()} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"20px",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"14px",cursor:"pointer",flexDirection:"column",boxShadow:"0 8px 20px rgba(28,26,23,.05)"}}>
               <div>
                 <h3 style={{margin:"0 0 4px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>Besoin d'un géomètre, d'un notaire, d'un architecte ?</h3>
                 <p style={{margin:0,color:C.sub,fontSize:"13px",fontFamily:F}}>Des professionnels référencés dans le pays de votre projet</p>
               </div>
               <button style={{background:C.forest,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,flexShrink:0}}>Trouver un prestataire</button>
+            </div>
             </div>
 
             {/* Aperçu des guides */}
@@ -3603,13 +3723,26 @@ button,input,select,textarea{font-size:inherit}
                 </div>
                 <span onClick={()=>switchTab("guides")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Voir tous →</span>
               </div>
-              <div className="sok-guide-grid">
-                {GUIDES.slice(0,3).map(g=><GuideCard key={g.id} guide={g} onOpen={ouvrirGuide}/>)}
+              <div className="sok-home-explore">
+                <GuideCard guide={GUIDES[0]} onOpen={ouvrirGuide}/>
+                <button onClick={()=>{setSousOnglet("outils");switchTab("guides");}} style={{border:0,borderRadius:14,padding:22,textAlign:"left",cursor:"pointer",background:`linear-gradient(145deg,${C.terra},#8F412A)`,color:C.white,fontFamily:F,boxShadow:"0 10px 24px rgba(184,92,58,.16)"}}>
+                  <span style={{fontSize:28,display:"block",marginBottom:22}}>◒</span>
+                  <strong style={{display:"block",fontFamily:FT,fontSize:21,fontWeight:500,marginBottom:7}}>Simulateurs</strong>
+                  <span style={{display:"block",fontSize:13.5,lineHeight:1.55,opacity:.8}}>Budget d'achat, construction et épargne.</span>
+                  <span style={{display:"block",marginTop:18,fontSize:13,fontWeight:800}}>Calculer →</span>
+                </button>
+                <button onClick={()=>{setSousOnglet("actu");switchTab("guides");}} style={{border:`1px solid ${C.sand}`,borderRadius:14,padding:22,textAlign:"left",cursor:"pointer",background:C.white,color:C.dark,fontFamily:F,boxShadow:"0 8px 20px rgba(28,26,23,.05)"}}>
+                  <span style={{fontSize:28,display:"block",marginBottom:22}}>◎</span>
+                  <strong style={{display:"block",fontFamily:FT,fontSize:21,fontWeight:500,marginBottom:7}}>Actualités</strong>
+                  <span style={{display:"block",fontSize:13.5,lineHeight:1.55,color:C.sub}}>Foncier, financement et évolutions du marché.</span>
+                  <span style={{display:"block",marginTop:18,fontSize:13,fontWeight:800,color:C.terra}}>Voir le fil →</span>
+                </button>
               </div>
             </section>
 
+            <div className="sok-home-lower">
             {/* Pays — Option B fond vert sombre */}
-            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
+            <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"22px",borderRadius:"14px"}}>
               <div style={{fontSize:"15px",color:"rgba(255,255,255,0.8)",fontFamily:F,marginBottom:"16px"}}>Cliquez sur un pays pour voir les annonces</div>
               {["Afrique de l'Ouest","Afrique Centrale"].map(region=>{
                 const regionKey = region==="Afrique de l'Ouest"?"Ouest":"Centrale";
@@ -3632,11 +3765,12 @@ button,input,select,textarea{font-size:inherit}
             </div>
 
             {/* Encart publicitaire */}
-            <div style={{margin:"16px",borderRadius:"14px",border:`2px solid ${C.gold}`,background:`linear-gradient(145deg,${C.light},${C.cream})`,padding:"20px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.08)"}}>
+            <div style={{borderRadius:"14px",border:`2px solid ${C.gold}`,background:`linear-gradient(145deg,${C.light},${C.cream})`,padding:"20px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.08)",display:"flex",flexDirection:"column",justifyContent:"center"}}>
               <div style={{fontSize:"10.5px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Publicité · Partenaire</div>
               <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.cacao,marginBottom:"5px"}}>Présentez votre marque sur Sokilé</div>
               <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez une audience en recherche active d'un bien immobilier en Afrique.</div>
               <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.cacao,borderRadius:"8px",padding:"9px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Découvrir les formats</button>
+            </div>
             </div>
           </div>
         )}
@@ -3673,9 +3807,9 @@ button,input,select,textarea{font-size:inherit}
 
               <div className="sok-pays">
                 <button className={filterCountry==="Tous"?"on":""} onClick={()=>setFilterCountry("Tous")}>Tous les pays</button>
-                {filteredCountries.map(c=>(
+                {paysActifs.map(c=>(
                   <button key={c.name} className={filterCountry===c.name?"on":""} onClick={()=>setFilterCountry(filterCountry===c.name?"Tous":c.name)}>
-                    <Flag flag={c.flag} size={14}/>{c.name}
+                    <Flag flag={c.flag} size={14}/>{c.name}<small>{comptesPays[c.name]}</small>
                   </button>
                 ))}
               </div>
@@ -3808,13 +3942,13 @@ button,input,select,textarea{font-size:inherit}
         {route.nom==="accueil"&&tab==="guides"&&(
           <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"28px 20px",borderBottom:`3px solid ${C.gold}`}}>
-              <div style={{fontSize:"11px",fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.14em",fontFamily:F,marginBottom:"8px"}}>Le Guide Sokilé</div>
-              <h1 style={{fontFamily:FT,fontSize:"clamp(27px,5vw,40px)",fontWeight:400,color:C.white,lineHeight:1.15,margin:"0 0 9px"}}>Comprendre avant d'agir.</h1>
-              <p style={{fontSize:"14px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.65,maxWidth:"680px",margin:0}}>Des informations pratiques pour rechercher un bien, choisir les bons professionnels et préparer votre projet immobilier en Afrique.</p>
+              <div style={{fontSize:"11px",fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.14em",fontFamily:F,marginBottom:"8px"}}>Conseils & outils Sokilé</div>
+              <h1 style={{fontFamily:FT,fontSize:"clamp(27px,5vw,40px)",fontWeight:400,color:C.white,lineHeight:1.15,margin:"0 0 9px"}}>Décider avec les bonnes informations.</h1>
+              <p style={{fontSize:"14px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.65,maxWidth:"680px",margin:0}}>Guides pratiques, simulateurs, documents et actualités pour préparer votre projet immobilier en Afrique.</p>
             </div>
             {/* Sous-rubriques */}
             <div style={{display:"flex",gap:"8px",overflowX:"auto",padding:"18px 0 4px"}}>
-              {[["guides","Guides"],["outils","Simulateurs"],["docs","À télécharger"],["actu","Actualité"]].map(([id,lbl])=>(
+              {[["guides","Guides"],["outils","Simulateurs"],["docs","À télécharger"],["actu","Actualités"]].map(([id,lbl])=>(
                 <button key={id} onClick={()=>setSousOnglet(id)} style={{flexShrink:0,background:sousOnglet===id?C.forest:C.white,color:sousOnglet===id?C.white:C.dark,border:`1px solid ${sousOnglet===id?C.forest:C.sand}`,borderRadius:"22px",padding:"10px 18px",fontSize:"14.5px",fontWeight:sousOnglet===id?700:500,cursor:"pointer",fontFamily:F}}>{lbl}</button>
               ))}
             </div>
