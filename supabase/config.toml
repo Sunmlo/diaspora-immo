@@ -1,3 +1,7 @@
 # L'ordonnanceur est authentifié par le secret de webhook existant.
 [functions.search-alerts]
 verify_jwt = false
+
+# Auth vérifiée côté serveur pour les essais ; signature Stripe pour /webhook.
+[functions.payments-test]
+verify_jwt = false
