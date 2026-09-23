@@ -36,3 +36,13 @@ Contrôler les erreurs : `select id,attempts,last_error,first_attempt_at from pu
 Contrôler le cron : `select jobid,jobname,schedule,active from cron.job where jobname='sokile-search-alerts';` puis ses derniers résultats dans `cron.job_run_details` et les réponses HTTP dans `net._http_response` (ne jamais exporter les secrets).
 
 Référence de l'ordonnanceur : https://supabase.com/docs/guides/functions/schedule-functions
+
+## Vérification en production — 23 septembre 2026
+
+- Migrations appliquées, fonctions déployées et fonctionnalité activée sur www.sokile.com.
+- 32 annonces existantes restent publiques avec leur échéance calculée depuis leur historique.
+- Création réelle depuis la recherche « Location · Dakar » : échéance affichée au 23 septembre 2027.
+- Un envoi de test vers le compte Sokilé a été accepté par le fournisseur ; réception en boîte non vérifiée.
+- Annulation depuis le compte et via lien public contrôlées. Les deux alertes de test sont annulées.
+- 51 tests automatisés passent, dont les scénarios PostgreSQL d'expiration, de permissions et de livraison.
+- Le test a également révélé une course entre déconnexion et rafraîchissement de session : une réponse tardive ne peut désormais plus restaurer la session quittée ni remplacer une connexion plus récente.

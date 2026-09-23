@@ -33,6 +33,12 @@ export function userSessionFromAuth(data) {
   };
 }
 
+// Ignore a delayed refresh after sign-out or a newer sign-in.
+export function applySessionRefresh(current, requestedToken, data) {
+  if (!current || current.refresh_token !== requestedToken) return current;
+  return userSessionFromAuth(data);
+}
+
 // UI guard only: actual authorization is enforced by Supabase RLS.
 export function isAdminSession(user, adminEmail) {
   return Boolean(user?.id && user?.token && normalizeEmail(user.email) === normalizeEmail(adminEmail));
