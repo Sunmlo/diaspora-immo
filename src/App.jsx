@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { listingForm, splitPhone, propertyNature, propertyTransaction, contactError, websiteUrl, photoUrlsInOrder, readAllProperties } from "./form-fields.mjs";
 import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
@@ -552,16 +553,8 @@ function LoginModal({ onClose, onLogin }) {
 // ─── PARTNER MODAL ────────────────────────────────
 function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const [type, setType] = useState(existing?.advertiser_type||defaultType||user?.account_type||null);
-  const [form, setForm] = useState({
-    agency:existing?.agency_name||user?.agency||"", name:existing?.user_name||user?.name||"",
-    email:existing?.user_email||user?.email||"", phoneCode:existing?"":"+33", phone:existing?.user_phone||"",
-    country:existing?.country||"Sénégal", type:existing?.type||"", title:existing?.title||"",
-    city:existing?.city||"", neighborhood:existing?.neighborhood||"", price_eur:existing?.price_eur||"",
-    price_xof:existing?.price||"", surface:existing?.surface||"", rooms:existing?.rooms||"",
-    bathrooms:existing?.bathrooms||"", features:existing?.tags||[], description:existing?.description||"",
-  });
-  const [existingPhotos, setExistingPhotos] = useState(Array.isArray(existing?.photos)?existing.photos:[]);
-  const [photos, setPhotos] = useState([]);       // {file, apercu}
+  const [form, setForm] = useState(() => listingForm(existing, user, PHONE_CODES));
+  const [photos, setPhotos] = useState(() => (Array.isArray(existing?.photos)?existing.photos:[]).map(url=>({url,apercu:url})));
   const [envoiPhoto, setEnvoiPhoto] = useState("");
   const [photoErr, setPhotoErr] = useState("");
   const [sent, setSent] = useState(false);
@@ -575,13 +568,14 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     const choisies = [...liste].filter(f=>f.type.startsWith("image/"));
     const trop = choisies.filter(f=>f.size > 8*1024*1024);
     const ok = choisies.filter(f=>f.size <= 8*1024*1024);
-    const place = MAX_PHOTOS - photos.length - existingPhotos.length;
-    if (trop.length) setPhotoErr(`${trop.length} photo(s) ignorée(s) : plus de 8 Mo.`);
+    const place = MAX_PHOTOS - photos.length;
+    if (choisies.length < liste.length) setPhotoErr("Seules les images sont acceptées.");
+    else if (trop.length) setPhotoErr(`${trop.length} photo(s) ignorée(s) : plus de 8 Mo.`);
     else if (ok.length > place) setPhotoErr(`Vous pouvez ajouter ${MAX_PHOTOS} photos au maximum.`);
     const retenues = ok.slice(0, Math.max(0, place));
     setPhotos(p => [...p, ...retenues.map(f => ({ file: f, apercu: URL.createObjectURL(f) }))]);
   };
-  const retirerPhoto = (i) => setPhotos(p => { const c=[...p]; try{URL.revokeObjectURL(c[i].apercu);}catch(e){} c.splice(i,1); return c; });
+  const retirerPhoto = (i) => setPhotos(p => { const c=[...p]; try{if(c[i].file)URL.revokeObjectURL(c[i].apercu);}catch(e){} c.splice(i,1); return c; });
   const mettreEnCouverture = (i) => setPhotos(p => { const c=[...p]; const [x]=c.splice(i,1); return [x,...c]; });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const setDetail = (k,v) => setForm(f=>({...f,details:{...(f.details||{}),[k]:v}}));
@@ -591,7 +585,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   // Champs indispensables pour qu'une annonce serve à quelque chose
   const CHAMPS_REQUIS = [
     ["name","Votre nom"], ["email","Votre email"], ["phone","Votre téléphone"],
-    ["type","Type de bien"], ["title","Titre de l'annonce"],
+    ["transaction","Vendre ou louer"], ["nature","Nature du bien"], ["title","Titre de l'annonce"],
     ["country","Pays"], ["city","Ville"], ["price_eur","Prix"], ["description","Description"],
   ];
 
@@ -611,7 +605,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
           if (v===undefined || String(v).trim()==="") vides.push({k:"d_"+c.k, l:c.l});
         });
     }
-    if (!(photos.length+existingPhotos.length)) vides.push({k:"photos",l:"Au moins une photo"});
+    if (!(photos.length)) vides.push({k:"photos",l:"Au moins une photo"});
     return vides;
   };
 
@@ -631,20 +625,16 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     }
     setLoading(true);
     let urlsPhotos = [];
+    const nouvellesPhotos = photos.filter(p=>p.file);
     try {
-      setEnvoiPhoto(`Envoi des photos… 0/${photos.length}`);
-      urlsPhotos = await envoyerPhotos(photos.map(p=>p.file), user, (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
+      setEnvoiPhoto(`Envoi des photos… 0/${nouvellesPhotos.length}`);
+      urlsPhotos = await envoyerPhotos(nouvellesPhotos.map(p=>p.file), user, (n,tot)=>setEnvoiPhoto(`Envoi des photos… ${n}/${tot}`));
       setEnvoiPhoto("");
     } catch(e){ setEnvoiPhoto(""); }
 
-    if (photos.length && !urlsPhotos.length) {
-      setLoading(false);
-      setErreur("Vos photos n'ont pas pu être envoyées. Vérifiez votre connexion et réessayez ; rien n'a été perdu, votre annonce est toujours là.");
-      return;
-    }
-    if (urlsPhotos.length < photos.length) {
-      setEnvoiPhoto(`${photos.length - urlsPhotos.length} photo(s) n'ont pas pu être envoyées, l'annonce continue avec ${urlsPhotos.length}.`);
-    }
+    let toutesPhotos;
+    try { toutesPhotos = photoUrlsInOrder(photos, urlsPhotos); }
+    catch(e) { setLoading(false); setErreur(e.message); return; }
 
     const payload = {
       owner_id:user.id,
@@ -659,7 +649,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
       price:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
       rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
       tags:form.features||[], status:"en_attente", active:false, verified:false, advertiser_type:type,
-      agency_name:form.agency||null, photos:[...existingPhotos,...urlsPhotos],
+      agency_name:form.agency||null, photos:toutesPhotos, moderation_note:null, motif_rejet:null,
     };
     const r = await (existing
       ? modifier("properties", existing.id, payload, user.token)
@@ -817,12 +807,12 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                             {c.l}{c.requis?" *":""}
                           </label>
                           {c.t==="choix" ? (
-                            <select value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}>
+                            <select aria-label={c.l} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}>
                               <option value="">—</option>
                               {c.options.map(o=><option key={o} value={o}>{o}</option>)}
                             </select>
                           ) : (
-                            <input type={c.t==="nombre"?"number":"text"} inputMode={c.t==="nombre"?"numeric":undefined}
+                            <input aria-label={c.l} type={c.t==="nombre"?"number":"text"} inputMode={c.t==="nombre"?"numeric":undefined}
                               placeholder={c.aide||""} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}/>
                           )}
                         </div>
@@ -859,21 +849,21 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length+existingPhotos.length}/{MAX_PHOTOS}</span></label>
-                {existingPhotos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:"8px",marginBottom:"10px"}}>{existingPhotos.map((src,i)=><div key={src} style={{position:"relative",paddingTop:"75%",borderRadius:"9px",overflow:"hidden",border:`1px solid ${C.sand}`}}><img src={src} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/><button type="button" onClick={()=>setExistingPhotos(p=>p.filter((_,n)=>n!==i))} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.65)",color:C.white,border:0,width:22,height:22,borderRadius:"50%",cursor:"pointer"}}>×</button></div>)}</div>}
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
+
                 {photos.length>0&&(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:"8px",marginBottom:"10px"}}>
                     {photos.map((ph,i)=>(
                       <div key={i} style={{position:"relative",paddingTop:"75%",borderRadius:"9px",overflow:"hidden",border:`1px solid ${i===0?C.gold:C.sand}`,background:C.cream}}>
-                        <img src={ph.apercu} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+                        <img src={ph.apercu} alt={`Photo ${i+1}${i===0?" — couverture":""}`} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
                         {i===0&&<div style={{position:"absolute",bottom:0,left:0,right:0,background:C.gold,color:C.forestDark,fontSize:"10px",fontWeight:700,textAlign:"center",padding:"2px",fontFamily:F}}>COUVERTURE</div>}
-                        {i!==0&&<button type="button" onClick={()=>mettreEnCouverture(i)} title="Mettre en couverture" style={{position:"absolute",bottom:4,left:4,background:"rgba(0,0,0,0.55)",color:C.white,border:"none",borderRadius:"5px",fontSize:"10px",padding:"3px 6px",cursor:"pointer",fontFamily:F,fontWeight:600}}>Couverture</button>}
-                        <button type="button" onClick={()=>retirerPhoto(i)} title="Retirer" style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,0.6)",color:C.white,border:"none",width:22,height:22,borderRadius:"50%",cursor:"pointer",fontSize:"12px",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                        {i!==0&&<button type="button" onClick={()=>mettreEnCouverture(i)} aria-label={`Mettre la photo ${i+1} en couverture`} title="Mettre en couverture" style={{position:"absolute",bottom:4,left:4,background:"rgba(0,0,0,0.55)",color:C.white,border:"none",borderRadius:"5px",fontSize:"10px",padding:"3px 6px",cursor:"pointer",fontFamily:F,fontWeight:600}}>Couverture</button>}
+                        <button type="button" onClick={()=>retirerPhoto(i)} aria-label={`Retirer la photo ${i+1}`} title="Retirer" style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,0.6)",color:C.white,border:"none",width:22,height:22,borderRadius:"50%",cursor:"pointer",fontSize:"12px",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                       </div>
                     ))}
                   </div>
                 )}
-                {photos.length+existingPhotos.length<MAX_PHOTOS&&(
+                {photos.length<MAX_PHOTOS&&(
                   <div onClick={()=>fileRef.current?.click()}
                     onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();ajouterPhotos(e.dataTransfer.files);}}
                     style={{border:`2px dashed ${C.sand}`,borderRadius:"10px",padding:"18px 14px",textAlign:"center",cursor:"pointer",background:"#FAFAF8"}}>
@@ -1053,7 +1043,7 @@ function champsDe(nature, transaction) {
   const n = NATURES[nature];
   if (!n) return [];
   const propres = n.champs.filter(c => !c.only || c.only === transaction);
-  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION] : propres;
+  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole"].includes(nature))] : propres;
 }
 
 // Résumé court d'un bien, pour les cartes
@@ -1066,14 +1056,9 @@ function resumeBien(p) {
 }
 
 // Une annonce déposée avant la refonte n'a ni nature ni transaction en base.
-// On les déduit alors de son ancien champ « type », exactement comme le fait
-// le script SQL de reprise — ainsi l'affichage et les filtres restent cohérents.
-const transactionDe = (p) => p?.transaction || (/location/i.test(p?.type||"") ? "location" : "vente");
-const natureDe = (p) => p?.nature
-  || (/terrain/i.test(p?.type||"")      ? "terrain"
-   : /commercial/i.test(p?.type||"")    ? "commerce"
-   : /appartement/i.test(p?.title||"")  ? "appartement"
-   : "maison");
+// Les mêmes règles de reprise sont utilisées par l’affichage et le formulaire.
+const transactionDe = propertyTransaction;
+const natureDe = propertyNature;
 const libelleNature = (p) => NATURES[natureDe(p)]?.label || p?.type || "Bien";
 
 // Caractéristiques d'une fiche : celles de la nature du bien, plus la surface.
@@ -1487,6 +1472,7 @@ function SimuEpargne() {
   const [mensuel, setMensuel] = useState("");
   const [mois, setMois] = useState(36);
   const d = parseFloat(deja) || 0, m = parseFloat(mensuel) || 0;
+  const montantInvalide = d<0 || m<0 || !Number.isFinite(d) || !Number.isFinite(m);
   const verse = m * mois;
   const total = d + verse;
   const annees = Math.floor(mois/12), reste = mois%12;
@@ -1501,9 +1487,9 @@ function SimuEpargne() {
       </p>
       <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
         <div><label style={labelSim}>Déjà épargné (€)</label>
-          <input type="number" inputMode="numeric" placeholder="Ex : 8000" value={deja} onChange={e=>setDeja(e.target.value)} style={champSim}/></div>
+          <input type="number" inputMode="numeric" min="0" placeholder="Ex : 8000" value={deja} onChange={e=>setDeja(e.target.value)} style={champSim}/></div>
         <div><label style={labelSim}>Épargne mensuelle (€)</label>
-          <input type="number" inputMode="numeric" placeholder="Ex : 400" value={mensuel} onChange={e=>setMensuel(e.target.value)} style={champSim}/></div>
+          <input type="number" inputMode="numeric" min="0" placeholder="Ex : 400" value={mensuel} onChange={e=>setMensuel(e.target.value)} style={champSim}/></div>
         <div>
           <label style={labelSim}>Horizon</label>
           <div style={{display:"flex",gap:"7px",flexWrap:"wrap",marginBottom:"10px"}}>
@@ -1517,7 +1503,8 @@ function SimuEpargne() {
           <div style={{fontSize:"13.5px",color:C.sub,fontFamily:F,marginTop:"4px"}}>{mois} mois, soit {duree}</div>
         </div>
       </div>
-      {m>0 && (
+      {montantInvalide&&<p role="alert" style={{color:"#9B2C2C",fontFamily:F}}>Les montants doivent être positifs ou nuls.</p>}
+      {!montantInvalide&&(m>0||d>0) && (
         <div style={carteResultat}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Ce que vous aurez réuni</div>
           <LigneResultat label="Déjà épargné" valeur={fmtEUR(Math.round(d))}/>
@@ -2857,8 +2844,8 @@ function SentMessage({ title, text, onClose }) {
   );
 }
 
-function ServiceFormModal({ onClose, user }) {
-  const [f, setF] = useState({name:user?.agency||user?.name||"",spec:"",pays:[],email:user?.email||"",phoneCode:"+221",phone:user?.phone||"",site:"",zones:"",tarifs:"",desc:"",reference:"",consent:false});
+function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
+  const [f, setF] = useState({name:existing?.business_name||user?.agency||user?.name||"",spec:existing?.specialty||"",pays:existing?.countries||[],email:existing?.email||user?.email||"",...splitPhone(existing?.phone||user?.phone,PHONE_CODES),site:existing?.website||"",zones:existing?.zones||"",tarifs:existing?.pricing||"",desc:existing?.description||"",reference:existing?.verification_reference||"",consent:false});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -2866,16 +2853,20 @@ function ServiceFormModal({ onClose, user }) {
   const togglePays = n => set("pays", f.pays.includes(n)?f.pays.filter(x=>x!==n):[...f.pays,n]);
   const ok = f.name && f.spec && f.email && f.pays.length>0 && f.consent;
   const submit = async () => {
-    if (!ok) return;
+    if (!ok || loading) return;
+    const invalide=contactError(f.name,f.email,f.site);
+    if(invalide){setErreur(invalide);return;}
+    if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
     setErreur(""); setLoading(true);
-    const r = await ecrire("professionals", {owner_id:user.id,business_name:f.name,specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email,phone:f.phone?`${f.phoneCode}${f.phone}`:null,website:f.site||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,consent_at:new Date().toISOString(),status:"en_attente",active:false},user.token)
+    const payload = {owner_id:user.id,business_name:f.name.trim(),specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email.trim(),phone:f.phone?`${f.phoneCode}${f.phone}`:null,website:websiteUrl(f.site)||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,consent_at:new Date().toISOString(),status:"en_attente",active:false,moderation_note:null};
+    const r = await (existing?modifier("professionals",existing.id,payload,user.token):ecrire("professionals",payload,user.token))
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
-    setSent(true);
+    setSent(true); onSaved?.();
   };
   return (
-    <ModalShell title="Rejoindre l'annuaire" subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
+    <ModalShell title={existing?"Modifier ma fiche professionnelle":"Rejoindre l'annuaire"} subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
       {sent ? <SentMessage title="Demande envoyée" text="Nous vérifions votre identité professionnelle et revenons vers vous sous 48 h." onClose={onClose}/> : (<>
         <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>La fiche n'est jamais publiée automatiquement. Sokilé contrôle les coordonnées et, lorsque c'est possible, l'immatriculation ou l'ordre professionnel.</div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Nom ou société *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
@@ -2913,10 +2904,10 @@ function ServiceFormModal({ onClose, user }) {
   );
 }
 
-function PubFormModal({ onClose, user }) {
+function PubFormModal({ onClose, user, existing=null, onSaved }) {
   const FORMATS = ["Bannière page d'accueil","Encart sous les pays couverts","Encart dans l'annuaire prestataires","Je ne sais pas encore"];
   const OBJECTIFS = ["Gagner en visibilité","Recevoir des contacts","Promouvoir un programme immobilier","Présenter un service professionnel"];
-  const [f, setF] = useState({name:user?.name||"",company:user?.agency||"",email:user?.email||"",phoneCode:"+221",phone:user?.phone||"",format:"",countries:[],budget:"",period:"",url:"",message:"",objective:"",consent:false});
+  const [f, setF] = useState({name:existing?.contact_name||user?.name||"",company:existing?.company||user?.agency||"",email:existing?.email||user?.email||"",...splitPhone(existing?.phone||user?.phone,PHONE_CODES),format:existing?.format||"",countries:existing?.target_countries||[],budget:existing?.budget||"",period:existing?.desired_period||"",url:existing?.destination_url||"",message:existing?.message||"",objective:existing?.objective||"",consent:false});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -2924,16 +2915,20 @@ function PubFormModal({ onClose, user }) {
   const toggleCountry = n => set("countries", f.countries.includes(n)?f.countries.filter(x=>x!==n):[...f.countries,n]);
   const ok = f.name && f.email && f.format && f.objective && f.consent;
   const submit = async () => {
-    if (!ok) return;
+    if (!ok || loading) return;
+    const invalide=contactError(f.name,f.email,f.url);
+    if(invalide){setErreur(invalide);return;}
+    if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
     setErreur(""); setLoading(true);
-    const r = await ecrire("advertising_requests", {owner_id:user.id,contact_name:f.name,company:f.company||null,email:f.email,phone:f.phone?`${f.phoneCode}${f.phone}`:null,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:f.url||null,message:f.message||null,objective:f.objective,consent_at:new Date().toISOString(),status:"en_attente"},user.token)
+    const payload = {owner_id:user.id,contact_name:f.name.trim(),company:f.company.trim()||null,email:f.email.trim(),phone:f.phone?`${f.phoneCode}${f.phone}`:null,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:websiteUrl(f.url)||null,message:f.message||null,objective:f.objective,consent_at:new Date().toISOString(),status:"en_attente",moderation_note:null};
+    const r = await (existing?modifier("advertising_requests",existing.id,payload,user.token):ecrire("advertising_requests",payload,user.token))
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
-    setSent(true);
+    setSent(true); onSaved?.();
   };
   return (
-    <ModalShell title="Faire de la publicité" subtitle="Présentez votre activité aux acheteurs et vendeurs" color={C.gold} onClose={onClose}>
+    <ModalShell title={existing?"Modifier ma demande publicitaire":"Faire de la publicité"} subtitle="Présentez votre activité aux acheteurs et vendeurs" color={C.gold} onClose={onClose}>
       {sent ? <SentMessage title="Demande envoyée" text="Nous vous recontactons avec nos formats et tarifs." onClose={onClose}/> : (<>
         <div style={{background:"#FFF8E5",border:"1px solid #E8D59B",borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>Aucun paiement n'est demandé ici. Vous recevez d'abord une proposition précisant l'emplacement, la durée et le tarif.</div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Nom *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)}/></div>
@@ -3228,6 +3223,8 @@ function SiteFooter({ onNav, onPub }) {
 }
 
 const ETATS_DOSSIER = {
+  en_cours:{label:"En discussion",color:"#8A6116",bg:"#FFF4D6"},
+  acceptee:{label:"Acceptée",color:C.success,bg:C.successBg},
   expiree:{label:"Expirée",color:"#934C13",bg:"#FFF0E4"},
   en_attente:{label:"En attente de validation",color:"#8A6116",bg:"#FFF4D6"},
   validee:{label:"Publiée",color:C.success,bg:C.successBg},
@@ -3241,7 +3238,7 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
   const [rows,setRows]=useState([]), [loading,setLoading]=useState(true), [error,setError]=useState("");
   useEffect(()=>{
     let actif=true; setLoading(true); setError("");
-    lire("properties","select=*&order=created_at.desc",user.token).then(r=>{if(!actif)return;if(r.ok)setRows(r.data||[]);else setError(messageErreur(r));setLoading(false);}).catch(()=>{if(actif){setError("Impossible de charger vos annonces.");setLoading(false);}});
+    lire("properties",`select=*&owner_id=eq.${user.id}&order=created_at.desc,id.desc`,user.token).then(r=>{if(!actif)return;if(r.ok)setRows(r.data||[]);else setError(messageErreur(r));setLoading(false);}).catch(()=>{if(actif){setError("Impossible de charger vos annonces.");setLoading(false);}});
     return ()=>{actif=false};
   },[user.token,refreshKey]);
   return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}>
@@ -3258,11 +3255,11 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
   </section>;
 }
 
-function MesDemandesPro({user}) {
+function MesDemandesPro({user,refreshKey,onEditService,onEditPub}) {
   const [items,setItems]=useState([]);
-  useEffect(()=>{Promise.all([lire("professionals","select=id,business_name,status,moderation_note,created_at&order=created_at.desc",user.token),lire("advertising_requests","select=id,company,format,status,moderation_note,created_at&order=created_at.desc",user.token)]).then(([a,b])=>setItems([...(a.ok?(a.data||[]).map(x=>({...x,kind:"Annuaire",title:x.business_name})):[]),...(b.ok?(b.data||[]).map(x=>({...x,kind:"Publicité",title:x.company||x.format})):[])])).catch(()=>{});},[user.token]);
+  useEffect(()=>{Promise.all([lire("professionals",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token),lire("advertising_requests",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token)]).then(([a,b])=>setItems([...(a.ok?(a.data||[]).map(x=>({...x,kind:"Annuaire",title:x.business_name})):[]),...(b.ok?(b.data||[]).map(x=>({...x,kind:"Publicité",title:x.company||x.format})):[])])).catch(()=>{});},[user.token,refreshKey]);
   if(!items.length) return null;
-  return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}><div style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,marginBottom:9}}>Mes demandes professionnelles</div><div style={{display:"grid",gap:7}}>{items.map(x=>{const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};return <div key={`${x.kind}-${x.id}`} style={{display:"flex",justifyContent:"space-between",gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}><div><div style={{fontFamily:F,fontSize:12,color:C.terra,fontWeight:700}}>{x.kind}</div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {x.moderation_note}</div>}</div><span style={{alignSelf:"start",background:e.bg,color:e.color,borderRadius:20,padding:"3px 8px",fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span></div>})}</div></section>;
+  return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}><div style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,marginBottom:9}}>Mes demandes professionnelles</div><div style={{display:"grid",gap:7}}>{items.map(x=>{const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};return <div key={`${x.kind}-${x.id}`} style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}><div><div style={{fontFamily:F,fontSize:12,color:C.terra,fontWeight:700}}>{x.kind}</div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {x.moderation_note}</div>}</div><span style={{alignSelf:"start",background:e.bg,color:e.color,borderRadius:20,padding:"3px 8px",fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span>{["refusee","modifications_demandees","en_attente"].includes(x.status)&&<button onClick={()=>x.kind==="Annuaire"?onEditService(x):onEditPub(x)} style={{alignSelf:"start",border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:"7px 10px",fontFamily:F,cursor:"pointer"}}>Compléter ma demande</button>}</div>})}</div></section>;
 }
 
 export default function App() {
@@ -3313,6 +3310,7 @@ function SokileApp() {
   useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),30000);return()=>clearInterval(timer);},[]);
   const [editingProp,setEditingProp] = useState(null);
   const [myPropsRefresh,setMyPropsRefresh] = useState(0);
+  const [editingService,setEditingService]=useState(null),[editingPub,setEditingPub]=useState(null),[proRefresh,setProRefresh]=useState(0);
   const [annFilter, setAnnFilter] = useState({spec:"Tous",pays:"Tous"});
   const openAnnuaire = (spec="Tous",pays="Tous") => { setAnnFilter({spec,pays}); setSelectedProp(null); switchTab("prestataires"); };
   useEffect(()=>{if(showPub&&!user){setShowPub(false);setShowLogin(true)}},[showPub,user]);
@@ -3334,7 +3332,7 @@ function SokileApp() {
   const mapProperty = r => ({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"});
   useEffect(()=>{
     let active=true;
-    lire("public_properties","select=*&order=created_at.desc&limit=24").then(r=>{if(!active)return;if(!r.ok)throw new Error();setDbProps((r.data||[]).map(mapProperty));}).catch(()=>{if(active)setPropsError(true);}).finally(()=>{if(active)setPropsLoading(false);});
+    readAllProperties(lire,()=>active).then(rows=>{if(active)setDbProps(rows.map(mapProperty));}).catch(()=>{if(active)setPropsError(true);}).finally(()=>{if(active)setPropsLoading(false);});
     return()=>{active=false;};
   },[]);
   useEffect(()=>{
@@ -4171,7 +4169,7 @@ button,input,select,textarea{font-size:inherit}
                       )}
                     </div>
                     <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
-                    <MesDemandesPro user={vu}/>
+                    <MesDemandesPro user={vu} refreshKey={proRefresh} onEditService={setEditingService} onEditPub={setEditingPub}/>
                     <MesAlertes user={vu} load={lire} rpc={alertRpc} refreshKey={alertsRefresh}/>
                     <ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={setProgramEditor} refreshKey={programRefresh}/>
                     {/* Autres items */}
@@ -4234,8 +4232,8 @@ button,input,select,textarea{font-size:inherit}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:filterVerified}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
-      {showServiceForm&&vu&&<ServiceFormModal onClose={()=>setShowServiceForm(false)} user={vu}/>} 
-      {showPub&&vu&&<PubFormModal onClose={()=>setShowPub(false)} user={vu}/>} 
+      {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}
+      {(showPub||editingPub)&&vu&&<PubFormModal onClose={()=>{setShowPub(false);setEditingPub(null);}} user={vu} existing={editingPub} onSaved={()=>setProRefresh(x=>x+1)}/>}
       {programEditor&&vu&&<ProgramEditor api={programApi} user={vu} existing={programEditor} onClose={()=>setProgramEditor(null)} onSaved={()=>setProgramRefresh(x=>x+1)}/>}
     </div>
   );
