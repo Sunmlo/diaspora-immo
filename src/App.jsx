@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { GUIDES, guideReadingTime } from "./guides";
+import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
+import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
 import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession } from "./auth-session.mjs";
 import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
@@ -544,55 +546,6 @@ function LoginModal({ onClose, onLogin }) {
 }
 
 // ─── ALERT MODAL ──────────────────────────────────
-function AlertModal({ onClose, filters, user }) {
-  const [erreur, setErreur] = useState("");
-  const [email, setEmail] = useState(user?.email||"");
-  const [name, setName] = useState(user?.name||"");
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const handleSubmit = async () => {
-    if (!email) return;
-    setLoading(true);
-    const r = await ecrire("leads", {name,email,message:`ALERTE: ${JSON.stringify(filters)}`,status:"alerte"})
-      .catch(e=>({ok:false,statut:0,motif:String(e)}));
-    setLoading(false);
-    if (!r.ok) { setErreur(messageErreur(r)); return; }
-    setSent(true);
-  };
-  return (
-    <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
-      <div style={{background:C.white,borderRadius:"16px",maxWidth:"400px",width:"100%",overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{background:C.forest,padding:"20px",textAlign:"center"}}>
-          <button onClick={onClose} style={{position:"absolute",marginLeft:"140px",marginTop:"-8px",background:"rgba(255,255,255,0.1)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
-          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"19px"}}>Créer une alerte</h2>
-          <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Recevez les nouvelles annonces par email</p>
-        </div>
-        <div style={{padding:"20px"}}>
-          {sent?(<div style={{textAlign:"center",padding:"16px 0"}}>
-            <div style={{fontSize:"42px",marginBottom:"10px"}}>✅</div>
-            <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>Alerte créée !</h3>
-            <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Vous recevrez un email dès qu'une annonce correspond.</p>
-            <button onClick={onClose} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
-          </div>):(
-            <>
-              {[{label:"Prénom",val:name,set:setName,ph:"Marie"},{label:"Email *",val:email,set:setEmail,ph:"votre@email.com",type:"email"}].map(f=>(
-                <div key={f.label} style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
-                  <input type={f.type||"text"} placeholder={f.ph} value={f.val} onChange={e=>f.set(e.target.value)} style={{width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F}}/>
-                </div>
-              ))}
-              <BandeauErreur texte={erreur} onRetry={handleSubmit}/>
-              <button onClick={handleSubmit} disabled={!email||loading} style={{width:"100%",background:email?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"12px",fontWeight:700,fontSize:"15px",cursor:email?"pointer":"not-allowed",fontFamily:F}}>
-                {loading?"Enregistrement...":"Activer l'alerte email"}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── PARTNER MODAL ────────────────────────────────
 function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const [type, setType] = useState(existing?.advertiser_type||defaultType||user?.account_type||null);
@@ -1735,6 +1688,8 @@ async function ecrireAuth(chemin, donnees, token, methode="POST") {
   return { ok:false, statut:res.status, motif };
 }
 
+const alertRpc = (name, data, token=SUPABASE_KEY) => ecrireAuth(`rpc/${name}`,data,token);
+
 const peutRediger = (user) => isAdminSession(user, EMAIL_REDACTION);
 
 function dateCourte(iso) {
@@ -2087,7 +2042,7 @@ function AdminModeration({ user }) {
 
   const charger = () => {
     setChargement(true); setErreur("");
-    lireAuth(`properties?status=eq.${statut}&select=*&order=created_at.desc&limit=100`, user.token)
+    lireAuth(`properties?${statut==="expiree"?`status=eq.validee&expires_at=lte.${new Date().toISOString()}`:statut==="validee"?`status=eq.validee&expires_at=gt.${new Date().toISOString()}`:`status=eq.${statut}`}&select=*&order=created_at.desc&limit=100`, user.token)
       .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée par le serveur. Vérifiez que vous êtes connectée avec "+EMAIL_REDACTION+"."); })
       .finally(()=>setChargement(false));
   };
@@ -2108,7 +2063,7 @@ function AdminModeration({ user }) {
   return (
     <div>
       <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
-        {[["en_attente","En attente"],["validee","Publiées"],["rejetee","Rejetées"]].map(([k,l])=>(
+        {[["en_attente","En attente"],["validee","Publiées"],["expiree","Expirées"],["rejetee","Rejetées"]].map(([k,l])=>(
           <button key={k} onClick={()=>setStatut(k)} style={{background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:"20px",padding:"9px 16px",fontSize:"14px",fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>
         ))}
         <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"20px",padding:"9px 14px",fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Actualiser</button>
@@ -2133,9 +2088,10 @@ function AdminModeration({ user }) {
                 <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>
                   {p.user_name} · {p.user_email} · {p.user_phone}
                 </div>
+                {p.expires_at&&<p style={{fontFamily:F,fontSize:13,color:C.sub}}>{isExpired(p)?"Expirée le":"Expiration le"} {dateCourte(p.expires_at)}</p>}
                 <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
                   <button onClick={()=>{setOuvert(p);setMotif(p.motif_rejet||"");setErreurDecision("");}} style={{background:"transparent",border:`1px solid ${C.forest}`,color:C.forest,borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Examiner</button>
-                  {statut!=="validee"&&<button disabled={enregistrement} onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier</button>}
+                  {statut!=="validee"&&statut!=="expiree"&&<button disabled={enregistrement} onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier · {publicationMonths(p)===6?"6 mois":"1 an"}</button>}
                   {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");setErreurDecision("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Rejeter…</button>}
                 </div>
               </div>
@@ -2160,8 +2116,9 @@ function AdminModeration({ user }) {
               </div>
             ))}
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
-            <button disabled={enregistrement} onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
+          <div style={{display:"grid",gap:"9px"}}>
+            <p style={{fontFamily:F,fontSize:14,lineHeight:1.6,background:C.cream,padding:12,borderRadius:8}}>{ouvert.status==="validee"?`Expiration : ${dateCourte(ouvert.expires_at)}. ${isExpired(ouvert)?"Le propriétaire doit confirmer la disponibilité et soumettre à nouveau son annonce.":""}`:`Durée de publication : ${publicationMonths(ouvert)===6?"6 mois":"1 an"} à partir de votre validation. Si vous validez aujourd’hui : jusqu’au ${dateCourte(addCalendarMonths(new Date(),publicationMonths(ouvert)))}.`}</p>
+          <button disabled={enregistrement||ouvert.status==="validee"} onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
           </div>
           <ReponseModeration key={ouvert.id} table="properties" dossier={ouvert} value={motif} onChange={v=>{setMotif(v);setErreurDecision("");}} onRefuse={()=>decider(ouvert,"rejetee",motif)} busy={enregistrement} error={erreurDecision}/>
         </ModalShell>
@@ -3249,6 +3206,7 @@ function SiteFooter({ onNav, onPub }) {
 }
 
 const ETATS_DOSSIER = {
+  expiree:{label:"Expirée",color:"#934C13",bg:"#FFF0E4"},
   en_attente:{label:"En attente de validation",color:"#8A6116",bg:"#FFF4D6"},
   validee:{label:"Publiée",color:C.success,bg:C.successBg},
   publiee:{label:"Publiée",color:C.success,bg:C.successBg},
@@ -3269,12 +3227,12 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
     {loading&&<div style={{fontFamily:F,color:C.sub,fontSize:13}}>Chargement…</div>}
     {error&&<BandeauErreur texte={error}/>} 
     {!loading&&!error&&rows.length===0&&<div style={{fontFamily:F,color:C.sub,fontSize:13,lineHeight:1.5}}>Vous n'avez pas encore déposé d'annonce.</div>}
-    <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",gap:10,alignItems:"center"}}>
+    <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[isExpired(p)?"expiree":p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",gap:10,alignItems:"center"}}>
       <div style={{width:58,height:48,borderRadius:7,background:C.cream,overflow:"hidden",flexShrink:0}}>{p.photos?.[0]&&<img src={p.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>}</div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
-      <button onClick={()=>onEdit(p)} style={{border:`1px solid ${C.terra}`,background:C.white,color:C.terra,borderRadius:7,padding:"7px 10px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Modifier</button>
+      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{p.expires_at&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5}}>{isExpired(p)?"Retirée de la recherche le":"Expiration le"} {dateCourte(p.expires_at)}</div>}{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
+      <button onClick={()=>onEdit(p)} style={{border:`1px solid ${C.terra}`,background:C.white,color:C.terra,borderRadius:7,padding:"7px 10px",fontWeight:700,cursor:"pointer",fontFamily:F}}>{isExpired(p)?"Renouveler":"Modifier"}</button>
     </div>})}</div>
-    <p style={{fontFamily:F,fontSize:12,color:C.sub,lineHeight:1.5,margin:"10px 0 0"}}>Toute modification repasse en validation avant sa remise en ligne.</p>
+    <p style={{fontFamily:F,fontSize:12,color:C.sub,lineHeight:1.5,margin:"10px 0 0"}}>Toute modification ou demande de renouvellement repasse en validation. Après validation : 6 mois pour une location, 1 an pour une vente.</p>
   </section>;
 }
 
@@ -3286,6 +3244,11 @@ function MesDemandesPro({user}) {
 }
 
 export default function App() {
+  const token=new URLSearchParams(window.location.search).get("annuler_alerte");
+  return token!==null?<CancelAlertPage token={token} rpc={alertRpc}/>:<SokileApp/>;
+}
+
+function SokileApp() {
   const [tab, setTab] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get("tab");
     return ["accueil","biens","prestataires","guides","pro","compte"].includes(requested) ? requested : "accueil";
@@ -3319,6 +3282,11 @@ export default function App() {
   const [animIn, setAnimIn] = useState(true);
   const [showPub, setShowPub] = useState(false);
   const [dbProps, setDbProps] = useState([]);
+  const [propsLoading,setPropsLoading]=useState(true),[propsError,setPropsError]=useState(false);
+  const [clock,setClock]=useState(Date.now());
+  const [directProp,setDirectProp]=useState(null),[directLoading,setDirectLoading]=useState(false),[directError,setDirectError]=useState(false);
+  const [alertsRefresh,setAlertsRefresh]=useState(0);
+  useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),30000);return()=>clearInterval(timer);},[]);
   const [editingProp,setEditingProp] = useState(null);
   const [myPropsRefresh,setMyPropsRefresh] = useState(0);
   const [annFilter, setAnnFilter] = useState({spec:"Tous",pays:"Tous"});
@@ -3342,14 +3310,23 @@ export default function App() {
     }).catch(()=>setUser(null));
   }, []);
 
-  // Annonces publiques validées, limitées pour garder un chargement rapide.
+  // La base retire les annonces expirées, l'interface suit aussi l'échéance si elle reste ouverte.
+  const mapProperty = r => ({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"});
   useEffect(()=>{
-    fetch(`${SUPABASE_URL}/rest/v1/public_properties?select=id,title,type,transaction,nature,details,country,city,neighborhood,description,price_eur,price,surface,rooms,bathrooms,tags,advertiser_type,agency_name,agent_name,photos,user_phone,user_name,created_at,verified&order=created_at.desc&limit=24`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
-      .then(r=>r.ok?r.json():[])
-      .then(rows=>{ if(Array.isArray(rows)) setDbProps(rows.map(r=>({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"}))); })
-      .catch(()=>{});
+    let active=true;
+    lire("public_properties","select=*&order=created_at.desc&limit=24").then(r=>{if(!active)return;if(!r.ok)throw new Error();setDbProps((r.data||[]).map(mapProperty));}).catch(()=>{if(active)setPropsError(true);}).finally(()=>{if(active)setPropsLoading(false);});
+    return()=>{active=false;};
   },[]);
-  const ALL_PROPS = dbProps.length ? dbProps : PROPERTIES;
+  useEffect(()=>{
+    let active=true;setDirectProp(null);setDirectError(false);
+    if(route.nom!=="annonce"){setDirectLoading(false);return;}
+    const id=route.id.replace(/^db-/,"");
+    if(!/^\d+$/.test(id)){setDirectLoading(false);return;}
+    setDirectLoading(true);
+    lire("public_properties",`select=*&id=eq.${id}&limit=1`).then(r=>{if(!active)return;if(!r.ok)throw new Error();setDirectProp(r.data?.[0]?mapProperty(r.data[0]):null);}).catch(()=>{if(active)setDirectError(true);}).finally(()=>{if(active)setDirectLoading(false);});
+    return()=>{active=false;};
+  },[route.nom,route.id]);
+  const ALL_PROPS = dbProps.filter(p=>p.expires_at&&new Date(p.expires_at).getTime()>clock);
   const comptesPays = ALL_PROPS.reduce((acc,p)=>{acc[p.country]=(acc[p.country]||0)+1;return acc;},{});
 
   // Pendant un aperçu, le reste du site voit un utilisateur transformé.
@@ -3691,16 +3668,18 @@ button,input,select,textarea{font-size:inherit}
 
       <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transform:animIn?"translateY(0)":"translateY(6px)",transition:"all 0.2s ease"}}>
 
+        {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
+        {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsError&&<p role="alert" style={{fontFamily:F,color:C.terra}}>Les annonces ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.</p>}
         {/* ── UNE ANNONCE, SUR SA PROPRE PAGE ── */}
         {route.nom==="annonce"&&(()=>{
-          const bien = ALL_PROPS.find(x=>correspond(x, route.id));
+          const bien = directProp&&correspond(directProp,route.id)&&new Date(directProp.expires_at).getTime()>clock ? directProp : null;
           if (!bien) return (
             <div style={{textAlign:"center",padding:"70px 20px"}}>
               <h1 style={{fontFamily:FT,fontSize:"26px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>
-                {dbProps.length===0 ? "Chargement de l'annonce…" : "Cette annonce n'est plus disponible"}
+                {directLoading ? "Chargement de l’annonce…" : directError ? "Impossible de charger cette annonce" : "Cette annonce n’est plus disponible"}
               </h1>
               <p style={{color:C.sub,fontSize:"15px",fontFamily:F,margin:"0 0 20px"}}>
-                {dbProps.length===0 ? "Un instant." : "Elle a peut-être été retirée par son auteur."}
+                {directLoading ? "Un instant." : directError ? "Réessayez dans quelques instants." : "Elle a expiré ou a été retirée de la publication."}
               </p>
               <button onClick={quitterAnnonce} style={{background:C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"13px 24px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>Voir toutes les annonces</button>
             </div>
@@ -4160,8 +4139,9 @@ button,input,select,textarea{font-size:inherit}
                     </div>
                     <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
                     <MesDemandesPro user={vu}/>
+                    <MesAlertes user={vu} load={lire} rpc={alertRpc} refreshKey={alertsRefresh}/>
                     {/* Autres items */}
-                    {[{label:"Messages agents",value:"Fonctionnalité à venir"},{label:"Mes alertes",value:"Fonctionnalité à venir"}].map(item=>(
+                    {[{label:"Messages agents",value:"Fonctionnalité à venir"}].map(item=>(
                     <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
                       <div>
                         <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F}}>{item.label}</div>
@@ -4217,7 +4197,7 @@ button,input,select,textarea{font-size:inherit}
       {/* MODALS */}
       <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>} 
-      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,transaction:filterTransaction,nature:filterNature,search}} user={vu}/>}
+      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:filterVerified}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {showServiceForm&&vu&&<ServiceFormModal onClose={()=>setShowServiceForm(false)} user={vu}/>} 
