@@ -36,15 +36,13 @@ Aucun tarif, abonnement ou prélèvement n’est activé par cette version. Déf
 
 Les alertes de recherche existantes concernent les annonces classiques ; elles ne sont pas étendues silencieusement aux programmes neufs.
 
-## État de l’activation
+## Activation et vérifications du 23 septembre 2026
 
-Le 23 septembre 2026, la migration principale v38 et la nouvelle version de `notify-admin` ont été appliquées. L’exécution de v38b a été bloquée par la vérification automatique : une autorisation explicite est requise pour le stockage PDF public et les envois récurrents. Cette migration n’a pas été exécutée. La mise en production de l’interface reste en attente de cette autorisation ; la préversion permet les essais du dépôt et de la gestion des données déjà installées.
-
-
-## Vérifications réalisées le 23 septembre 2026
-
-- 64 tests automatisés réussis, y compris les contrôles PostgreSQL de propriété, de publication, d’expiration, de confidentialité et de recherche par logement. Compilation Vite réussie.
-- Préversion Vercel vérifiée derrière son accès protégé : ouverture de la rubrique, connexion administrateur, dépôt réel d’un dossier privé avec visuel et logement, réception dans Gestion, blocage du refus sans justification, aperçu de la réponse personnalisée et mise à jour d’une disponibilité.
-- Le dossier `TEST SOKILE — programme privé à archiver` a été archivé après les essais, sans publication. Aucun email de programme n’a été envoyé, les déclencheurs v38b étant absents.
-- Les essais du stockage PDF, de réception effective des emails, du rappel et la mise en production restent à réaliser après autorisation. La publication et le formulaire de contact ont été vérifiés dans PostgreSQL isolé, pas par publication d’un faux programme en production.
-- Le test visuel a révélé une superposition du bandeau de navigation avec la fenêtre de gestion. Les fenêtres du module sont désormais rendues directement sous `document.body` pour échapper au contexte de superposition de la page.
+- Après accord explicite de la propriétaire, les migrations v38 et v38b et la nouvelle fonction `notify-admin` sont installées. Le bucket `program-documents` est public, limité aux PDF de 10 Mo et aux dépôts dans le dossier du compte ; les déclencheurs et le rappel sont actifs.
+- 65 tests automatisés réussis, compilation Vite réussie. Le test réel du rappel a révélé un conflit de nom entre un alias SQL et une variable PL/pgSQL ; la correction est appliquée et couverte par un test de mise en file, absence de doublon, confirmation HTTP et exclusion des programmes archivés.
+- Préversion vérifiée dans le navigateur : connexion administrateur, dépôt privé avec image et logement, réception dans Gestion, justification obligatoire du refus, aperçu personnalisé, actualisation des disponibilités, téléversement d’une brochure et ouverture de son lien public.
+- Un refus personnalisé a été transmis depuis Gestion. Les notifications de dépôt, refus, validation, contact et rappel ont chacune reçu un HTTP 200 avec `accepted: true` du service email, uniquement à `contact@sokile.com`. Cela confirme leur acceptation par le fournisseur, pas leur arrivée dans la boîte de réception.
+- La validation, l’expiration à un an, la demande de contact et le rappel après vieillissement de l’inventaire ont aussi été exercés dans une transaction sur le dossier fictif. Celui-ci a été archivé avant la validation de la transaction : il n’a jamais été visible dans le catalogue. Le rappel est marqué envoyé après une seule tentative ; un passage suivant n’a pas ajouté de doublon.
+- Le dossier `TEST SOKILE — programme privé à archiver` est archivé. Son contact de test est marqué traité. Aucun programme fictif ne reste public.
+- Les fenêtres du module sont rendues sous `document.body` pour rester au-dessus de la navigation ; le résultat a été contrôlé visuellement.
+- La diffusion de l’interface passe par la PR #19 et le déploiement Vercel de `main`. Les fonctions payantes restent désactivées.

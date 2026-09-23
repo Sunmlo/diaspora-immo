@@ -77,4 +77,23 @@ test('liens dangereux, photo absente et retrait de programme',async()=>{
  const id=await create({...program,gallery:[]});await assert.rejects(approve(id));
  const otherId=await create();await approve(otherId);await as(owner,()=>q('select sokile_program_inventory($1,$2,true)',[otherId,[]]));assert.equal((await q('select * from public_programs where id=$1',[otherId])).length,0);
 });
+test('rappel : mise en file après 90 jours, absence de doublon et confirmation HTTP',async()=>{
+ await db.exec(`create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(bucket_id text,name text);create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;create function storage.extension(text) returns text language sql as $$select 'pdf'::text$$;
+ create schema vault;create table vault.decrypted_secrets(name text,decrypted_secret text);insert into vault.decrypted_secrets values('sokile_webhook_secret','local-test-only');
+ create schema net;create table net._http_response(id bigint,status_code integer,content text);create table net.test_requests(id bigserial primary key,body jsonb);create function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language sql as $$insert into net.test_requests(body) values($3) returning id$$;
+ create schema cron;create function cron.schedule(text,text,text) returns bigint language sql as $$select 1::bigint$$;create function public.sokile_notify_admin_webhook() returns trigger language plpgsql as $$begin return new;end$$;`);
+ await db.exec(await readFile(new URL('../supabase-v38b-program-integrations.sql',import.meta.url),'utf8'));
+ const id=await create();await approve(id);
+ await q("update development_programs set inventory_updated_at=now()-interval '91 days' where id=$1",[id]);
+ await assert.rejects(as(owner,()=>q('select sokile_program_reminders()')));
+ assert.equal((await q('select sokile_program_reminders() as n'))[0].n,1);
+ assert.equal((await q('select sokile_program_reminders() as n'))[0].n,0);
+ const [job]=await q('select * from program_reminder_jobs where program_id=$1',[id]);assert.equal(job.attempts,1);assert.equal(job.payload.record.email,'owner@example.test');
+ await q('insert into net._http_response values($1,200,$2)',[job.request_id,JSON.stringify({accepted:true})]);
+ assert.equal((await q('select sokile_program_reminders() as n'))[0].n,0);
+ assert.ok((await q('select sent_at from program_reminder_jobs where id=$1',[job.id]))[0].sent_at);
+ await q("update development_programs set inventory_updated_at=now()-interval '92 days',status='archive' where id=$1",[id]);
+ assert.equal((await q('select sokile_program_reminders() as n'))[0].n,0);
+ assert.equal((await q('select count(*) from net.test_requests'))[0].count,1);
+});
 test.after(async()=>db.close());

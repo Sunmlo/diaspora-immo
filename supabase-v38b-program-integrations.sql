@@ -19,7 +19,7 @@ revoke all on public.program_reminder_jobs from public,anon,authenticated;
 grant all on public.program_reminder_jobs to service_role;
 create or replace function public.sokile_program_reminders() returns integer
 language plpgsql security definer set search_path=public,net,vault as $$
-declare j record;secret text;request bigint;queued integer:=0;
+declare job_row record;secret text;request bigint;queued integer:=0;
 begin
  -- Un seul job à la fois ; le résultat HTTP est contrôlé au passage suivant.
  if not pg_try_advisory_xact_lock(380023) then return 0;end if;
@@ -31,11 +31,11 @@ begin
  where p.inventory_updated_at<now()-interval '90 days' on conflict do nothing;
  select decrypted_secret into secret from vault.decrypted_secrets where name='sokile_webhook_secret' limit 1;
  if secret is null then raise exception 'Configuration email indisponible.';end if;
- for j in select r.* from public.program_reminder_jobs r join public.public_programs v on v.id=r.program_id join public.development_programs p on p.id=r.program_id join auth.users a on a.id=p.owner_id
+ for job_row in select r.* from public.program_reminder_jobs r join public.public_programs v on v.id=r.program_id join public.development_programs p on p.id=r.program_id join auth.users a on a.id=p.owner_id
  where r.sent_at is null and r.inventory_at=p.inventory_updated_at and a.email=p.email and a.email_confirmed_at is not null
  and r.attempts<3 and (r.first_attempt_at is null or r.first_attempt_at>now()-interval '23 hours') and (r.last_attempt_at is null or r.last_attempt_at<now()-interval '20 minutes') order by r.created_at limit 20 loop
-   select net.http_post(url:='https://nhyejaubfxjmmuvetayw.supabase.co/functions/v1/notify-admin',headers:=jsonb_build_object('Content-Type','application/json','x-webhook-secret',secret),body:=j.payload,timeout_milliseconds:=10000) into request;
-   update public.program_reminder_jobs set request_id=request,attempts=attempts+1,first_attempt_at=coalesce(first_attempt_at,now()),last_attempt_at=now() where id=j.id;
+   select net.http_post(url:='https://nhyejaubfxjmmuvetayw.supabase.co/functions/v1/notify-admin',headers:=jsonb_build_object('Content-Type','application/json','x-webhook-secret',secret),body:=job_row.payload,timeout_milliseconds:=10000) into request;
+   update public.program_reminder_jobs set request_id=request,attempts=attempts+1,first_attempt_at=coalesce(first_attempt_at,now()),last_attempt_at=now() where id=job_row.id;
    queued:=queued+1;
  end loop;
  return queued;
