@@ -55,7 +55,7 @@ function Purchase({ state, update, useBudget, onFindPro }) {
       <div className="sim-form">
         <Field label="Prix du bien" value={values.price} onChange={v => update('purchase', 'price', v)} suffix={unit} />
         <div className="sim-section-heading"><h4>Les frais à prévoir</h4><span>{known.length} / {COSTS.length} renseignés</span></div>
-        <p className="sim-help">Les frais d’acquisition dépendent de votre opération en {country}. Saisissez le décompte de votre notaire ou votre propre estimation : aucun ancien barème fiscal n’est appliqué automatiquement.</p>
+        <p className="sim-help">Les frais d’acquisition dépendent du pays et de votre opération. Saisissez un décompte local ou une estimation à faire confirmer par votre notaire.</p>
         {COSTS.map(([key, label, hint]) => <div className="sim-cost" key={key}>
           <Field label={label} value={values[key]} onChange={v => update('purchase', key, v)} suffix={unit} hint={hint} />
           {nums[key] !== null && Number.isFinite(nums[key]) ? <label className="sim-check"><input type="checkbox" checked={confirmed[key]} onChange={e => update('confirmed', key, e.target.checked)} />Montant confirmé par mes informations ou mon devis</label> : <span className="sim-status">À chiffrer</span>}
