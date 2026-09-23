@@ -14,6 +14,7 @@ const types = {
   properties: { label: "annonce", accepted: "validee", refused: "rejetee" },
   professionals: { label: "fiche prestataire", accepted: "validee", refused: "refusee" },
   advertising_requests: { label: "demande de publicité", accepted: "acceptee", refused: "refusee" },
+  development_programs: { label: "programme neuf", accepted: "validee", refused: "refusee" },
 };
 const oneLine = value => String(value || "").replace(/[\r\n\u0000-\u001f\u007f]/g, " ").trim();
 export function moderationResponse(table, record) {
@@ -43,7 +44,9 @@ export function buildDecisionMessage(table, record) {
       ? `Nous avons besoin de précisions pour poursuivre l'examen de votre ${type.label} « ${title} ».`
       : table === "advertising_requests"
         ? `Votre demande de publicité « ${title} » a été acceptée. L'équipe Sokilé vous contactera pour organiser la diffusion.`
-        : `Votre ${type.label} « ${title} » a été validée et publiée sur Sokilé.`;
+        : table === "development_programs"
+          ? `Votre programme neuf « ${title} » a été validé et publié sur Sokilé.`
+          : `Votre ${type.label} « ${title} » a été validée et publiée sur Sokilé.`;
   return {
     to: [email], reply_to: "contact@sokile.com",
     subject: `Sokilé — ${decision} de votre ${type.label} : ${title}`,
@@ -51,6 +54,8 @@ export function buildDecisionMessage(table, record) {
       refused || incomplete ? response : "",
       accepted && table === "properties" && record.expires_at
         ? `Votre annonce reste publiée jusqu'au ${new Date(record.expires_at).toLocaleDateString("fr-FR", { timeZone: "UTC" })} (${(record.transaction || (/location/i.test(record.type || "") ? "location" : "vente")) === "location" ? "6 mois" : "1 an"}). À cette date, elle sera retirée de la recherche. Vous pourrez la soumettre à nouveau depuis votre compte si le bien est toujours disponible.` : "",
+      accepted && table === "development_programs" && record.expires_at
+        ? `Votre programme reste publié jusqu'au ${new Date(record.expires_at).toLocaleDateString("fr-FR", { timeZone: "UTC" })} (1 an). Actualisez les disponibilités depuis « Mon compte → Mes programmes neufs ». Un programme entièrement vendu est retiré de la recherche.` : "",
       "Retrouvez la décision dans votre compte : https://www.sokile.com/?tab=compte",
       "Pour échanger avec nous, répondez directement à cet email.", "L'équipe Sokilé",
     ].filter(Boolean).join("\n\n"),

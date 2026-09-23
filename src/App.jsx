@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
+import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
 import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
 import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
@@ -1266,6 +1267,9 @@ const cheminGuide = (g) => `/guide/${g.id}`;
 
 function lireRoute() {
   if (typeof window === "undefined") return { nom: "accueil" };
+  if(window.location.pathname==="/programmes-neufs") return {nom:"programmes"};
+  const programme=window.location.pathname.match(/^\/programme\/([0-9a-f-]+)\/?$/i);
+  if(programme) return {nom:"programme",id:programme[1]};
   const annonce = window.location.pathname.match(/^\/annonce\/([^/?#]+)/);
   if (annonce) return { nom:"annonce", id:decodeURIComponent(annonce[1]) };
   const guide = window.location.pathname.match(/^\/guide\/([^/?#]+)/);
@@ -1689,6 +1693,16 @@ async function ecrireAuth(chemin, donnees, token, methode="POST") {
 }
 
 const alertRpc = (name, data, token=SUPABASE_KEY) => ecrireAuth(`rpc/${name}`,data,token);
+async function uploadProgramDocument(file,user) {
+  if(file.type!=="application/pdf"||file.size>10*1024*1024)throw new Error("Choisissez un PDF de 10 Mo maximum.");
+  const prefix=new Uint8Array(await file.slice(0,5).arrayBuffer());
+  if(String.fromCharCode(...prefix)!=="%PDF-")throw new Error("Le fichier ne semble pas être un PDF valide.");
+  const path=`${user.id}/${crypto.randomUUID()}.pdf`;
+  const response=await fetch(`${SUPABASE_URL}/storage/v1/object/program-documents/${path}`,{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${user.token}`,"Content-Type":"application/pdf"},body:file});
+  if(!response.ok)throw new Error("Le document n’a pas pu être envoyé. Réessayez.");
+  return `${SUPABASE_URL}/storage/v1/object/public/program-documents/${path}`;
+}
+const programApi={load:lire,rpc:alertRpc,uploadPhotos:envoyerPhotos,uploadDocument:uploadProgramDocument};
 
 const peutRediger = (user) => isAdminSession(user, EMAIL_REDACTION);
 
@@ -1913,6 +1927,7 @@ async function appelerFonction(nom, token) {
 
 const RUBRIQUES_ADMIN = [
   {id:"moderation",   label:"Annonces"},
+  {id:"programmes",   label:"Programmes neufs"},
   {id:"demandes",     label:"Demandes"},
   {id:"publicites",   label:"Publicités"},
   {id:"prestataires", label:"Prestataires"},
@@ -1921,7 +1936,7 @@ const RUBRIQUES_ADMIN = [
   {id:"apercu",       label:"Aperçu"},
 ];
 
-function EspaceAdmin({ user, onApercu, apercu }) {
+function EspaceAdmin({ user, onApercu, apercu, onProgramNew, onProgramEdit, programRefresh }) {
   const [rub, setRub] = useState("moderation");
   if (!estAdmin(user)) return null;
   return (
@@ -1936,6 +1951,7 @@ function EspaceAdmin({ user, onApercu, apercu }) {
         ))}
       </div>
       {rub==="moderation"&&<AdminModeration user={user}/>}
+      {rub==="programmes"&&<ProgramManager api={programApi} user={user} admin onNew={onProgramNew} onEdit={onProgramEdit} refreshKey={programRefresh}/>}
       {rub==="demandes"&&<AdminDemandes user={user}/>}
       {rub==="publicites"&&<AdminPublicites user={user}/>}
       {rub==="prestataires"&&<AdminPrestataires user={user}/>}
@@ -3250,6 +3266,7 @@ export default function App() {
 
 function SokileApp() {
   const [tab, setTab] = useState(() => {
+    if(window.location.pathname.startsWith("/programme"))return "biens";
     const requested = new URLSearchParams(window.location.search).get("tab");
     return ["accueil","biens","prestataires","guides","pro","compte"].includes(requested) ? requested : "accueil";
   });
@@ -3286,6 +3303,7 @@ function SokileApp() {
   const [clock,setClock]=useState(Date.now());
   const [directProp,setDirectProp]=useState(null),[directLoading,setDirectLoading]=useState(false),[directError,setDirectError]=useState(false);
   const [alertsRefresh,setAlertsRefresh]=useState(0);
+  const [programEditor,setProgramEditor]=useState(null),[programRefresh,setProgramRefresh]=useState(0);
   useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),30000);return()=>clearInterval(timer);},[]);
   const [editingProp,setEditingProp] = useState(null);
   const [myPropsRefresh,setMyPropsRefresh] = useState(0);
@@ -3416,6 +3434,9 @@ function SokileApp() {
     }
     setAnimIn(false); setTimeout(()=>{setTab(t);setAnimIn(true);},150);
   };
+  const openProgram=id=>{window.history.pushState({},"",`/programme/${id}`);setRoute({nom:"programme",id});setTab("biens");window.scrollTo(0,0);};
+  const openPrograms=()=>{window.history.pushState({},"","/programmes-neufs");setRoute({nom:"programmes"});setTab("biens");window.scrollTo(0,0);};
+  const newProgram=()=>{if(!vu){setShowLogin(true);return;}setProgramEditor({});};
   const handleSave = (p) => {
     if (!user) { setShowLogin(true); return; }
     setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
@@ -3498,6 +3519,7 @@ button,input,select,textarea{font-size:inherit}
 .sok-segment button:hover{background:#F5F0E8}
 .sok-segment button.on{background:#1A3C2E;color:#fff}
 .sok-segment button.on:hover{background:#1A3C2E}
+.sok-neuf-short{display:none}
 
 /* le champ de recherche */
 .sok-rech-champ{flex:1 1 240px;display:flex;align-items:center;gap:9px;
@@ -3582,6 +3604,7 @@ button,input,select,textarea{font-size:inherit}
   .sok-recherche{top:70px}
   .sok-segment{width:100%}
   .sok-segment button{flex:1;padding:9px 6px;text-align:center}
+  .sok-neuf-long{display:none}.sok-neuf-short{display:inline}
   .sok-rech-filtres{flex:1;justify-content:center;padding:11px 17px}
 }
 
@@ -3694,6 +3717,8 @@ button,input,select,textarea{font-size:inherit}
         })()}
 
         {route.nom==="guide"&&<GuidePage guide={GUIDES.find(g=>g.id===route.id)} onBack={quitterGuide} onFindPro={()=>{quitterGuide();switchTab("prestataires");}}/>}
+        {route.nom==="programmes"&&<ProgramList api={programApi} onOpen={openProgram} onNew={newProgram} onBack={()=>switchTab("biens")}/>}
+        {route.nom==="programme"&&<ProgramPage id={route.id} api={programApi} user={vu} onBack={openPrograms}/>}
 
         {/* ── ACCUEIL ── */}
         {route.nom==="accueil"&&tab==="accueil"&&(
@@ -3713,6 +3738,7 @@ button,input,select,textarea{font-size:inherit}
                 <button key={l} onClick={()=>{action();switchTab("biens");}} style={chipBase(actif)}>{l}</button>
               ))}
               <button onClick={()=>{setFilterVerified(!filterVerified);switchTab("biens");}} style={chipBase(filterVerified)}>Annonces modérées</button>
+              <button onClick={openPrograms} style={chipBase(false)}>Programmes neufs</button>
             </div>
 
             {/* Les bénéfices clés remplacent les statistiques tant que la plateforme est en lancement */}
@@ -3734,6 +3760,7 @@ button,input,select,textarea{font-size:inherit}
               {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={ouvrirAnnonce} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
 
+            <ProgramHome api={programApi} onOpen={openProgram} onAll={openPrograms}/>
             <div className="sok-home-actions">
             {/* CTA */}
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,borderRadius:"14px",padding:"22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"16px",flexWrap:"wrap",boxShadow:"0 12px 28px rgba(16,39,31,.14)"}}>
@@ -3837,6 +3864,7 @@ button,input,select,textarea{font-size:inherit}
                   {[["tous","Tout"],["vente","Acheter"],["location","Louer"]].map(([k,l])=>(
                     <button key={k} className={filterTransaction===k?"on":""} onClick={()=>setFilterTransaction(k)}>{l}</button>
                   ))}
+                  <button onClick={openPrograms} aria-label="Programmes neufs"><span className="sok-neuf-long">Programmes neufs</span><span className="sok-neuf-short">Neuf</span></button>
                 </div>
                 <div className="sok-rech-champ">
                   <span className="loupe" aria-hidden="true">⌕</span>
@@ -4050,6 +4078,8 @@ button,input,select,textarea{font-size:inherit}
                   </div>
                 </button>
                 {/* Proposer un service */}
+                <button onClick={newProgram} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:8,padding:14,textAlign:"left",cursor:"pointer",fontFamily:F,fontWeight:700}}>Présenter un programme neuf <span style={{display:"block",fontWeight:400,fontSize:13}}>Résidence, logements, plans et disponibilités · Gratuit au lancement</span></button>
+                {/* Proposer un service */}
                 <button onClick={()=>vu?setShowServiceForm(true):setShowLogin(true)} style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>🛠️</div>
                   <div>
@@ -4087,7 +4117,7 @@ button,input,select,textarea{font-size:inherit}
 
         {/* ── COMPTE ── */}
         {route.nom==="accueil"&&tab==="admin"&&estAdmin(user)&&!apercu&&(
-          <EspaceAdmin user={user} apercu={apercu} onApercu={v=>{setApercu(v); if(v) switchTab("accueil");}}/>
+          <EspaceAdmin user={user} apercu={apercu} onApercu={v=>{setApercu(v); if(v) switchTab("accueil");}} onProgramNew={newProgram} onProgramEdit={setProgramEditor} programRefresh={programRefresh}/>
         )}
 
         {route.nom==="accueil"&&tab==="compte"&&(
@@ -4136,6 +4166,7 @@ button,input,select,textarea{font-size:inherit}
                     <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
                     <MesDemandesPro user={vu}/>
                     <MesAlertes user={vu} load={lire} rpc={alertRpc} refreshKey={alertsRefresh}/>
+                    <ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={setProgramEditor} refreshKey={programRefresh}/>
                     {/* Autres items */}
                     {[{label:"Messages agents",value:"Fonctionnalité à venir"}].map(item=>(
                     <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
@@ -4198,6 +4229,7 @@ button,input,select,textarea{font-size:inherit}
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {showServiceForm&&vu&&<ServiceFormModal onClose={()=>setShowServiceForm(false)} user={vu}/>} 
       {showPub&&vu&&<PubFormModal onClose={()=>setShowPub(false)} user={vu}/>} 
+      {programEditor&&vu&&<ProgramEditor api={programApi} user={vu} existing={programEditor} onClose={()=>setProgramEditor(null)} onSaved={()=>setProgramRefresh(x=>x+1)}/>}
     </div>
   );
 }
