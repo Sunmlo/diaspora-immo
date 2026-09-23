@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
-import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession } from "./auth-session.mjs";
+import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
 import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
 const C = {
@@ -3298,16 +3298,12 @@ function SokileApp() {
   useEffect(()=>{
     if (!user) return;
     if (!user.refresh_token) { setUser(null); return; }
-    refreshSession(user.refresh_token).then(d=>{
-      if (d?.access_token && d?.user) {
-        const m=d.user.user_metadata||{};
-        setUser(u=>({...u,id:d.user.id,email:d.user.email||u.email,name:m.name||u.name,account_type:m.account_type||u.account_type,agency:m.agency||u.agency,phone:m.phone||u.phone,token:d.access_token,refresh_token:d.refresh_token||u.refresh_token}));
-      } else {
-        // Une session locale sans nouveau jeton valide ne doit jamais être
-        // présentée comme connectée : elle provoquerait des requêtes 401.
-        setUser(null);
-      }
-    }).catch(()=>setUser(null));
+    const requestedToken=user.refresh_token;
+    let active=true;
+    refreshSession(requestedToken).then(d=>{
+      if(active)setUser(u=>applySessionRefresh(u,requestedToken,d));
+    }).catch(()=>{if(active)setUser(u=>applySessionRefresh(u,requestedToken,null));});
+    return()=>{active=false;};
   }, []);
 
   // La base retire les annonces expirées, l'interface suit aussi l'échéance si elle reste ouverte.

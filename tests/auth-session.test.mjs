@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readAuthResponse, userSessionFromAuth, isAdminSession } from "../src/auth-session.mjs";
+import { readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "../src/auth-session.mjs";
 
 const reply = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const valid = { user: { id: "synthetic-user", email: " Contact@Sokile.com ", user_metadata: { name: "Test" } }, access_token: "synthetic-access", refresh_token: "synthetic-refresh" };
@@ -39,4 +39,19 @@ test("email confirmation failure has a useful message and no session", async () 
   const data = await readAuthResponse(reply(400, { error_code: "email_not_confirmed" }));
   assert.match(data.error.message, /Confirmez/);
   assert.equal(userSessionFromAuth(data), null);
+});
+
+test("a delayed refresh cannot restore a signed-out session", () => {
+  assert.equal(applySessionRefresh(null, valid.refresh_token, valid), null);
+});
+test("a delayed success or error cannot replace a newer sign-in", () => {
+  const current = { ...userSessionFromAuth(valid), refresh_token:"synthetic-newer" };
+  assert.equal(applySessionRefresh(current, valid.refresh_token, valid), current);
+  assert.equal(applySessionRefresh(current, valid.refresh_token, null), current);
+});
+test("refresh updates only the session that requested it", () => {
+  const current = userSessionFromAuth(valid);
+  const refreshed = { ...valid, access_token:"synthetic-rotated-access", refresh_token:"synthetic-rotated-refresh" };
+  assert.deepEqual(applySessionRefresh(current, valid.refresh_token, refreshed), userSessionFromAuth(refreshed));
+  assert.equal(applySessionRefresh(current, valid.refresh_token, null), null);
 });
