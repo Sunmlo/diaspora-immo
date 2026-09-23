@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { Simulateurs } from "./simulations.jsx";
+import { initialSimulation, simulationFromListing } from "./simulations.mjs";
 import { listingForm, splitPhone, propertyNature, propertyTransaction, contactError, websiteUrl, photoUrlsInOrder, readAllProperties } from "./form-fields.mjs";
 import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
@@ -1079,172 +1081,6 @@ function caracteristiques(p) {
 }
 const libelleTransaction = (p) => transactionDe(p) === "location" ? "Location" : "Vente";
 
-// ─── BARÈMES DES SIMULATEURS ──────────────────────
-// Chaque chiffre affiché ici doit pouvoir être retrouvé dans une source
-// publique, citée sous le résultat. Là où aucune source fiable n'a été
-// trouvée, le simulateur n'affiche AUCUN chiffre et le dit : sur un achat
-// immobilier à distance, un nombre inventé coûte plus cher qu'un blanc.
-//
-// fiabilite : "solide"  → deux sources concordantes, dont une officielle
-//                          ou professionnelle récente
-//             "reserve" → une seule source, ou source ancienne
-//             "aucune"  → sources contradictoires ou introuvables : on n'affiche rien
-//
-// Recherche menée le 21 septembre 2026. À revoir chaque année : les lois de
-// finances modifient ces taux.
-
-const FCFA = 655.957;   // parité fixe du franc CFA
-
-// Sources citées plusieurs fois
-const SRC = {
-  db: (pays, code) => ({l:`Banque mondiale, Doing Business 2020 — ${pays}`, u:`https://archive.doingbusiness.org/content/dam/doingBusiness/country/${code}.pdf`, a:"données arrêtées en 2019"}),
-};
-
-const BAREMES = {
-  "Sénégal": {
-    fiabilite:"solide",
-    enregistrement:{mode:"taux", taux:5},
-    notaire:{mode:"tranches", tranches:[[20000000,4.5],[80000000,3],[300000000,1.5],[null,0.75]],
-             reserve:"Barème du décret n° 2006-1366. Une source plus récente en décrit un autre : à faire confirmer par la Chambre des notaires."},
-    annexes:{mode:"taux", taux:0.9, libelle:"Publicité foncière"},
-    sources:[
-      {l:"PwC Worldwide Tax Summaries — Sénégal", u:"https://taxsummaries.pwc.com/senegal/corporate/other-taxes", a:"mis à jour en août 2026"},
-      SRC.db("Sénégal","s/senegal/SEN"),
-    ],
-  },
-  "Côte d'Ivoire": {
-    fiabilite:"solide",
-    enregistrement:{mode:"taux", taux:4},
-    notaire:{mode:"tranches", tranches:[[10000000,3],[30000000,2],[90000000,1],[null,0.5]],
-             reserve:"Les deux sources divergent sur la deuxième tranche, 1,5 % ou 2 %. Nous retenons la plus élevée, pour ne pas sous-estimer votre budget."},
-    annexes:{mode:"taux", taux:1.2, libelle:"Taxe de service et conservation foncière"},
-    note:"À la revente, c'est le vendeur qui acquitte 3 % d'impôt sur la plus-value.",
-    sources:[
-      {l:"PwC Worldwide Tax Summaries — Côte d'Ivoire", u:"https://taxsummaries.pwc.com/ivory-coast/corporate/other-taxes", a:"mis à jour en septembre 2026"},
-      SRC.db("Côte d'Ivoire","c/cote-divoire/CIV"),
-    ],
-  },
-  "Gabon": {
-    fiabilite:"solide",
-    enregistrement:{mode:"taux", taux:6, majorationVille:2,
-                    libelleVille:"Bien situé à Libreville ou Port-Gentil (+2 %)"},
-    notaire:null,
-    annexes:{mode:"taux", taux:1.6, libelle:"Enregistrement et évaluation domaniale"},
-    note:"Vendu par un promoteur assujetti, le bien supporte en outre 18 % de TVA. Nous n'avons trouvé aucun barème notarial gabonais : les émoluments du notaire ne sont pas comptés ci-dessus.",
-    sources:[
-      {l:"Direction générale des impôts du Gabon — Droits d'enregistrement", u:"https://dgi.ga/entreprises/imposition-des-entreprises-individuelles/droits-denregistrement-et-de-timbre/", a:"site de l'administration fiscale"},
-      SRC.db("Gabon","g/gabon/GAB"),
-    ],
-  },
-  "Cameroun": {
-    fiabilite:"reserve",
-    enregistrement:{mode:"nature", taux:{bati:10, terrain:5}},
-    notaire:{mode:"tranches", tranches:[[3000000,4],[10000000,3],[25000000,1.5],[50000000,0.75],[null,0.5]],
-             reserve:"Décret n° 95/038, modifié en juillet 2019 : le barème ci-dessus peut être dépassé."},
-    annexes:{mode:"taux", taux:2, libelle:"Inscription au livre foncier"},
-    note:"Le taux dépend de la nature du bien : 10 % pour un immeuble bâti en ville, 5 % pour un terrain urbain ou un bâti rural, 2 % pour un terrain rural (article 543 du Code général des impôts).",
-    sources:[
-      {l:"Fiscalité immobilière au Cameroun (citant l'art. 543 du CGI)", u:"https://georgesbakang.over-blog.com/2022/06/fiscalite-immobiliere-au-cameroun.html", a:"2022"},
-      SRC.db("Cameroun","c/cameroon/CMR"),
-    ],
-  },
-  "Burkina Faso": {
-    fiabilite:"reserve",
-    enregistrement:{mode:"taux", taux:8},
-    notaire:{mode:"tranches", tranches:[[2500000,7],[5000000,5],[10000000,3],[null,1]]},
-    annexes:{mode:"taux", taux:1.05, libelle:"Publication"},
-    note:"Un régime de forfaits a existé pour les logements de moins de 20 millions FCFA. Nous n'avons pas pu vérifier s'il est toujours en vigueur : demandez-le à votre notaire.",
-    sources:[SRC.db("Burkina Faso","b/burkina-faso/BFA")],
-  },
-  "Mali": {
-    fiabilite:"reserve",
-    enregistrement:{mode:"taux", taux:7},
-    notaire:null,
-    annexes:{mode:"taux", taux:1.4, libelle:"Évaluation domaniale et livre foncier"},
-    note:"Le barème des notaires maliens est dégressif de 5,5 % à 1,75 %, mais les seuils de tranches nous manquent : les émoluments ne sont pas comptés ci-dessus.",
-    sources:[SRC.db("Mali","m/mali/MLI")],
-  },
-  "Niger": {
-    fiabilite:"reserve",
-    enregistrement:{mode:"forfait", tranches:[[5000000,200000],[10000000,350000],[20000000,600000],[30000000,1000000],[null,1500000]]},
-    notaire:null,
-    annexes:null,
-    note:"Le Niger applique un droit forfaitaire par tranche de valeur, et non un pourcentage : un bien à 6 millions FCFA supporte 5,8 % de droits, un bien à 100 millions n'en supporte que 1,5 %.",
-    sources:[SRC.db("Niger","n/niger/NER")],
-  },
-  "Tchad": {
-    fiabilite:"reserve",
-    enregistrement:{mode:"taux", taux:5},
-    notaire:null,
-    annexes:{mode:"taux", taux:0.4, libelle:"Livre foncier"},
-    note:"Les émoluments du notaire tchadien sont plafonnés — 500 000 FCFA au maximum pour un bien de 10 à 50 millions — donc très faibles rapportés au prix. Les mutations doivent être enregistrées dans les trois mois.",
-    sources:[SRC.db("Tchad","c/chad/TCD")],
-  },
-  "Centrafrique": {
-    fiabilite:"reserve",
-    enregistrement:{mode:"taux", taux:7.5},
-    notaire:{mode:"taux", taux:2},
-    annexes:{mode:"taux", taux:1.4, libelle:"Publicité foncière"},
-    sources:[SRC.db("Centrafrique","c/central-african-republic/CAF")],
-  },
-  "Bénin": {
-    fiabilite:"aucune",
-    raison:"Nous n'avons pas trouvé le tarif des droits d'enregistrement béninois, et la seule enquête disponible n'en relève aucun sur la vente d'immeuble — ce qui est atypique. Plutôt qu'un chiffre plausible, nous préférons ne rien afficher.",
-    sources:[SRC.db("Bénin","b/benin/BEN")],
-  },
-  "Togo": {
-    fiabilite:"aucune",
-    raison:"Deux cabinets togolais décrivent deux régimes incompatibles : un droit forfaitaire de 35 000 FCFA d'un côté, des taux proportionnels de l'autre. Nous ne pouvons pas trancher.",
-    note:"À la revente, le vendeur acquitte 7 % d'impôt sur la plus-value, avec un abattement après cinq ans de détention.",
-    sources:[
-      {l:"Étude notariale Komi Tsakadi — la nouvelle fiscalité du titre foncier", u:"https://notaire-tsakadi.tg/article/la-nouvelle-fiscalite-du-titre-foncier-immatriculation-morcellement-mutation", a:"arrêté de 2018"},
-      {l:"Cabinet Bokodjin — implications fiscales de la vente d'immeuble", u:"https://cabinetbokodjin.com/blog/detail/les-implications-fiscales-de-la-vente-dimmeuble-apres-le-deces-du-proprietaire-en-droit-togolais-tout-ce-quil-faut-savoir-2023-12-20-234624", a:"2023"},
-    ],
-  },
-  "Congo": {
-    fiabilite:"aucune",
-    raison:"Deux sources sérieuses décrivent deux régimes incompatibles — 8 % du prix d'un côté, des forfaits par zone de l'autre — et aucune ne décrit l'état du droit en 2026.",
-    sources:[
-      SRC.db("Congo","c/congo-rep/COG"),
-      {l:"PwC Worldwide Tax Summaries — République du Congo", u:"https://taxsummaries.pwc.com/republic-of-congo/corporate/other-taxes", a:"mis à jour en août 2026"},
-    ],
-  },
-};
-
-// Barème de tranches, calculé tranche par tranche comme le fait un notaire.
-function baremeTranches(montant, tranches) {
-  let bas = 0, total = 0;
-  for (const [plafond, taux] of tranches) {
-    const haut = plafond === null ? Infinity : plafond;
-    total += Math.max(0, Math.min(montant, haut) - bas) * taux / 100;
-    bas = haut;
-    if (montant <= haut) break;
-  }
-  return total;
-}
-
-// Barème forfaitaire : un montant fixe selon la tranche de valeur.
-function baremeForfait(montant, tranches) {
-  for (const [plafond, forfait] of tranches) {
-    if (plafond === null || montant <= plafond) return forfait;
-  }
-  return tranches[tranches.length - 1][1];
-}
-
-// Calcule un poste de frais, en euros. Renvoie null si le poste est inconnu.
-function posteFrais(regle, prixEur, options) {
-  if (!regle) return null;
-  const prixFcfa = prixEur * FCFA;
-  if (regle.mode === "taux") {
-    const majo = (regle.majorationVille && options.grandeVille) ? regle.majorationVille : 0;
-    return prixEur * (regle.taux + majo) / 100;
-  }
-  if (regle.mode === "nature")   return prixEur * (regle.taux[options.nature] ?? regle.taux.bati) / 100;
-  if (regle.mode === "tranches") return baremeTranches(prixFcfa, regle.tranches) / FCFA;
-  if (regle.mode === "forfait")  return baremeForfait(prixFcfa, regle.tranches) / FCFA;
-  return null;
-}
-
 // ─── ADRESSES DES ANNONCES ────────────────────────
 // Une annonce = une vraie page, partageable sur WhatsApp et indexable.
 const idPublic = (p) => String(p.id).startsWith("db-") ? String(p.id).slice(3) : `demo-${p.id}`;
@@ -1266,284 +1102,6 @@ function lireRoute() {
 
 function correspond(p, id) {
   return idPublic(p) === id || String(p.id) === id || String(p.id) === `db-${id}`;
-}
-
-
-// ─── SIMULATEURS ──────────────────────────────────
-
-const champSim = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"9px",padding:"12px 14px",fontSize:"16px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
-const labelSim = {fontSize:"12.5px",fontWeight:700,color:C.sub,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em"};
-const carteResultat = {background:`linear-gradient(160deg,${C.forest},${C.forestDark})`,borderRadius:"14px",padding:"20px",marginTop:"18px"};
-
-function LigneResultat({ label, valeur, fort }) {
-  return (
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:"12px",padding:fort?"12px 0 0":"6px 0",borderTop:fort?"1px solid rgba(255,255,255,0.18)":"none",marginTop:fort?"8px":0}}>
-      <span style={{fontSize:fort?"15px":"14px",color:fort?C.white:"rgba(255,255,255,0.7)",fontFamily:F,fontWeight:fort?700:400}}>{label}</span>
-      <span style={{fontSize:fort?"20px":"15px",color:fort?C.gold:"rgba(255,255,255,0.92)",fontFamily:F,fontWeight:700,whiteSpace:"nowrap"}}>{valeur}</span>
-    </div>
-  );
-}
-
-// D'où sortent les chiffres : affiché sous chaque résultat.
-function Sources({ bareme }) {
-  if (!bareme) return null;
-  const etiquette = {
-    solide:  {t:"Chiffres sourcés",              c:"#2E7D32", bg:"#E8F5E9", bord:"#C8E6C9"},
-    reserve: {t:"Chiffres à confirmer",          c:"#6D4C1B", bg:"#FFF8E1", bord:"#FFE082"},
-    aucune:  {t:"Nous n'avons pas de chiffre fiable", c:"#A93226", bg:"#FDEDEC", bord:"#F5B7B1"},
-  }[bareme.fiabilite];
-  const reserves = [bareme.notaire?.reserve, bareme.note, bareme.raison].filter(Boolean);
-  return (
-    <div style={{background:etiquette.bg,border:`1px solid ${etiquette.bord}`,borderRadius:"11px",padding:"14px 16px",marginTop:"14px"}}>
-      <div style={{fontSize:"12px",fontWeight:700,color:etiquette.c,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"8px"}}>{etiquette.t}</div>
-      {reserves.map((r,i)=>(
-        <p key={i} style={{margin:"0 0 8px",fontSize:"13.5px",color:C.dark,fontFamily:F,lineHeight:1.6}}>{r}</p>
-      ))}
-      <div style={{fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.7}}>
-        {bareme.sources.map((s,i)=>(
-          <div key={i}>
-            <a href={s.u} target="_blank" rel="noopener noreferrer" style={{color:C.forest,textDecoration:"underline"}}>{s.l}</a>
-            {s.a?` — ${s.a}`:""}
-          </div>
-        ))}
-      </div>
-      <p style={{margin:"9px 0 0",fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.6}}>
-        Ces montants sont une estimation, pas un devis. Seul un notaire du pays peut vous donner le chiffre exact pour votre bien.
-      </p>
-    </div>
-  );
-}
-
-// ── 1. Budget total d'achat ──
-function SimuBudget() {
-  const [prix, setPrix] = useState("");
-  const [pays, setPays] = useState("Sénégal");
-  const [devise, setDevise] = useState("EUR");
-  const [nature, setNature] = useState("bati");
-  const [grandeVille, setGrandeVille] = useState(false);
-
-  const p = parseFloat(String(prix).replace(/\s/g,"")) || 0;
-  const prixEur = devise === "EUR" ? p : p / FCFA;
-  const b = BAREMES[pays];
-  const connu = b.fiabilite !== "aucune";
-  const options = { nature, grandeVille };
-
-  const enr = connu ? posteFrais(b.enregistrement, prixEur, options) : null;
-  const not = connu ? posteFrais(b.notaire,        prixEur, options) : null;
-  const ann = connu ? posteFrais(b.annexes,        prixEur, options) : null;
-  const fraisTotal = [enr, not, ann].reduce((a,x)=>a+(x||0), 0);
-  const total = prixEur + fraisTotal;
-  const part = prixEur > 0 ? (fraisTotal / prixEur * 100) : 0;
-  const eur = (x) => fmtEUR(Math.round(x));
-
-  return (
-    <div>
-      <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-        Le prix affiché n'est jamais le prix payé. Ce calcul ajoute les droits d'enregistrement, les frais de notaire et les frais de publicité foncière du pays.
-      </p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
-        <div>
-          <label style={labelSim}>Prix du bien</label>
-          <div style={{display:"flex",gap:"8px"}}>
-            <input type="number" inputMode="numeric" placeholder="Ex : 45000" value={prix} onChange={e=>setPrix(e.target.value)} style={{...champSim,flex:1}}/>
-            <select value={devise} onChange={e=>setDevise(e.target.value)} style={{...champSim,width:"auto",flexShrink:0}} aria-label="Devise">
-              <option value="EUR">€</option><option value="XOF">FCFA</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label style={labelSim}>Pays</label>
-          <select value={pays} onChange={e=>setPays(e.target.value)} style={champSim}>
-            {Object.keys(BAREMES).map(k=><option key={k} value={k}>{k}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={labelSim}>Nature du bien</label>
-          <div style={{display:"flex",gap:"8px"}}>
-            {[["bati","Maison, appartement, immeuble"],["terrain","Terrain nu"]].map(([k,l])=>(
-              <button key={k} onClick={()=>setNature(k)} style={{flex:1,background:nature===k?C.forest:C.white,color:nature===k?C.white:C.dark,border:`1px solid ${nature===k?C.forest:C.sand}`,borderRadius:"10px",padding:"11px 12px",fontSize:"13.5px",fontWeight:nature===k?700:500,cursor:"pointer",fontFamily:F,transition:"all .15s"}}>{l}</button>
-            ))}
-          </div>
-        </div>
-        {b.enregistrement?.majorationVille && (
-          <label style={{display:"flex",alignItems:"center",gap:"9px",cursor:"pointer"}}>
-            <input type="checkbox" checked={grandeVille} onChange={e=>setGrandeVille(e.target.checked)} style={{width:17,height:17,accentColor:C.terra}}/>
-            <span style={{fontSize:"14.5px",color:C.dark,fontFamily:F}}>{b.enregistrement.libelleVille}</span>
-          </label>
-        )}
-      </div>
-
-      {p>0 && connu && (
-        <div style={carteResultat}>
-          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Budget à prévoir</div>
-          <LigneResultat label="Prix du bien" valeur={eur(prixEur)}/>
-          {enr!==null && <LigneResultat label="Droits d'enregistrement" valeur={eur(enr)}/>}
-          {not!==null ? <LigneResultat label="Frais de notaire" valeur={eur(not)}/>
-                      : <LigneResultat label="Frais de notaire" valeur="non chiffrés"/>}
-          {ann!==null && <LigneResultat label={b.annexes.libelle} valeur={eur(ann)}/>}
-          <LigneResultat label="Total à prévoir" valeur={eur(total)} fort/>
-          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.65)",fontFamily:F,lineHeight:1.6}}>
-            Soit {fmtXOF(Math.round(total*FCFA))}, dont {eur(fraisTotal)} de frais — {part.toFixed(1).replace(".",",")} % du prix.
-          </div>
-        </div>
-      )}
-      {p>0 && !connu && (
-        <div style={{...carteResultat,background:C.cream,border:`1px solid ${C.sand}`}}>
-          <div style={{fontSize:"15px",color:C.dark,fontFamily:F,lineHeight:1.65}}>
-            Nous préférons ne rien calculer pour ce pays plutôt que d'afficher un chiffre dont nous ne sommes pas sûrs. Demandez le détail des frais à un notaire local avant de signer.
-          </div>
-        </div>
-      )}
-      <Sources bareme={b}/>
-    </div>
-  );
-}
-
-// ── 2. Coût de construction ──
-// Aucune source officielle ne publie de prix au m² dans ces pays : les
-// instituts de statistique ne publient que des indices d'évolution. Le
-// simulateur part donc du prix que l'utilisateur s'est vu proposer.
-const REFERENCE_M2 = {
-  l: "Banque mondiale, Revue du secteur du logement en Côte d'Ivoire",
-  u: "https://documents1.worldbank.org/curated/en/291761545026488944/txt/Rapport-Logement-CdI-FINAL.txt",
-  a: "2017",
-};
-
-function SimuConstruction() {
-  const [surface, setSurface] = useState("");
-  const [prixM2, setPrixM2] = useState("");
-  const [devise, setDevise] = useState("XOF");
-  const s = parseFloat(surface) || 0;
-  const pm = parseFloat(String(prixM2).replace(/\s/g,"")) || 0;
-  const pm2Eur = devise === "EUR" ? pm : pm / FCFA;
-  const total = s * pm2Eur;
-  const postes = [["Gros œuvre",0.42],["Second œuvre",0.28],["Finitions",0.20],["Études et divers",0.10]];
-
-  return (
-    <div>
-      <p style={{margin:"0 0 14px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-        Vous avez un terrain et un devis ? Indiquez la surface et le prix au m² qu'on vous propose : le calcul donne le budget total et sa répartition entre les grands postes du chantier.
-      </p>
-      <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"11px",padding:"14px 16px",marginBottom:"16px"}}>
-        <div style={{fontSize:"13.5px",color:"#6D4C1B",fontFamily:F,lineHeight:1.65}}>
-          <strong>Pourquoi c'est à vous de saisir le prix au m².</strong> Aucun des douze pays ne publie de coût de construction officiel au mètre carré : les instituts nationaux ne publient que des indices d'évolution. Nous ne voulons pas inventer un prix moyen sur lequel vous engageriez des dizaines de millions.
-          <div style={{marginTop:"9px"}}>
-            Le seul repère publié que nous ayons trouvé : en Côte d'Ivoire, un prix de revient de <strong>115 000 à 150 000 FCFA/m²</strong> pour du logement social — <a href={REFERENCE_M2.u} target="_blank" rel="noopener noreferrer" style={{color:C.forest}}>{REFERENCE_M2.l}</a>, {REFERENCE_M2.a}. Données anciennes et limitées au logement social : à ne prendre que comme ordre de grandeur.
-          </div>
-        </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
-        <div>
-          <label style={labelSim}>Surface à construire (m²)</label>
-          <input type="number" inputMode="numeric" placeholder="Ex : 150" value={surface} onChange={e=>setSurface(e.target.value)} style={champSim}/>
-        </div>
-        <div>
-          <label style={labelSim}>Prix au m² qu'on vous propose</label>
-          <div style={{display:"flex",gap:"8px"}}>
-            <input type="number" inputMode="numeric" placeholder="Ex : 180000" value={prixM2} onChange={e=>setPrixM2(e.target.value)} style={{...champSim,flex:1}}/>
-            <select value={devise} onChange={e=>setDevise(e.target.value)} style={{...champSim,width:"auto",flexShrink:0}} aria-label="Devise">
-              <option value="XOF">FCFA</option><option value="EUR">€</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      {s>0 && pm>0 && (
-        <div style={carteResultat}>
-          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Budget de construction</div>
-          {postes.map(([nom,p])=>(
-            <LigneResultat key={nom} label={nom} valeur={fmtEUR(Math.round(total*p))}/>
-          ))}
-          <LigneResultat label={`Total pour ${s} m²`} valeur={fmtEUR(Math.round(total))} fort/>
-          <div style={{marginTop:"12px",fontSize:"13px",color:"rgba(255,255,255,0.65)",fontFamily:F,lineHeight:1.6}}>
-            Soit {fmtXOF(Math.round(total*FCFA))}. La répartition entre postes est une clé usuelle du bâtiment, pas une règle du pays.
-          </div>
-          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
-            Hors prix du terrain, viabilisation, clôture et honoraires d'architecte.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── 3. Ce que vous aurez réuni ──
-function SimuEpargne() {
-  const [deja, setDeja] = useState("");
-  const [mensuel, setMensuel] = useState("");
-  const [mois, setMois] = useState(36);
-  const d = parseFloat(deja) || 0, m = parseFloat(mensuel) || 0;
-  const montantInvalide = d<0 || m<0 || !Number.isFinite(d) || !Number.isFinite(m);
-  const verse = m * mois;
-  const total = d + verse;
-  const annees = Math.floor(mois/12), reste = mois%12;
-  const duree = annees > 0 ? `${annees} an${annees>1?"s":""}${reste?` et ${reste} mois`:""}` : `${mois} mois`;
-  const dateFin = new Date(); dateFin.setMonth(dateFin.getMonth()+mois);
-  const raccourcis = [12,24,36,60,84,120];
-
-  return (
-    <div>
-      <p style={{margin:"0 0 16px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-        Combien aurez-vous réuni ? Indiquez ce que vous avez déjà mis de côté, ce que vous pouvez épargner chaque mois, et l'échéance que vous vous fixez.
-      </p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr",gap:"14px"}}>
-        <div><label style={labelSim}>Déjà épargné (€)</label>
-          <input type="number" inputMode="numeric" min="0" placeholder="Ex : 8000" value={deja} onChange={e=>setDeja(e.target.value)} style={champSim}/></div>
-        <div><label style={labelSim}>Épargne mensuelle (€)</label>
-          <input type="number" inputMode="numeric" min="0" placeholder="Ex : 400" value={mensuel} onChange={e=>setMensuel(e.target.value)} style={champSim}/></div>
-        <div>
-          <label style={labelSim}>Horizon</label>
-          <div style={{display:"flex",gap:"7px",flexWrap:"wrap",marginBottom:"10px"}}>
-            {raccourcis.map(n=>(
-              <button key={n} onClick={()=>setMois(n)} style={{background:mois===n?C.forest:C.white,color:mois===n?C.white:C.dark,border:`1px solid ${mois===n?C.forest:C.sand}`,borderRadius:"20px",padding:"8px 15px",fontSize:"13.5px",fontWeight:mois===n?700:500,cursor:"pointer",fontFamily:F,transition:"all .15s"}}>
-                {n%12===0?`${n/12} an${n>12?"s":""}`:`${n} mois`}
-              </button>
-            ))}
-          </div>
-          <input type="range" min="6" max="180" step="1" value={mois} onChange={e=>setMois(parseInt(e.target.value))} style={{width:"100%",accentColor:C.terra}} aria-label="Nombre de mois"/>
-          <div style={{fontSize:"13.5px",color:C.sub,fontFamily:F,marginTop:"4px"}}>{mois} mois, soit {duree}</div>
-        </div>
-      </div>
-      {montantInvalide&&<p role="alert" style={{color:"#9B2C2C",fontFamily:F}}>Les montants doivent être positifs ou nuls.</p>}
-      {!montantInvalide&&(m>0||d>0) && (
-        <div style={carteResultat}>
-          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px"}}>Ce que vous aurez réuni</div>
-          <LigneResultat label="Déjà épargné" valeur={fmtEUR(Math.round(d))}/>
-          <LigneResultat label={`${mois} versements de ${fmtEUR(Math.round(m))}`} valeur={fmtEUR(Math.round(verse))}/>
-          <LigneResultat label={`Montant disponible en ${dateFin.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}`} valeur={fmtEUR(Math.round(total))} fort/>
-          <div style={{marginTop:"12px",fontSize:"13.5px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6}}>
-            Soit <strong style={{color:C.gold}}>{fmtXOF(Math.round(total*FCFA))}</strong> au terme de {duree}.
-          </div>
-          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.12)",fontSize:"13px",color:"rgba(255,255,255,0.7)",fontFamily:F,lineHeight:1.6}}>
-            Calcul sans intérêts ni inflation : c'est la somme de vos versements. Pensez à garder de côté les frais d'acquisition, que le premier simulateur chiffre.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const SIMULATEURS = [
-  {id:"budget",       titre:"Budget total d'achat", resume:"Le prix, plus tous les frais",       composant:SimuBudget},
-  {id:"construction", titre:"Coût de construction", resume:"Chiffrer un devis au m²",            composant:SimuConstruction},
-  {id:"epargne",      titre:"Épargne",             resume:"Ce que vous aurez réuni",            composant:SimuEpargne},
-];
-
-function Simulateurs() {
-  const [actif, setActif] = useState("budget");
-  const S = (SIMULATEURS.find(s=>s.id===actif)||SIMULATEURS[0]).composant;
-  return (
-    <div>
-      <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"6px",marginBottom:"18px"}}>
-        {SIMULATEURS.map(s=>(
-          <button key={s.id} onClick={()=>setActif(s.id)} style={{flexShrink:0,textAlign:"left",background:actif===s.id?C.forest:C.white,color:actif===s.id?C.white:C.dark,border:`1px solid ${actif===s.id?C.forest:C.sand}`,borderRadius:"11px",padding:"12px 16px",cursor:"pointer",fontFamily:F,minWidth:"170px"}}>
-            <div style={{fontSize:"14.5px",fontWeight:700,marginBottom:"2px"}}>{s.titre}</div>
-            <div style={{fontSize:"12.5px",opacity:0.72}}>{s.resume}</div>
-          </button>
-        ))}
-      </div>
-      <S/>
-    </div>
-  );
 }
 
 
@@ -2531,7 +2089,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
 }
 
 // ─── PROPERTY MODAL ───────────────────────────────
-function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
+function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
   const [img, setImg] = useState(0);
   const [signaler, setSignaler] = useState(false);
   useEffect(()=>{ setImg(0); }, [p?.id]);
@@ -2626,6 +2184,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
             <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
             <button onClick={shareWA} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Partager</button>
           </div>
+          {onBudget&&!p.demo&&transactionDe(p)==="vente"&&<button onClick={()=>onBudget(p)} style={{width:"100%",marginTop:10,background:C.forest,color:C.white,border:0,borderRadius:9,padding:14,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:F}}>Calculer mon budget pour ce bien →</button>}
           {onVerify&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
           {!p.demo&&(
             <div style={{marginTop:"14px",paddingTop:"13px",borderTop:`1px solid ${C.sand}`}}>
@@ -2646,7 +2205,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify }) {
 
 
 // ─── PAGE D'UNE ANNONCE ───────────────────────────
-function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires }) {
+function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires, onBudget }) {
   const [img, setImg] = useState(0);
   const [signaler, setSignaler] = useState(false);
   const [copie, setCopie] = useState(false);
@@ -2767,6 +2326,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires 
               <button onClick={()=>onSave&&onSave(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>{saved?"Enregistré":"Enregistrer"}</button>
               <button onClick={partager} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>{copie?"Lien copié !":"Partager"}</button>
             </div>
+            {onBudget&&!p.demo&&transactionDe(p)==="vente"&&<button onClick={()=>onBudget(p)} style={{width:"100%",marginTop:10,background:C.forest,color:C.white,border:0,borderRadius:9,padding:14,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:F}}>Calculer mon budget pour ce bien →</button>}
             {onVerify&&!p.demo&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
           </div>
         </aside>
@@ -3277,6 +2837,7 @@ function SokileApp() {
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
   const [sousOnglet, setSousOnglet] = useState("guides");
+  const [simulation, setSimulation] = useState(initialSimulation);
   // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
   const [apercu, setApercu] = useState("");
   const [filterCountry, setFilterCountry] = useState("Tous");
@@ -3437,6 +2998,11 @@ function SokileApp() {
       setRoute({nom:"accueil"});
     }
     setAnimIn(false); setTimeout(()=>{setTab(t);setAnimIn(true);},150);
+  };
+  const openBudget = p => {
+    setSimulation(simulationFromListing(p));
+    setSelectedProp(null); setSousOnglet("outils"); switchTab("guides");
+    window.scrollTo(0,0);
   };
   const openProgram=id=>{window.history.pushState({},"",`/programme/${id}`);setRoute({nom:"programme",id});setTab("biens");window.scrollTo(0,0);};
   const openPrograms=()=>{window.history.pushState({},"","/programmes-neufs");setRoute({nom:"programmes"});setTab("biens");window.scrollTo(0,0);};
@@ -3714,6 +3280,7 @@ button,input,select,textarea{font-size:inherit}
               onSave={handleSave}
               saved={savedProps.some(s=>s.id===bien.id)}
               onVerify={b=>{ quitterAnnonce(); openAnnuaire("Vérification terrain", b.country); }}
+              onBudget={openBudget}
               onVoir={ouvrirAnnonce}
               similaires={ALL_PROPS.filter(x=>x.country===bien.country && x.id!==bien.id).slice(0,3)}
             />
@@ -3802,7 +3369,7 @@ button,input,select,textarea{font-size:inherit}
                 <button onClick={()=>{setSousOnglet("outils");switchTab("guides");}} style={{border:0,borderRadius:14,padding:22,textAlign:"left",cursor:"pointer",background:`linear-gradient(145deg,${C.terra},#8F412A)`,color:C.white,fontFamily:F,boxShadow:"0 10px 24px rgba(184,92,58,.16)"}}>
                   <span style={{fontSize:28,display:"block",marginBottom:22}}>◒</span>
                   <strong style={{display:"block",fontFamily:FT,fontSize:21,fontWeight:500,marginBottom:7}}>Simulateurs</strong>
-                  <span style={{display:"block",fontSize:13.5,lineHeight:1.55,opacity:.8}}>Budget d'achat, construction et épargne.</span>
+                  <span style={{display:"block",fontSize:13.5,lineHeight:1.55,opacity:.8}}>Budget d’achat, rentabilité locative et épargne.</span>
                   <span style={{display:"block",marginTop:18,fontSize:13,fontWeight:800}}>Calculer →</span>
                 </button>
                 <button onClick={()=>{setSousOnglet("actu");switchTab("guides");}} style={{border:`1px solid ${C.sand}`,borderRadius:14,padding:22,textAlign:"left",cursor:"pointer",background:C.white,color:C.dark,fontFamily:F,boxShadow:"0 8px 20px rgba(28,26,23,.05)"}}>
@@ -4041,7 +3608,7 @@ button,input,select,textarea{font-size:inherit}
                 <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"22px"}}/>
               </>)}
 
-              {sousOnglet==="outils"&&<Simulateurs/>}
+              {sousOnglet==="outils"&&<Simulateurs state={simulation} setState={setSimulation} onFindPro={country=>openAnnuaire("Notaire",country)}/>}
               {sousOnglet==="docs"&&<Telechargements user={vu}/>}
               {sousOnglet==="actu"&&<Actualite user={vu}/>}
             </div>
@@ -4227,7 +3794,7 @@ button,input,select,textarea{font-size:inherit}
       </nav>
 
       {/* MODALS */}
-      <PropertyModal p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
+      <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>} 
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:filterVerified}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
