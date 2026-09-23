@@ -49,6 +49,8 @@ export function buildDecisionMessage(table, record) {
     subject: `Sokilé — ${decision} de votre ${type.label} : ${title}`,
     text: [name ? `Bonjour ${name},` : "Bonjour,", introduction,
       refused || incomplete ? response : "",
+      accepted && table === "properties" && record.expires_at
+        ? `Votre annonce reste publiée jusqu'au ${new Date(record.expires_at).toLocaleDateString("fr-FR", { timeZone: "UTC" })} (${(record.transaction || (/location/i.test(record.type || "") ? "location" : "vente")) === "location" ? "6 mois" : "1 an"}). À cette date, elle sera retirée de la recherche. Vous pourrez la soumettre à nouveau depuis votre compte si le bien est toujours disponible.` : "",
       "Retrouvez la décision dans votre compte : https://www.sokile.com/?tab=compte",
       "Pour échanger avec nous, répondez directement à cet email.", "L'équipe Sokilé",
     ].filter(Boolean).join("\n\n"),

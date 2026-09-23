@@ -1,0 +1,3 @@
+# L'ordonnanceur est authentifié par le secret de webhook existant.
+[functions.search-alerts]
+verify_jwt = false
