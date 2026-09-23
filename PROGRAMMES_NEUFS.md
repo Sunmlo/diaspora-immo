@@ -35,3 +35,16 @@ La qualité du déposant (`promoteur` / `agence`) et la propriété des programm
 Aucun tarif, abonnement ou prélèvement n’est activé par cette version. Définir les offres (publicité ponctuelle, visibilité, nombre d’annonces ou de programmes), les quotas, les conditions de renouvellement et le traitement des comptes existants avant d’ajouter un prestataire de paiement. Les droits d’abonnement devront provenir d’événements serveur validés, jamais d’un simple retour de page de paiement.
 
 Les alertes de recherche existantes concernent les annonces classiques ; elles ne sont pas étendues silencieusement aux programmes neufs.
+
+## État de l’activation
+
+Le 23 septembre 2026, la migration principale v38 et la nouvelle version de `notify-admin` ont été appliquées. L’exécution de v38b a été bloquée par la vérification automatique : une autorisation explicite est requise pour le stockage PDF public et les envois récurrents. Cette migration n’a pas été exécutée. La mise en production de l’interface reste en attente de cette autorisation ; la préversion permet les essais du dépôt et de la gestion des données déjà installées.
+
+
+## Vérifications réalisées le 23 septembre 2026
+
+- 64 tests automatisés réussis, y compris les contrôles PostgreSQL de propriété, de publication, d’expiration, de confidentialité et de recherche par logement. Compilation Vite réussie.
+- Préversion Vercel vérifiée derrière son accès protégé : ouverture de la rubrique, connexion administrateur, dépôt réel d’un dossier privé avec visuel et logement, réception dans Gestion, blocage du refus sans justification, aperçu de la réponse personnalisée et mise à jour d’une disponibilité.
+- Le dossier `TEST SOKILE — programme privé à archiver` a été archivé après les essais, sans publication. Aucun email de programme n’a été envoyé, les déclencheurs v38b étant absents.
+- Les essais du stockage PDF, de réception effective des emails, du rappel et la mise en production restent à réaliser après autorisation. La publication et le formulaire de contact ont été vérifiés dans PostgreSQL isolé, pas par publication d’un faux programme en production.
+- Le test visuel a révélé une superposition du bandeau de navigation avec la fenêtre de gestion. Les fenêtres du module sont désormais rendues directement sous `document.body` pour échapper au contexte de superposition de la page.
