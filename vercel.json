@@ -10,6 +10,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/programmes-neufs", "destination": "/index.html" },
+    { "source": "/programme/:id", "destination": "/index.html" },
     { "source": "/annonce/:id", "destination": "/index.html" },
     { "source": "/guide/:id", "destination": "/index.html" }
   ]
