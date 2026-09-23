@@ -3,6 +3,8 @@ import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
+import { PaymentsAdmin } from "./payments.jsx";
+import { paymentGateway } from "./payments.mjs";
 import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
 import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
@@ -1930,14 +1932,17 @@ const RUBRIQUES_ADMIN = [
   {id:"programmes",   label:"Programmes neufs"},
   {id:"demandes",     label:"Demandes"},
   {id:"publicites",   label:"Publicités"},
+  {id:"paiements",    label:"Paiements"},
   {id:"prestataires", label:"Prestataires"},
   {id:"actualites",   label:"Actualités"},
   {id:"chiffres",     label:"Chiffres"},
   {id:"apercu",       label:"Aperçu"},
 ];
 
+const billingApi={load:lire,rpc:(name,data,token)=>ecrireAuth(`rpc/${name}`,data,token),gateway:paymentGateway(SUPABASE_URL,SUPABASE_KEY)};
+
 function EspaceAdmin({ user, onApercu, apercu, onProgramNew, onProgramEdit, programRefresh }) {
-  const [rub, setRub] = useState("moderation");
+  const [rub, setRub] = useState(()=>new URLSearchParams(window.location.search).get("paiement")==="test"?"paiements":"moderation");
   if (!estAdmin(user)) return null;
   return (
     <div>
@@ -1954,6 +1959,7 @@ function EspaceAdmin({ user, onApercu, apercu, onProgramNew, onProgramEdit, prog
       {rub==="programmes"&&<ProgramManager api={programApi} user={user} admin onNew={onProgramNew} onEdit={onProgramEdit} refreshKey={programRefresh}/>}
       {rub==="demandes"&&<AdminDemandes user={user}/>}
       {rub==="publicites"&&<AdminPublicites user={user}/>}
+      {rub==="paiements"&&<PaymentsAdmin api={billingApi} user={user}/>}
       {rub==="prestataires"&&<AdminPrestataires user={user}/>}
       {rub==="actualites"&&<Actualite user={user}/>}
       {rub==="chiffres"&&<AdminChiffres user={user}/>}
@@ -4122,6 +4128,7 @@ button,input,select,textarea{font-size:inherit}
 
         {route.nom==="accueil"&&tab==="compte"&&(
           <div style={{paddingTop:"20px"}}>
+            {estAdmin(user)&&!apercu&&new URLSearchParams(window.location.search).get("paiement")==="test"&&<div className="sp"><div className="sp-note">Vous êtes de retour de l’essai de paiement. Consultez le résultat confirmé dans Gestion.<div className="sp-actions"><button onClick={()=>switchTab("admin")}>Voir les essais de paiement</button></div></div></div>}
             {!vu?(
               <div style={{textAlign:"center",padding:"48px 20px"}}>
                 <div style={{width:56,height:56,borderRadius:"50%",background:C.cream,border:`1px solid ${C.sand}`,margin:"0 auto 16px",display:"flex",alignItems:"center",justifyContent:"center",color:C.sub}}>{Icon.person}</div>
