@@ -95,3 +95,13 @@ test("les nouveaux dossiers continuent d'alerter uniquement l'administration", a
   await request({ ...decision("properties", "en_attente"), type: "INSERT" });
   assert.deepEqual(calls[0].message.to, ["contact@sokile.com"]);
 });
+
+test("les décisions négatives gardent un objet accueillant et la réponse personnalisée", () => {
+  for (const [table,status] of [["properties","rejetee"],["professionals","refusee"],["advertising_requests","refusee"],["development_programs","refusee"]]) {
+    const message=buildDecisionMessage(table,decision(table,status).record);
+    assert.match(message.subject,/Suivi/);
+    assert.doesNotMatch(message.subject+message.text,/refus|rejet/i);
+    assert.ok(message.text.includes(response));
+    assert.match(message.text,/suites possibles/);
+  }
+});
