@@ -1109,7 +1109,7 @@ function correspond(p, id) {
 
 
 // ─── OUTILS À TÉLÉCHARGER ─────────────────────────
-// Les fichiers sont déposés dans le bucket Supabase "documents".
+// Les ressources sont versionnées et publiées avec le site.
 const DOCUMENTS = [
   {
     id:"checklist-terrain",
@@ -1133,7 +1133,7 @@ const DOCUMENTS = [
     fichier:"questions-avant-signature.pdf",
   },
 ];
-const urlDocument = (f) => `${SUPABASE_URL}/storage/v1/object/public/documents/${f}`;
+const urlDocument = (f) => `/documents/${f}`;
 
 function Telechargements({ user }) {
   const [ouvert, setOuvert] = useState(null);
