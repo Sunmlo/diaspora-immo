@@ -37,9 +37,9 @@ export function buildDecisionMessage(table, record) {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Le dossier ne contient pas d'adresse email valide.");
   const name = oneLine(record.user_name || record.contact_name || record.business_name);
   const title = oneLine(record.title || record.business_name || record.company || record.format || `Dossier ${record.id}`);
-  const decision = refused ? "Refus" : incomplete ? "Précisions demandées" : "Validation";
+  const decision = refused ? "Suivi" : incomplete ? "Précisions demandées" : "Validation";
   const introduction = refused
-    ? `Après examen, nous ne pouvons pas accepter votre ${type.label} « ${title} » en l'état.`
+    ? `Merci pour votre confiance. La publication de votre ${type.label} « ${title} » n’est pas possible en l’état. Voici notre retour et les suites possibles.`
     : incomplete
       ? `Nous avons besoin de précisions pour poursuivre l'examen de votre ${type.label} « ${title} ».`
       : table === "advertising_requests"

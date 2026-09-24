@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Simulateurs } from "./simulations.jsx";
 import { initialSimulation, simulationFromListing } from "./simulations.mjs";
-import { listingForm, splitPhone, propertyNature, propertyTransaction, contactError, websiteUrl, photoUrlsInOrder, readAllProperties } from "./form-fields.mjs";
+import { listingForm, splitPhone, normalizePhone, propertyNature, propertyTransaction, contactError, websiteUrl, photoUrlsInOrder, readAllProperties, isDocumentAvailable } from "./form-fields.mjs";
 import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
-import { normalizeEmail, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
+import { normalizeEmail, authFormError, authCallbackState, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
 import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
 const C = {
@@ -392,7 +392,7 @@ function BandeauErreur({ texte, onRetry }) {
 async function signUp(email, password, meta) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
-    body:JSON.stringify({email,password,data:meta}),
+    body:JSON.stringify({email:normalizeEmail(email),password,data:meta}),
   });
   return readAuthResponse(res);
 }
@@ -426,15 +426,11 @@ async function updatePassword(accessToken, password) {
   });
   return readAuthResponse(res);
 }
-function recoveryTokenFromUrl() {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  return params.get("type")==="recovery" ? params.get("access_token")||"" : "";
-}
-
 // ─── LOGIN MODAL ──────────────────────────────────
-function LoginModal({ onClose, onLogin }) {
-  const recoveryToken = recoveryTokenFromUrl();
-  const [mode, setMode] = useState(recoveryToken ? "reset" : "login");
+function LoginModal({ onClose, onLogin, initialMode="login" }) {
+  const [callback] = useState(() => authCallbackState(window.location.hash));
+  const recoveryToken = callback?.token || "";
+  const [mode, setMode] = useState(callback?.mode || initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -443,16 +439,22 @@ function LoginModal({ onClose, onLogin }) {
   const [accountType, setAccountType] = useState("particulier");
   const [agency, setAgency] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(callback?.error || "");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (callback) window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+  }, [callback]);
 
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"11px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
 
   const handleSubmit = async () => {
-    if (mode==="forgot"&&!email) return;
-    if (mode==="reset"&&password.length<8) { setError("Choisissez un mot de passe d’au moins 8 caractères."); return; }
-    if ((mode==="login"||mode==="signup")&&(!email||!password)) return;
-    if (mode==="signup"&&accountType==="pro"&&!agency) { setError("Indiquez le nom de votre agence ou société"); return; }
+    if (loading) return;
+    const validation = authFormError(mode, {email, password, agency, accountType});
+    if (validation) { setError(validation); return; }
+    if (mode === "signup" && phone.trim() && !normalizePhone(phoneCode, phone)) {
+      setError("Indiquez un numéro de téléphone valide avec son indicatif."); return;
+    }
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode==="forgot") {
@@ -472,7 +474,7 @@ function LoginModal({ onClose, onLogin }) {
           }
         }
       } else if (mode==="signup") {
-        const d = await signUp(email, password, {name, phone:phone?`${phoneCode} ${phone}`:"", account_type:accountType, agency:accountType==="pro"?agency:""});
+        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:""});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
         else setSuccess("Compte créé ! Vérifiez votre email.");
       } else {
@@ -505,7 +507,7 @@ function LoginModal({ onClose, onLogin }) {
           </div>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{mode==="login"?"Connexion":mode==="signup"?"Créer un compte":mode==="forgot"?"Mot de passe oublié":"Nouveau mot de passe"}</h2>
                   </div>
-        <div style={{padding:"20px"}}>
+        <form onSubmit={e=>{e.preventDefault();handleSubmit();}} style={{padding:"20px"}}>
 
 {mode==="signup"&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}}>
@@ -521,8 +523,8 @@ function LoginModal({ onClose, onLogin }) {
             <div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence ou de la société *</label><input placeholder="Ex : Teranga Immobilier" value={agency} onChange={e=>setAgency(e.target.value)} style={inputStyle}/></div>
           )}
           {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
-          {mode!=="reset"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>}
-          {mode!=="forgot"&&<div style={{marginBottom:mode==="signup"?"10px":"8px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{mode==="reset"?"Nouveau mot de passe":"Mot de passe"}</label><input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>}
+          {mode!=="reset"&&<div style={{marginBottom:"10px"}}><label htmlFor="auth-email" style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input id="auth-email" autoComplete="email" required type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>}
+          {mode!=="forgot"&&<div style={{marginBottom:mode==="signup"?"10px":"8px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}} htmlFor="auth-password">{mode==="reset"?"Nouveau mot de passe":"Mot de passe"}</label><input id="auth-password" required autoComplete={mode==="login"?"current-password":"new-password"} minLength={mode==="login"?undefined:8} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>}
           {mode==="login"&&<div style={{textAlign:"right",marginBottom:"16px"}}><button type="button" onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{background:"none",border:"none",padding:0,color:C.terra,fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Mot de passe oublié ?</button></div>}
           {mode==="forgot"&&<p style={{fontSize:"13px",lineHeight:1.5,color:C.sub,fontFamily:F,margin:"0 0 16px"}}>Saisissez votre adresse e-mail. Vous recevrez un lien sécurisé pour choisir un nouveau mot de passe.</p>}
           {mode==="reset"&&<p style={{fontSize:"13px",lineHeight:1.5,color:C.sub,fontFamily:F,margin:"0 0 16px"}}>Choisissez au moins 8 caractères.</p>}
@@ -537,15 +539,15 @@ function LoginModal({ onClose, onLogin }) {
               </div>
             </div>
           )}
-          {error&&<div style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{error}</div>}
-          {success&&<div style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{success}</div>}
-          <button onClick={handleSubmit} disabled={!canSubmit} style={{width:"100%",background:canSubmit?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:canSubmit?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
+          {error&&<div role="alert" style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{error}</div>}
+          {success&&<div role="status" style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{success}</div>}
+          <button type="submit" disabled={!canSubmit} style={{width:"100%",background:canSubmit?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:canSubmit?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
             {loading?"...":mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":mode==="forgot"?"Envoyer le lien":"Modifier le mot de passe"}
           </button>
           <div style={{textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F}}>
             {mode==="login"?<>Pas encore de compte ? <span onClick={()=>{setMode("signup");setError("");setSuccess("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>S'inscrire gratuitement</span></>:mode==="signup"?<>Déjà un compte ? <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Se connecter</span></>:mode==="forgot"?<span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:C.terra,fontWeight:700,cursor:"pointer"}}>Retour à la connexion</span>:null}
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -595,6 +597,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     const vides = CHAMPS_REQUIS.filter(([k])=>!String(form[k]||"").trim()).map(([k,l])=>({k,l}));
     if (type==="pro" && !String(form.agency||"").trim()) vides.push({k:"agency",l:"Nom de l'agence"});
     if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(form.email)) vides.push({k:"email",l:"Email (format invalide)"});
+    if (form.phone && !normalizePhone(form.phoneCode, form.phone)) vides.push({k:"phone",l:"Téléphone (numéro invalide)"});
     if (form.price_eur && !(parseInt(form.price_eur)>0)) vides.push({k:"price_eur",l:"Prix (doit être supérieur à 0)"});
     if (String(form.description||"").trim().length>0 && String(form.description).trim().length<30)
       vides.push({k:"description",l:"Description (30 caractères minimum)"});
@@ -640,7 +643,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
 
     const payload = {
       owner_id:user.id,
-      user_email:form.email, user_name:form.name, user_phone:`${form.phoneCode}${form.phone}`,
+      user_email:normalizeEmail(form.email), user_name:form.name.trim(), user_phone:normalizePhone(form.phoneCode,form.phone),
       title:form.title,
       type: form.transaction==="location" ? "Location" : "Vente",
       transaction: form.transaction,
@@ -1161,11 +1164,17 @@ function DemandeDocument({ doc, user, onClose }) {
   const [loading, setLoading] = useState(false);
   const [erreur, setErreur] = useState("");
   const [pret, setPret] = useState(false);
+  const [documentReady, setDocumentReady] = useState(null);
+  useEffect(() => {
+    let active = true;
+    isDocumentAvailable(urlDocument(doc.fichier)).then(ready => { if (active) setDocumentReady(ready); });
+    return () => { active = false; };
+  }, [doc.fichier]);
 
   const valide = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email) && consent;
 
   const envoyer = async () => {
-    if (!valide) return;
+    if (!valide || !documentReady || loading) return;
     setErreur(""); setLoading(true);
     const r = await ecrire("leads", {
       name: prenom || "—", email, status: "telechargement",
@@ -1178,7 +1187,11 @@ function DemandeDocument({ doc, user, onClose }) {
 
   return (
     <ModalShell title={doc.titre} subtitle={doc.pages} onClose={onClose}>
-      {pret ? (
+      {documentReady !== true ? (
+        documentReady === null
+          ? <p role="status">Vérification de la disponibilité du document…</p>
+          : <SentMessage title="Document temporairement indisponible" text="Ce document ne peut pas être téléchargé pour le moment. Revenez un peu plus tard." onClose={onClose}/>
+      ) : pret ? (
         <div style={{textAlign:"center",padding:"10px 0"}}>
           <div style={{fontSize:"40px",marginBottom:"10px"}}>📄</div>
           <h3 style={{margin:"0 0 8px",color:C.dark,fontFamily:FT,fontSize:"19px"}}>Votre document est prêt</h3>
@@ -1202,7 +1215,7 @@ function DemandeDocument({ doc, user, onClose }) {
         <label style={{display:"flex",gap:"10px",alignItems:"flex-start",marginBottom:"16px",cursor:"pointer"}}>
           <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:"3px",width:18,height:18,flexShrink:0,accentColor:C.forest}}/>
           <span style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55}}>
-            J'accepte que Sokilé conserve mon adresse pour m'envoyer ce document et, occasionnellement, ses prochaines publications. Je peux me désinscrire à tout moment en écrivant à {CONTACT_MAIL}. <a href="/confidentialite.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>Politique de confidentialité</a>
+            J'accepte que Sokilé conserve mon adresse pour m'envoyer ce document et, occasionnellement, ses prochaines publications. Je peux me désinscrire à tout moment en écrivant à {CONTACT_MAIL}. <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>Politique de confidentialité</a>
           </span>
         </label>
         <BandeauErreur texte={erreur} onRetry={envoyer}/>
@@ -2007,9 +2020,7 @@ function SignalerModal({ p, onClose }) {
 // ─── CONTACT DU VENDEUR ───────────────────────────
 // Sokilé n'a pas de téléphone : seul le vendeur en fournit un au dépôt.
 function telPropre(brut) {
-  if (!brut) return "";
-  const n = String(brut).replace(/[^\d+]/g, "");
-  return n.length >= 8 ? n : "";
+  return normalizePhone("", brut) || "";
 }
 function lienWhatsApp(p) {
   const n = telPropre(p.user_phone).replace(/^\+/, "");
@@ -2416,9 +2427,10 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
     if (!ok || loading) return;
     const invalide=contactError(f.name,f.email,f.site);
     if(invalide){setErreur(invalide);return;}
+    if(f.phone.trim()&&!normalizePhone(f.phoneCode,f.phone)){setErreur("Indiquez un numéro de téléphone valide avec son indicatif.");return;}
     if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
     setErreur(""); setLoading(true);
-    const payload = {owner_id:user.id,business_name:f.name.trim(),specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email.trim(),phone:f.phone?`${f.phoneCode}${f.phone}`:null,website:websiteUrl(f.site)||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,consent_at:new Date().toISOString(),status:"en_attente",active:false,moderation_note:null};
+    const payload = {owner_id:user.id,business_name:f.name.trim(),specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email.trim(),phone:normalizePhone(f.phoneCode,f.phone)||null,website:websiteUrl(f.site)||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,consent_at:new Date().toISOString(),status:"en_attente",active:false,moderation_note:null};
     const r = await (existing?modifier("professionals",existing.id,payload,user.token):ecrire("professionals",payload,user.token))
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
@@ -2478,9 +2490,10 @@ function PubFormModal({ onClose, user, existing=null, onSaved }) {
     if (!ok || loading) return;
     const invalide=contactError(f.name,f.email,f.url);
     if(invalide){setErreur(invalide);return;}
+    if(f.phone.trim()&&!normalizePhone(f.phoneCode,f.phone)){setErreur("Indiquez un numéro de téléphone valide avec son indicatif.");return;}
     if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
     setErreur(""); setLoading(true);
-    const payload = {owner_id:user.id,contact_name:f.name.trim(),company:f.company.trim()||null,email:f.email.trim(),phone:f.phone?`${f.phoneCode}${f.phone}`:null,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:websiteUrl(f.url)||null,message:f.message||null,objective:f.objective,consent_at:new Date().toISOString(),status:"en_attente",moderation_note:null};
+    const payload = {owner_id:user.id,contact_name:f.name.trim(),company:f.company.trim()||null,email:f.email.trim(),phone:normalizePhone(f.phoneCode,f.phone)||null,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:websiteUrl(f.url)||null,message:f.message||null,objective:f.objective,consent_at:new Date().toISOString(),status:"en_attente",moderation_note:null};
     const r = await (existing?modifier("advertising_requests",existing.id,payload,user.token):ecrire("advertising_requests",payload,user.token))
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
@@ -2856,7 +2869,7 @@ function SokileApp() {
   const [showAlert, setShowAlert] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showLogin, setShowLogin] = useState(() => Boolean(recoveryTokenFromUrl()));
+  const [showLogin, setShowLogin] = useState(() => Boolean(authCallbackState(window.location.hash)));
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [savedProps, setSavedProps] = useState(() => lireLocal(CLE_FAVORIS, []));
@@ -3700,7 +3713,7 @@ button,input,select,textarea{font-size:inherit}
                 <h2 style={{fontFamily:FT,fontSize:"23px",color:C.dark,margin:"0 0 8px"}}>Votre espace personnel</h2>
                 <p style={{color:C.sub,fontSize:"15px",margin:"0 0 24px",fontFamily:F}}>Connectez-vous pour accéder à vos favoris, alertes et annonces.</p>
                 <button onClick={()=>setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"13px 32px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,marginBottom:"10px",display:"block",width:"100%"}}>Se connecter</button>
-                <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"8px",padding:"12px 32px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,display:"block",width:"100%"}}>Créer un compte gratuit</button>
+                <button onClick={()=>setShowLogin("signup")} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"8px",padding:"12px 32px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,display:"block",width:"100%"}}>Créer un compte gratuit</button>
               </div>
             ):(
               <>
@@ -3795,7 +3808,7 @@ button,input,select,textarea{font-size:inherit}
 
       {/* MODALS */}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
-      {showLogin&&<LoginModal onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>} 
+      {showLogin&&<LoginModal initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:filterVerified}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 

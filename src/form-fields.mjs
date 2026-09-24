@@ -1,9 +1,25 @@
 // Shared form rules, kept independent of React for regression checks.
 export function splitPhone(value, codes, fallback = '+221') {
   const phone = String(value || '').trim();
-  const compact = phone.replace(/[\s().-]/g, '');
+  const compact = phone.replace(/[\s().-]/g, '').replace(/^00/, '+');
   const code = [...new Set(codes.map(x => x.code))].sort((a,b) => b.length-a.length).find(x => compact.startsWith(x));
   return code ? {phoneCode:code, phone:compact.slice(code.length)} : {phoneCode:fallback, phone};
+}
+
+// Preserve significant national zeroes (notably Côte d'Ivoire). Only the
+// French domestic trunk prefix is removed when +33 is supplied separately.
+export function normalizePhone(prefix, value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (!/^[+\d\s().-]+$/.test(raw)) return null;
+  let number = raw.replace(/[\s().-]/g, '').replace(/^00/, '+');
+  if (!number.startsWith('+')) {
+    if (prefix === '+33') number = number.replace(/^0/, '');
+    number = `${prefix}${number}`;
+  } else if (number.startsWith('+330')) {
+    number = '+33' + number.slice(4);
+  }
+  return /^\+[1-9]\d{7,14}$/.test(number) ? number : null;
 }
 export const propertyTransaction = p => p?.transaction || (/location/i.test(p?.type || '') ? 'location' : 'vente');
 export const propertyNature = p => p?.nature || (/agricole|exploitation/i.test(`${p?.type || ''} ${p?.title || ''}`) ? 'agricole' : /terrain/i.test(`${p?.type || ''} ${p?.title || ''}`) ? 'terrain' : /commercial/i.test(p?.type || '') ? 'commerce' : /appartement|studio/i.test(p?.title || '') ? 'appartement' : 'maison');
@@ -47,4 +63,12 @@ export async function readAllProperties(read, active = () => true) {
     if (result.data.length < 100) return rows;
   }
   return [];
+}
+
+export async function isDocumentAvailable(url, send = fetch) {
+  try {
+    const response = await send(url, {method:'HEAD'});
+    const type = response.headers.get('content-type') || '';
+    return response.ok && /application\/(pdf|vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet|octet-stream)/i.test(type);
+  } catch { return false; }
 }
