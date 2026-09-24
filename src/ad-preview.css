@@ -10,3 +10,32 @@
 .ad-demo-controls{padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}.ad-demo-controls>div{display:flex;gap:6px;flex-wrap:wrap}.ad-demo-controls button{padding:7px 9px;background:#f5f0e8;color:#1a3c2e;border:1px solid #ddd1ba;border-radius:6px;cursor:pointer;font:inherit}.ad-demo-controls button:disabled{cursor:default;opacity:.7}.ad-demo-controls button:focus-visible,.ad-demo-notice a:focus-visible{outline:3px solid #c9a84c;outline-offset:3px}.ad-demo-help{font-size:11px;line-height:1.5;margin:0;padding:0 16px 12px;color:#6e6455}
 .ad-demo-spotlight .ad-demo-creative{min-height:180px;grid-template-columns:1fr 160px}.ad-demo-spotlight .ad-demo-art{min-height:180px}.ad-demo-spotlight .ad-demo-copy h2{font-size:25px}.ad-demo-spotlight .ad-demo-copy{padding:22px}
 @media(max-width:600px){.ad-demo-creative{grid-template-columns:1fr;min-height:0}.ad-demo-copy{padding:23px}.ad-demo-art{min-height:135px}.ad-demo-sun{width:90px;height:90px;top:2%;right:23%}.ad-demo-building{width:30%;right:18%;height:90%}.ad-demo-building-back{right:45%;height:65%}.ad-demo-controls{align-items:flex-start;flex-direction:column}.ad-demo-notice .ad-demo-exit{margin-left:0}.ad-demo-spotlight .ad-demo-creative{grid-template-columns:1fr}.ad-demo-spotlight .ad-demo-art{display:none}}
+
+/* Compact advertising formats; the approved directory spotlight stays unchanged. */
+.ad-demo-banner,.ad-demo-compact{border-radius:10px;margin:14px 0}
+.ad-demo-banner .ad-demo-label,.ad-demo-compact .ad-demo-label{padding:5px 12px;font-size:9px;letter-spacing:.08em}
+.ad-demo-banner .ad-demo-creative{grid-template-columns:minmax(0,1fr) 150px;min-height:108px;height:108px}
+.ad-demo-banner .ad-demo-copy{padding:12px 20px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:20px;align-items:center}
+.ad-demo-banner .ad-demo-brand{font-size:11px;grid-column:1}.ad-demo-banner .ad-demo-brand small{font-size:10px}
+.ad-demo-banner .ad-demo-copy h2{font-size:23px;margin:5px 0;grid-column:1;line-height:1.15}
+.ad-demo-banner .ad-demo-copy p{display:none}
+.ad-demo-banner .ad-demo-cta{grid-column:2;grid-row:1/3;padding:8px 12px;font-size:12px}
+.ad-demo-banner .ad-demo-art{min-height:0;height:108px}
+.ad-demo-banner .ad-demo-sun{height:62px;width:62px;top:8px}.ad-demo-banner .ad-demo-monogram{font-size:16px;bottom:10px;right:10px}
+.ad-demo-banner .ad-demo-controls,.ad-demo-compact .ad-demo-controls{padding:6px 10px;font-size:10px;flex-direction:row;align-items:center;flex-wrap:wrap;gap:5px}
+.ad-demo-banner .ad-demo-controls>div,.ad-demo-compact .ad-demo-controls>div{gap:4px}
+.ad-demo-banner .ad-demo-controls button,.ad-demo-compact .ad-demo-controls button{padding:5px 7px}
+.ad-demo-banner .ad-demo-help,.ad-demo-compact .ad-demo-help{display:none}
+.ad-demo-compact{margin:0;align-self:center;min-width:0;width:100%;box-sizing:border-box}
+.ad-demo-compact .ad-demo-creative{grid-template-columns:minmax(0,1fr) 64px;min-height:154px;height:154px}
+.ad-demo-compact .ad-demo-copy{padding:13px 12px}.ad-demo-compact .ad-demo-brand{font-size:10px}.ad-demo-compact .ad-demo-brand small{display:block;font-size:9px}
+.ad-demo-compact .ad-demo-copy h2{font-size:19px;line-height:1.15;margin:8px 0}.ad-demo-compact .ad-demo-copy p{display:none}
+.ad-demo-compact .ad-demo-cta{font-size:11px;padding:6px 9px}.ad-demo-compact .ad-demo-cta small{font-size:9px}
+.ad-demo-compact .ad-demo-art{min-height:0;height:154px}.ad-demo-compact .ad-demo-sun{height:42px;width:42px;top:12px;right:8px}.ad-demo-compact .ad-demo-building{width:70%;right:10%}.ad-demo-compact .ad-demo-building-back{right:55%}.ad-demo-compact .ad-demo-monogram{font-size:15px;bottom:12px;right:8px}
+@media(max-width:600px){
+ .ad-demo-banner .ad-demo-creative{grid-template-columns:minmax(0,1fr) 65px;height:122px;min-height:122px}
+ .ad-demo-banner .ad-demo-copy{display:block;padding:10px 12px}.ad-demo-banner .ad-demo-brand{font-size:10px}.ad-demo-banner .ad-demo-brand small{font-size:9px}
+ .ad-demo-banner .ad-demo-copy h2{font-size:18px;margin:5px 0;line-height:1.15}.ad-demo-banner .ad-demo-cta{font-size:10px;padding:4px 7px}.ad-demo-banner .ad-demo-cta small{display:none}
+ .ad-demo-banner .ad-demo-art{height:122px}.ad-demo-banner .ad-demo-sun{width:40px;height:40px;right:8px;top:10px}.ad-demo-banner .ad-demo-building{width:70%;right:10%;height:65%}.ad-demo-banner .ad-demo-building-back{right:55%;height:45%}
+ .ad-demo-compact .ad-demo-creative{height:140px;min-height:140px}.ad-demo-compact .ad-demo-art{height:140px}.ad-demo-compact .ad-demo-copy h2{font-size:18px}
+}
