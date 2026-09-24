@@ -8,6 +8,8 @@ import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
 import { canManagePrograms } from "./auth-session.mjs";
 import { ProfessionalActions, PersonalAccountTools } from "./professional-account.jsx";
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
+import { AdPreviewNotice, AdPreviewSlot } from "./ad-preview.jsx";
+import { previewOffer } from "./ad-preview.mjs";
 import { PaidOffers } from "./paid-offers.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
@@ -2817,6 +2819,7 @@ export default function App() {
 }
 
 function SokileApp() {
+  const [adPreview] = useState(()=>previewOffer(window.location.search));
   const [tab, setTab] = useState(() => {
     if(window.location.pathname.startsWith("/programme"))return "biens";
     const requested = new URLSearchParams(window.location.search).get("tab");
@@ -3251,6 +3254,7 @@ button,input,select,textarea{font-size:inherit}
 
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsError&&<p role="alert" style={{fontFamily:F,color:C.terra}}>Les annonces ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.</p>}
+        {adPreview&&<AdPreviewNotice offer={adPreview}/>}
         {/* ── UNE ANNONCE, SUR SA PROPRE PAGE ── */}
         {route.nom==="annonce"&&(()=>{
           const bien = directProp&&correspond(directProp,route.id)&&new Date(directProp.expires_at).getTime()>clock ? directProp : null;
@@ -3288,6 +3292,8 @@ button,input,select,textarea{font-size:inherit}
           <div>
             {/* Hero Carrousel */}
             <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
+
+            {adPreview==="reach"&&<AdPreviewSlot placement="banner"/>}
 
             {/* Filtres rapides */}
             <div style={{background:C.white,borderBottom:`1px solid ${C.sand}`,padding:"10px 20px",display:"flex",gap:"7px",overflowX:"auto",marginBottom:"1px"}}>
@@ -3398,13 +3404,14 @@ button,input,select,textarea{font-size:inherit}
             </div>
 
             {/* Encart publicitaire */}
-            <div style={{borderRadius:"14px",border:`2px solid ${C.gold}`,background:`linear-gradient(145deg,${C.light},${C.cream})`,padding:"20px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.08)",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            {!adPreview&&<div style={{borderRadius:"14px",border:`2px solid ${C.gold}`,background:`linear-gradient(145deg,${C.light},${C.cream})`,padding:"20px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.08)",display:"flex",flexDirection:"column",justifyContent:"center"}}>
               <div style={{fontSize:"10.5px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"6px"}}>Publicité · Partenaire</div>
               <div style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.cacao,marginBottom:"5px"}}>Présentez votre marque sur Sokilé</div>
               <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez une audience en recherche active d'un bien immobilier en Afrique.</div>
               <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.cacao,borderRadius:"8px",padding:"9px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Découvrir les formats</button>
+            </div>}
             </div>
-            </div>
+            {(adPreview==="visibility"||adPreview==="reach")&&<AdPreviewSlot placement="compact"/>}
           </div>
         )}
 
@@ -3615,6 +3622,7 @@ button,input,select,textarea{font-size:inherit}
               <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Les fiches indiquent clairement si elles sont référencées, revendiquées ou contrôlées.</div>
             </div>
             <div style={{padding:"16px"}}>
+              {adPreview==="spotlight"&&<AdPreviewSlot placement="spotlight"/>}
               <Annuaire key={`${annFilter.spec}|${annFilter.pays}`} initialSpec={annFilter.spec} initialPays={annFilter.pays}/>
               <AdSlot onClick={()=>setShowPub(true)} style={{marginTop:"18px"}}/>
               <div style={{textAlign:"center",marginTop:"16px",fontSize:"14px",color:C.sub,fontFamily:F}}>

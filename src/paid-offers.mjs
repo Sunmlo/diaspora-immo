@@ -11,3 +11,6 @@ export function offerPrice(id,days){
   return offer.monthly*(days===90?2.7:1);
 }
 export const formatCfa=value=>`${new Intl.NumberFormat('fr-FR').format(value)} FCFA`;
+
+// Fixed parity published by BCEAO and BEAC: 1 EUR = 655.957 XOF/XAF.
+export const formatEuro=value=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(value/655.957);

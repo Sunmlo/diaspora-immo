@@ -1,6 +1,7 @@
 import {useState} from 'react';
-import {PAID_SERVICES,PAID_OFFERS,offerPrice,formatCfa} from './paid-offers.mjs';
+import {PAID_SERVICES,PAID_OFFERS,offerPrice,formatCfa,formatEuro} from './paid-offers.mjs';
 import './paid-offers.css';
+import {previewHref} from './ad-preview.mjs';
 
 export function PaidOffers(){
   const [days,setDays]=useState(30);
@@ -12,7 +13,9 @@ export function PaidOffers(){
     <div className="paid-grid">{PAID_OFFERS.map(offer=><article className="paid-card" key={offer.id}>
       <span className="paid-kind">{offer.kind}</span><h3>{offer.name}</h3>
       <p className="paid-price">{formatCfa(offerPrice(offer.id,days))}<span> pour {days} jours</span></p>
+      <p className="paid-euro">≈ {formatEuro(offerPrice(offer.id,days))} pour {days} jours</p>
       <p>{offer.description}</p>
+      <a className="paid-preview-link" href={previewHref(offer.id)}>Voir le rendu sur le site →</a>
       <button type="button" onClick={()=>setSelected(offer.id)} aria-expanded={selected===offer.id} aria-controls={`availability-${offer.id}`}>Consulter la disponibilité</button>
       <div id={`availability-${offer.id}`} role="status">{selected===offer.id&&<p className="paid-unavailable"><strong>{PAID_SERVICES.message}</strong><br/>Cette formule sera proposée à l’ouverture des services payants. Aucune commande n’a été créée.</p>}</div>
     </article>)}</div>
