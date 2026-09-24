@@ -102,6 +102,7 @@ test("les décisions négatives gardent un objet accueillant et la réponse pers
     assert.match(message.subject,/Suivi/);
     assert.doesNotMatch(message.subject+message.text,/refus|rejet/i);
     assert.ok(message.text.includes(response));
-    assert.match(message.text,/suites possibles/);
+    assert.match(message.text,/nécessite quelques ajustements avant sa publication/);
+    assert.match(message.text,/points à revoir et la marche à suivre/);
   }
 });
