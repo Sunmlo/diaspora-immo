@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const {PGlite}=await import(process.env.SOKILE_PGLITE_PATH||'@electric-sql/pglite');
 const db=new PGlite();
+const particular='10000000-0000-4000-8000-000000000004';
 const owner='10000000-0000-4000-8000-000000000001',other='10000000-0000-4000-8000-000000000002',admin='10000000-0000-4000-8000-000000000003';
-await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon,service_role;create function public.sokile_is_admin() returns boolean language sql stable as $$select auth.uid()='${admin}'::uuid$$;create function public.sokile_search_text(v text) returns text language sql immutable as $$select lower(v)$$;insert into auth.users values('${owner}','owner@example.test',now()),('${other}','other@example.test',now()),('${admin}','admin@example.test',now());`);
+await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon,service_role;create function public.sokile_is_admin() returns boolean language sql stable as $$select auth.uid()='${admin}'::uuid$$;create function public.sokile_search_text(v text) returns text language sql immutable as $$select lower(v)$$;insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()),('${other}','other@example.test',now()),('${admin}','admin@example.test',now());`);
+await db.exec(`update auth.users set raw_user_meta_data='{"account_type":"pro"}';insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values('${particular}','particular@example.test',now(),'{"account_type":"particulier"}');`);
 const migration=await readFile(new URL('../supabase-v38-programmes-neufs.sql',import.meta.url),'utf8');
-await db.exec(migration);
+await db.exec(migration);await db.exec(await readFile(new URL('../supabase-v39-program-professional-access.sql',import.meta.url),'utf8'));
 const q=async(s,p=[])=>(await db.query(s,p)).rows;
 async function as(id,fn){await db.exec(`set role ${id?'authenticated':'anon'};select set_config('request.jwt.claim.sub','${id||''}',false);`);try{return await fn();}finally{await db.exec('reset role');}}
 const program={title:'Résidence de test',developer_name:'Promoteur Test',publisher_kind:'promoteur',country:'Sénégal',city:'Dakar',neighborhood:'Almadies',description:'Présentation de test de la résidence : logements avec terrasse, parking, espaces partagés et services de proximité.',stage:'construction',delivery_quarter:4,delivery_year:2027,gallery:[{url:'https://example.test/photo.jpg',kind:'perspective'}],phone:'+221771234567'};
@@ -15,11 +17,32 @@ const create=async(p=program,units=[unit()])=>(await as(owner,()=>q('select soki
 const approve=async id=>as(admin,()=>q("select sokile_moderate_program($1,'validee','')",[id]));
 
 test('programme : migration réexécutable et dépôt atomique privé',async()=>{
- await db.exec(migration);const id=await create();const [p]=await q('select * from development_programs where id=$1',[id]);assert.equal(p.owner_id,owner);assert.equal(p.email,'owner@example.test');assert.equal(p.status,'en_attente');assert.equal(p.expires_at,null);
+ await db.exec(migration);await db.exec(await readFile(new URL('../supabase-v39-program-professional-access.sql',import.meta.url),'utf8'));const id=await create();const [p]=await q('select * from development_programs where id=$1',[id]);assert.equal(p.owner_id,owner);assert.equal(p.email,'owner@example.test');assert.equal(p.status,'en_attente');assert.equal(p.expires_at,null);
  assert.equal((await as(null,()=>q('select * from public_programs where id=$1',[id]))).length,0);
  await assert.rejects(as(null,()=>q('select * from development_programs')));
  const before=(await q('select count(*) from development_programs'))[0].count;
  await assert.rejects(create(program,[unit('A1'),unit('A1')]));assert.equal((await q('select count(*) from development_programs'))[0].count,before);
+});
+test('seuls les professionnels déposent ; les administrateurs restent modérateurs',async()=>{
+ for(const id of [null,particular,admin])await assert.rejects(as(id,()=>q('select sokile_save_program(null,$1,$2)',[program,[unit()]])));
+ const id=await create();
+ for(const account of [particular,admin,other]){
+  await assert.rejects(as(account,()=>q('select sokile_save_program($1,$2,$3)',[id,program,[unit()]])));
+  await assert.rejects(as(account,()=>q('select sokile_program_inventory($1,$2,true)',[id,[]])));
+ }
+ await approve(id);
+ const [{id:inquiry}]=await as(null,()=>q('select sokile_program_inquiry($1,null,$2,$3,$4,$5,true) as id',[id,'Client Test','roles@example.test','','Merci de me transmettre les disponibilités.']));
+ for(const account of [particular,admin,other])await assert.rejects(as(account,()=>q('select sokile_program_inquiry_done($1)',[inquiry])));
+ await as(owner,()=>q('select sokile_program_inquiry_done($1)',[inquiry]));
+ assert.equal((await q('select status from program_inquiries where id=$1',[inquiry]))[0].status,'traitee');
+});
+test('un ancien propriétaire devenu particulier ne peut plus gérer son programme',async()=>{
+ const id=await create();
+ await q("update auth.users set raw_user_meta_data='{}' where id=$1",[owner]);
+ try{
+  await assert.rejects(as(owner,()=>q('select sokile_save_program($1,$2,$3)',[id,program,[unit()]])));
+  await assert.rejects(as(owner,()=>q('select sokile_program_inventory($1,$2)',[id,[]])));
+ }finally{await q('update auth.users set raw_user_meta_data=$1 where id=$2',[{account_type:'pro'},owner]);}
 });
 test('un promoteur ne peut publier ni modifier un autre programme',async()=>{
  const id=await create();await assert.rejects(as(owner,()=>q("update development_programs set status='validee' where id=$1",[id])));

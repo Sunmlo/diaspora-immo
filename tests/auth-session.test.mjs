@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh, authCallbackState, authFormError } from "../src/auth-session.mjs";
+import { canManagePrograms, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh, authCallbackState, authFormError } from "../src/auth-session.mjs";
 
 const reply = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const valid = { user: { id: "synthetic-user", email: " Contact@Sokile.com ", user_metadata: { name: "Test" } }, access_token: "synthetic-access", refresh_token: "synthetic-refresh" };
@@ -80,4 +80,13 @@ test("registration and recovery reject malformed email and weak passwords before
   assert.match(authFormError("signup", {email:"test@example.com",password:"synthetic-password",accountType:"pro",agency:"  "}), /agence/);
   // Existing accounts retain the server's login policy.
   assert.equal(authFormError("login", {email:"test@example.com",password:"short"}), "");
+});
+
+test("program management is restricted to signed-in professionals, excluding administrators", () => {
+ const pro={id:'pro-user',token:'synthetic-token',email:'pro@example.test',account_type:'pro'};
+ const adminEmail='contact@sokile.com';
+ assert.equal(canManagePrograms(pro,adminEmail),true);
+ for(const user of [null,{}, {...pro,account_type:'particulier'}, {...pro,account_type:undefined}, {...pro,token:''}, {...pro,email:'Contact@Sokile.com'}]){
+  assert.equal(canManagePrograms(user,adminEmail),false);
+ }
 });

@@ -5,6 +5,7 @@ import { listingForm, splitPhone, normalizePhone, propertyNature, propertyTransa
 import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
+import { canManagePrograms } from "./auth-session.mjs";
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
@@ -1499,7 +1500,7 @@ const RUBRIQUES_ADMIN = [
 
 const billingApi={load:lire,rpc:(name,data,token)=>ecrireAuth(`rpc/${name}`,data,token),gateway:paymentGateway(SUPABASE_URL,SUPABASE_KEY)};
 
-function EspaceAdmin({ user, onApercu, apercu, onProgramNew, onProgramEdit, programRefresh }) {
+function EspaceAdmin({ user, onApercu, apercu, programRefresh }) {
   const [rub, setRub] = useState(()=>new URLSearchParams(window.location.search).get("paiement")==="test"?"paiements":"moderation");
   if (!estAdmin(user)) return null;
   return (
@@ -1514,7 +1515,7 @@ function EspaceAdmin({ user, onApercu, apercu, onProgramNew, onProgramEdit, prog
         ))}
       </div>
       {rub==="moderation"&&<AdminModeration user={user}/>}
-      {rub==="programmes"&&<ProgramManager api={programApi} user={user} admin onNew={onProgramNew} onEdit={onProgramEdit} refreshKey={programRefresh}/>}
+      {rub==="programmes"&&<ProgramManager api={programApi} user={user} admin refreshKey={programRefresh}/>}
       {rub==="demandes"&&<AdminDemandes user={user}/>}
       {rub==="publicites"&&<AdminPublicites user={user}/>}
       {rub==="paiements"&&<PaymentsAdmin api={billingApi} user={user}/>}
@@ -2927,6 +2928,8 @@ function SokileApp() {
     : apercu === "visiteur" ? null
     : {...user, email:`apercu-${apercu}@sokile.com`, account_type:apercu, agency:apercu==="pro"?(user?.agency||"Votre agence"):""};
 
+  const programPublisher = canManagePrograms(vu, EMAIL_REDACTION);
+
   // Le bouton Retour du navigateur ramène à la liste
   useEffect(()=>{
     const onPop = () => setRoute(lireRoute());
@@ -3019,7 +3022,8 @@ function SokileApp() {
   };
   const openProgram=id=>{window.history.pushState({},"",`/programme/${id}`);setRoute({nom:"programme",id});setTab("biens");window.scrollTo(0,0);};
   const openPrograms=()=>{window.history.pushState({},"","/programmes-neufs");setRoute({nom:"programmes"});setTab("biens");window.scrollTo(0,0);};
-  const newProgram=()=>{if(!vu){setShowLogin(true);return;}setProgramEditor({});};
+  const newProgram=()=>{if(programPublisher)setProgramEditor({});};
+  const editProgram=p=>{if(programPublisher)setProgramEditor(p);};
   const handleSave = (p) => {
     if (!user) { setShowLogin(true); return; }
     setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
@@ -3302,7 +3306,7 @@ button,input,select,textarea{font-size:inherit}
         })()}
 
         {route.nom==="guide"&&<GuidePage guide={GUIDES.find(g=>g.id===route.id)} onBack={quitterGuide} onFindPro={()=>{quitterGuide();switchTab("prestataires");}}/>}
-        {route.nom==="programmes"&&<ProgramList api={programApi} onOpen={openProgram} onNew={newProgram} onBack={()=>switchTab("biens")}/>}
+        {route.nom==="programmes"&&<ProgramList api={programApi} onOpen={openProgram} onNew={programPublisher?newProgram:undefined} onBack={()=>switchTab("biens")}/>}
         {route.nom==="programme"&&<ProgramPage id={route.id} api={programApi} user={vu} onBack={openPrograms}/>}
 
         {/* ── ACCUEIL ── */}
@@ -3663,7 +3667,7 @@ button,input,select,textarea{font-size:inherit}
                   </div>
                 </button>
                 {/* Proposer un service */}
-                <button onClick={newProgram} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:8,padding:14,textAlign:"left",cursor:"pointer",fontFamily:F,fontWeight:700}}>Présenter un programme neuf <span style={{display:"block",fontWeight:400,fontSize:13}}>Résidence, logements, plans et disponibilités · Gratuit au lancement</span></button>
+                {programPublisher&&<button onClick={newProgram} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:8,padding:14,textAlign:"left",cursor:"pointer",fontFamily:F,fontWeight:700}}>Présenter un programme neuf <span style={{display:"block",fontWeight:400,fontSize:13}}>Résidence, logements, plans et disponibilités · Gratuit au lancement</span></button>}
                 {/* Proposer un service */}
                 <button onClick={()=>vu?setShowServiceForm(true):setShowLogin(true)} style={{background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>🛠️</div>
@@ -3702,7 +3706,7 @@ button,input,select,textarea{font-size:inherit}
 
         {/* ── COMPTE ── */}
         {route.nom==="accueil"&&tab==="admin"&&estAdmin(user)&&!apercu&&(
-          <EspaceAdmin user={user} apercu={apercu} onApercu={v=>{setApercu(v); if(v) switchTab("accueil");}} onProgramNew={newProgram} onProgramEdit={setProgramEditor} programRefresh={programRefresh}/>
+          <EspaceAdmin user={user} apercu={apercu} onApercu={v=>{setApercu(v); if(v) switchTab("accueil");}} programRefresh={programRefresh}/>
         )}
 
         {route.nom==="accueil"&&tab==="compte"&&(
@@ -3752,7 +3756,7 @@ button,input,select,textarea{font-size:inherit}
                     <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
                     <MesDemandesPro user={vu} refreshKey={proRefresh} onEditService={setEditingService} onEditPub={setEditingPub}/>
                     <MesAlertes user={vu} load={lire} rpc={alertRpc} refreshKey={alertsRefresh}/>
-                    <ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={setProgramEditor} refreshKey={programRefresh}/>
+                    {programPublisher&&<ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={editProgram} refreshKey={programRefresh}/>}
                     {/* Autres items */}
                     {[{label:"Messages agents",value:"Fonctionnalité à venir"}].map(item=>(
                     <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
@@ -3815,7 +3819,7 @@ button,input,select,textarea{font-size:inherit}
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}
       {(showPub||editingPub)&&vu&&<PubFormModal onClose={()=>{setShowPub(false);setEditingPub(null);}} user={vu} existing={editingPub} onSaved={()=>setProRefresh(x=>x+1)}/>}
-      {programEditor&&vu&&<ProgramEditor api={programApi} user={vu} existing={programEditor} onClose={()=>setProgramEditor(null)} onSaved={()=>setProgramRefresh(x=>x+1)}/>}
+      {programEditor&&programPublisher&&<ProgramEditor api={programApi} user={vu} existing={programEditor} onClose={()=>setProgramEditor(null)} onSaved={()=>setProgramRefresh(x=>x+1)}/>}
     </div>
   );
 }
