@@ -39,7 +39,7 @@ export function buildDecisionMessage(table, record) {
   const title = oneLine(record.title || record.business_name || record.company || record.format || `Dossier ${record.id}`);
   const decision = refused ? "Suivi" : incomplete ? "Précisions demandées" : "Validation";
   const introduction = refused
-    ? `Merci pour votre confiance. La publication de votre ${type.label} « ${title} » n’est pas possible en l’état. Voici notre retour et les suites possibles.`
+    ? `Merci pour votre confiance. Votre ${type.label} « ${title} » nécessite quelques ajustements avant sa publication. Voici les points à revoir et la marche à suivre.`
     : incomplete
       ? `Nous avons besoin de précisions pour poursuivre l'examen de votre ${type.label} « ${title} ».`
       : table === "advertising_requests"
@@ -56,7 +56,7 @@ export function buildDecisionMessage(table, record) {
         ? `Votre annonce reste publiée jusqu'au ${new Date(record.expires_at).toLocaleDateString("fr-FR", { timeZone: "UTC" })} (${(record.transaction || (/location/i.test(record.type || "") ? "location" : "vente")) === "location" ? "6 mois" : "1 an"}). À cette date, elle sera retirée de la recherche. Vous pourrez la soumettre à nouveau depuis votre compte si le bien est toujours disponible.` : "",
       accepted && table === "development_programs" && record.expires_at
         ? `Votre programme reste publié jusqu'au ${new Date(record.expires_at).toLocaleDateString("fr-FR", { timeZone: "UTC" })} (1 an). Actualisez les disponibilités depuis « Mon compte → Mes programmes neufs ». Un programme entièrement vendu est retiré de la recherche.` : "",
-      "Retrouvez la décision dans votre compte : https://www.sokile.com/?tab=compte",
+      "Retrouvez notre réponse dans votre compte : https://www.sokile.com/?tab=compte",
       "Pour échanger avec nous, répondez directement à cet email.", "L'équipe Sokilé",
     ].filter(Boolean).join("\n\n"),
   };
