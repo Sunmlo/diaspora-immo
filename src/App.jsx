@@ -3410,8 +3410,8 @@ button,input,select,textarea{font-size:inherit}
               <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"12px"}}>Touchez une audience en recherche active d'un bien immobilier en Afrique.</div>
               <button onClick={()=>setShowPub(true)} style={{border:"none",cursor:"pointer",display:"inline-block",background:C.gold,color:C.cacao,borderRadius:"8px",padding:"9px 18px",fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none"}}>Découvrir les formats</button>
             </div>}
-            </div>
             {(adPreview==="visibility"||adPreview==="reach")&&<AdPreviewSlot placement="compact"/>}
+            </div>
           </div>
         )}
 

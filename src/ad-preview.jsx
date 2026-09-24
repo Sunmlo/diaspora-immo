@@ -5,7 +5,7 @@ import './ad-preview.css';
 export function AdPreviewNotice({offer}){
   return <aside className="ad-demo-notice" aria-label="Mode aperçu publicitaire">
     <div><strong>Aperçu publicitaire · entreprises fictives</strong><p>Rotation de démonstration toutes les 8 secondes. Les achats restent fermés.</p></div>
-    <nav aria-label="Emplacements à prévisualiser"><a href={previewHref('reach')}>Bannière d’accueil</a><a href={previewHref('visibility')}>Encart sous les pays</a><a href={previewHref('spotlight')}>Fiche mise en lumière</a><a className="ad-demo-exit" href={offer==='spotlight'?'/?tab=prestataires':'/'}>Quitter l’aperçu</a></nav>
+    <nav aria-label="Emplacements à prévisualiser"><a href={previewHref('reach')}>Bannière d’accueil</a><a href={previewHref('visibility')}>Encart près des pays</a><a href={previewHref('spotlight')}>Fiche mise en lumière</a><a className="ad-demo-exit" href={offer==='spotlight'?'/?tab=prestataires':'/'}>Quitter l’aperçu</a></nav>
   </aside>;
 }
 
@@ -26,7 +26,7 @@ export function AdPreviewSlot({placement='banner'}){
   const ad=DEMO_ADS[index],spotlight=placement==='spotlight';
   const id=spotlight?'apercu-fiche':placement==='compact'?'apercu-encart':'apercu-banniere';
   useEffect(()=>{if(window.location.hash!==`#${id}`)return;const frame=requestAnimationFrame(()=>root.current?.scrollIntoView({block:'start'}));return()=>cancelAnimationFrame(frame);},[id]);
-  return <section id={id} ref={root} className={`ad-demo-slot ad-demo-${placement}`} aria-label={spotlight?'Aperçu de fiche mise en lumière':placement==='compact'?'Aperçu de l’encart sous les pays':'Aperçu de la bannière d’accueil'}
+  return <section id={id} ref={root} className={`ad-demo-slot ad-demo-${placement}`} aria-label={spotlight?'Aperçu de fiche mise en lumière':placement==='compact'?'Aperçu de l’encart près des pays':'Aperçu de la bannière d’accueil'}
     onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} onFocusCapture={()=>setInteracting(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget))setInteracting(false);}}>
     <div className="ad-demo-label">{spotlight?'Fiche sponsorisée':'Publicité'} · Démonstration</div>
     <div className={`ad-demo-creative ad-demo-${ad.theme}`}>
