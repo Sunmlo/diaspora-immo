@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {OFFER_CATEGORIES,BILLING_INTERVALS,ORDER_STATUS,amountToMinor,amountInput,paymentAmount,quotaInput} from './payments.mjs';
 import './payments.css';
+import {PaidOffers} from './paid-offers.jsx';
 
 const initialOffer={name:'',category:'agence',description:'',amount:'',currency:'eur',billing_interval:'month',listing_quota:'',program_quota:'',archived:false};
 const date=value=>new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));
@@ -86,7 +87,8 @@ export function PaymentsAdmin({api,user}){
  };
  return <section className="sp" aria-label="Gestion des paiements">
   <header className="sp-hero"><div><span className="sp-eyebrow">PRÉPARER LES FORMULES</span><h2>Les paiements, à votre rythme.</h2><p>Préparez vos offres et vérifiez le parcours avant de les proposer à vos clients.</p></div><span className="sp-badge sp-light">Encaissements réels désactivés</span></header>
-  <div className="sp-note">Sokilé reste gratuit. Les offres ci-dessous sont privées ; aucun paiement ni abonnement réel ne peut être déclenché ici.</div>
+  <div className="sp-note">Les services de base restent gratuits. Les tarifs de publicité et de mise en lumière sont visibles au public, mais les achats restent fermés. Les brouillons de paiement ci-dessous restent privés.</div>
+  <details className="sp-panel"><summary>Formules visibles sur le site — achats fermés</summary><PaidOffers/></details>
   <ErrorBox text={error}/>{notice&&<p className="sp-success" role="status">{notice}</p>}
   <section className="sp-panel" aria-label="Connexion de paiement"><div className="sp-row"><h3>Connexion Stripe</h3><span className="sp-badge">Mode test uniquement</span></div>
    <div className="sp-grid"><div><strong>{connection?.connected?'Compte de test raccordé':connection?.key_configured?'Connexion à vérifier':connection?'Compte Stripe à raccorder':'Connexion non vérifiée'}</strong><p className="sp-small">{connection?.connected?'Le service Stripe répond en mode test.':'Le raccordement se fait avec le compte Stripe de Sokilé.'}</p></div><div><strong>{lastEvent?'Confirmation Stripe reçue':connection?.webhook_configured?'Confirmation à tester':'Confirmation automatique à raccorder'}</strong><p className="sp-small">{lastEvent?`Dernière notification vérifiée : ${date(lastEvent)}`:'Une réussite est affichée seulement après confirmation de Stripe.'}</p></div></div>

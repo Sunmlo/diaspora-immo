@@ -8,6 +8,7 @@ import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
 import { canManagePrograms } from "./auth-session.mjs";
 import { ProfessionalActions, PersonalAccountTools } from "./professional-account.jsx";
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
+import { PaidOffers } from "./paid-offers.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
 import { normalizeEmail, authFormError, authCallbackState, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
@@ -2478,62 +2479,8 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
   );
 }
 
-function PubFormModal({ onClose, user, existing=null, onSaved }) {
-  const FORMATS = ["Bannière page d'accueil","Encart sous les pays couverts","Encart dans l'annuaire prestataires","Je ne sais pas encore"];
-  const OBJECTIFS = ["Gagner en visibilité","Recevoir des contacts","Promouvoir un programme immobilier","Présenter un service professionnel"];
-  const [f, setF] = useState({name:existing?.contact_name||user?.name||"",company:existing?.company||user?.agency||"",email:existing?.email||user?.email||"",...splitPhone(existing?.phone||user?.phone,PHONE_CODES),format:existing?.format||"",countries:existing?.target_countries||[],budget:existing?.budget||"",period:existing?.desired_period||"",url:existing?.destination_url||"",message:existing?.message||"",objective:existing?.objective||"",consent:false});
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [erreur, setErreur] = useState("");
-  const set = (k,v) => setF(p=>({...p,[k]:v}));
-  const toggleCountry = n => set("countries", f.countries.includes(n)?f.countries.filter(x=>x!==n):[...f.countries,n]);
-  const ok = f.name && f.email && f.format && f.objective && f.consent;
-  const submit = async () => {
-    if (!ok || loading) return;
-    const invalide=contactError(f.name,f.email,f.url);
-    if(invalide){setErreur(invalide);return;}
-    if(f.phone.trim()&&!normalizePhone(f.phoneCode,f.phone)){setErreur("Indiquez un numéro de téléphone valide avec son indicatif.");return;}
-    if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
-    setErreur(""); setLoading(true);
-    const payload = {owner_id:user.id,contact_name:f.name.trim(),company:f.company.trim()||null,email:f.email.trim(),phone:normalizePhone(f.phoneCode,f.phone)||null,format:f.format,target_countries:f.countries,budget:f.budget||null,desired_period:f.period||null,destination_url:websiteUrl(f.url)||null,message:f.message||null,objective:f.objective,consent_at:new Date().toISOString(),status:"en_attente",moderation_note:null};
-    const r = await (existing?modifier("advertising_requests",existing.id,payload,user.token):ecrire("advertising_requests",payload,user.token))
-      .catch(e=>({ok:false,statut:0,motif:String(e)}));
-    setLoading(false);
-    if (!r.ok) { setErreur(messageErreur(r)); return; }
-    setSent(true); onSaved?.();
-  };
-  return (
-    <ModalShell title={existing?"Modifier ma demande publicitaire":"Faire de la publicité"} subtitle="Présentez votre activité aux acheteurs et vendeurs" color={C.gold} onClose={onClose}>
-      {sent ? <SentMessage title="Demande envoyée" text="Nous vous recontactons avec nos formats et tarifs." onClose={onClose}/> : (<>
-        <div style={{background:"#FFF8E5",border:"1px solid #E8D59B",borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>Aucun paiement n'est demandé ici. Vous recevez d'abord une proposition précisant l'emplacement, la durée et le tarif.</div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Nom *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)}/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Société</label><input style={inp} value={f.company} onChange={e=>set("company",e.target.value)}/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Email *</label><input type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)}/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Téléphone / WhatsApp</label>
-          <div style={{display:"flex",gap:"6px"}}>
-            <select value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
-              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
-            </select>
-            <input type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)}/>
-          </div>
-        </div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Format souhaité *</label>
-          <select style={inp} value={f.format} onChange={e=>set("format",e.target.value)}>
-            <option value="">Choisir…</option>
-            {FORMATS.map(x=><option key={x} value={x}>{x}</option>)}
-          </select>
-        </div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Objectif principal *</label><select style={inp} value={f.objective} onChange={e=>set("objective",e.target.value)}><option value="">Choisir…</option>{OBJECTIFS.map(x=><option key={x} value={x}>{x}</option>)}</select></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Pays ciblés</label><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{COUNTRIES_ANNONCES.map(c=>{const on=f.countries.includes(c.name);return <button key={c.name} type="button" onClick={()=>toggleCountry(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:20,padding:"4px 10px",fontSize:13,cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>;})}</div><div style={{fontSize:12.5,color:C.sub,fontFamily:F,marginTop:4}}>Aucun pays sélectionné = toute la zone Sokilé.</div></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}><div><label style={lbl}>Budget indicatif</label><input style={inp} value={f.budget} onChange={e=>set("budget",e.target.value)} placeholder="Ex : 300 €"/></div><div><label style={lbl}>Période</label><input style={inp} value={f.period} onChange={e=>set("period",e.target.value)} placeholder="Ex : novembre"/></div></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Lien de destination</label><input type="url" style={inp} value={f.url} onChange={e=>set("url",e.target.value)} placeholder="https://…"/></div>
-        <div style={{marginBottom:"14px"}}><label style={lbl}>Votre message</label><textarea rows={3} style={{...inp,resize:"vertical"}} value={f.message} onChange={e=>set("message",e.target.value)} placeholder="Votre activité, votre budget, la période souhaitée…"/></div>
-        <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette société et demande à Sokilé de me contacter au sujet de cette campagne.</span></label>
-        <BandeauErreur texte={erreur} onRetry={submit}/>
-        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.gold:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
-      </>)}
-    </ModalShell>
-  );
+function PubFormModal({ onClose }) {
+  return <ModalShell title="Publicité et mise en lumière" subtitle="Les formules de visibilité Sokilé" onClose={onClose}><PaidOffers/></ModalShell>;
 }
 
 function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
@@ -2845,7 +2792,7 @@ function MesDemandesPro({user,refreshKey,onEditService,onEditPub,showEmpty=false
   if(error)return <div><BandeauErreur texte={error}/><button onClick={()=>setRetry(x=>x+1)}>Réessayer</button></div>;
   return <>{[
     {kind:'Annuaire',heading:'Ma présence dans l’annuaire',empty:'Aucune fiche pour le moment. Utilisez « Rejoindre l’annuaire » pour présenter votre activité.'},
-    {kind:'Publicité',heading:'Mes demandes publicitaires',empty:'Aucune demande pour le moment. Utilisez « Faire de la publicité » pour préparer votre campagne.'},
+    {kind:'Publicité',heading:'Mes demandes publicitaires',empty:'Les tarifs sont consultables via « Publicité et mise en lumière ». Les services payants ne sont pas encore ouverts.'},
   ].map(group=>{
     const rows=items.filter(x=>x.kind===group.kind);
     if(!showEmpty&&!rows.length)return null;
@@ -2916,7 +2863,6 @@ function SokileApp() {
   const [editingService,setEditingService]=useState(null),[editingPub,setEditingPub]=useState(null),[proRefresh,setProRefresh]=useState(0);
   const [annFilter, setAnnFilter] = useState({spec:"Tous",pays:"Tous"});
   const openAnnuaire = (spec="Tous",pays="Tous") => { setAnnFilter({spec,pays}); setSelectedProp(null); switchTab("prestataires"); };
-  useEffect(()=>{if(showPub&&!user){setShowPub(false);setShowLogin(true)}},[showPub,user]);
   useEffect(()=>{if(showServiceForm&&!user){setShowServiceForm(false);setShowLogin(true)}},[showServiceForm,user]);
 
   // Rafraîchit automatiquement le jeton Supabase conservé en local.
@@ -3705,7 +3651,7 @@ button,input,select,textarea{font-size:inherit}
                   </div>
                 </button>
                 {/* Publicité */}
-                <button onClick={()=>vu?setShowPub(true):setShowLogin(true)} style={{width:"100%",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
+                <button onClick={()=>setShowPub(true)} style={{width:"100%",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"12px 14px",textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",fontFamily:F,textDecoration:"none"}}>
                   <div style={{width:36,height:36,borderRadius:"8px",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>📢</div>
                   <div>
                     <div style={{fontSize:"15px",fontWeight:700,fontFamily:F}}>Faire de la publicité</div>
@@ -3843,7 +3789,7 @@ button,input,select,textarea{font-size:inherit}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}
-      {(showPub||editingPub)&&vu&&<PubFormModal onClose={()=>{setShowPub(false);setEditingPub(null);}} user={vu} existing={editingPub} onSaved={()=>setProRefresh(x=>x+1)}/>}
+      {(showPub||editingPub)&&<PubFormModal onClose={()=>{setShowPub(false);setEditingPub(null);}} user={vu} existing={editingPub} onSaved={()=>setProRefresh(x=>x+1)}/>}
       {programEditor&&programPublisher&&<ProgramEditor api={programApi} user={vu} existing={programEditor} onClose={()=>setProgramEditor(null)} onSaved={()=>setProgramRefresh(x=>x+1)}/>}
     </div>
   );
