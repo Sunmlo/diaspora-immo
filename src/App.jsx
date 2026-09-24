@@ -3268,7 +3268,8 @@ button,input,select,textarea{font-size:inherit}
 
       {route.nom==="accueil"&&tab!=="admin"&&<BandeauActualites onOpen={()=>{setSousOnglet("actu");switchTab("guides");}}/>}
 
-      <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transform:animIn?"translateY(0)":"translateY(6px)",transition:"all 0.2s ease"}}>
+      {/* Keep fixed dialogs anchored to the viewport: a transformed ancestor traps them inside main. */}
+      <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transition:"opacity 0.2s ease"}}>
 
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsError&&<p role="alert" style={{fontFamily:F,color:C.terra}}>Les annonces ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.</p>}
