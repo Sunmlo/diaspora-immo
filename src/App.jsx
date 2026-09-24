@@ -2491,8 +2491,17 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
   const [pays, setPays] = useState(initialPays);
   const [sel, setSel] = useState(null);
   const [verified,setVerified] = useState([]);
-  useEffect(()=>{lire("public_professionals","select=*&order=id.desc").then(r=>{if(r.ok)setVerified((r.data||[]).map(p=>({id:`pro-${p.id}`,name:p.business_name,specs:[p.specialty],pays:p.countries||[],zones:p.zones,phone:p.phone,site:p.website,tarifs:p.pricing,desc:p.description||"Professionnel référencé sur Sokilé.",emoji:"✓",verified:true})));}).catch(()=>{});},[]);
-  const source = verified.length ? verified : PRESTATAIRES_DEMO;
+  const [loading,setLoading] = useState(true), [error,setError] = useState(false), [retry,setRetry] = useState(0);
+  useEffect(()=>{
+    let active=true;setLoading(true);setError(false);
+    lire("public_professionals","select=*&order=id.desc").then(r=>{
+      if(!active)return;
+      if(!r.ok||!Array.isArray(r.data))throw new Error("Annuaire indisponible");
+      setVerified(r.data.map(p=>({id:`pro-${p.id}`,name:p.business_name,specs:[p.specialty],pays:p.countries||[],zones:p.zones,phone:p.phone,site:p.website,tarifs:p.pricing,desc:p.description||"Professionnel référencé sur Sokilé.",emoji:"✓",verified:true})));
+    }).catch(()=>{if(active)setError(true);}).finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[retry]);
+  const source = loading||error ? [] : verified.length ? verified : PRESTATAIRES_DEMO;
   const list = source.filter(p=>(spec==="Tous"||p.specs.includes(spec))&&(pays==="Tous"||p.pays.includes(pays)));
   const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
   return (
@@ -2505,8 +2514,10 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
         <option value="Tous">Tous les pays</option>
         {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
       </select>
-      <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>{verified.length?`${verified.length} prestataire(s) validé(s) par Sokilé.`:"Fiches d'exemple, en attendant les premiers prestataires validés."}</div>
-      {list.length===0&&(
+      {loading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des professionnels…</p>}
+      {error&&<BandeauErreur texte="L’annuaire n’a pas pu être chargé. Réessayez dans quelques instants." onRetry={()=>setRetry(n=>n+1)}/>}
+      {!loading&&!error&&<div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>{verified.length?`${verified.length} prestataire(s) validé(s) par Sokilé.`:"Fiches d'exemple, en attendant les premiers prestataires validés."}</div>}
+      {!loading&&!error&&list.length===0&&(
         <div style={{background:C.white,border:`1px dashed ${C.sand}`,borderRadius:"10px",padding:"16px",textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"8px"}}>
           Aucun prestataire pour ce choix. Vous exercez dans ce domaine ? Rejoignez l'annuaire ci-dessous.
         </div>
