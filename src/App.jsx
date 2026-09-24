@@ -6,6 +6,7 @@ import { GUIDES, guideReadingTime } from "./guides";
 import { addCalendarMonths, publicationMonths, isExpired } from "./lifecycle.mjs";
 import { AlertModal, MesAlertes, CancelAlertPage } from "./alerts.jsx";
 import { canManagePrograms } from "./auth-session.mjs";
+import { ProfessionalActions, PersonalAccountTools } from "./professional-account.jsx";
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
@@ -2373,7 +2374,7 @@ function ComingSoon({ title, desc }) {
 
 
 // ─── PRESTATAIRES : ANNUAIRE + FORMULAIRES ────────
-const SPECIALITES = ["Géomètre","Notaire","Architecte","BTP / Construction","Vérification terrain","Juridique","Financement","Déménagement"];
+const SPECIALITES = ["Agence immobilière","Promoteur immobilier","Géomètre","Notaire","Architecte","BTP / Construction","Vérification terrain","Juridique","Financement","Déménagement"];
 
 // Fiches d'exemple (remplacées par les vrais prestataires une fois validés)
 const PRESTATAIRES_DEMO = [
@@ -2829,11 +2830,38 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
   </section>;
 }
 
-function MesDemandesPro({user,refreshKey,onEditService,onEditPub}) {
-  const [items,setItems]=useState([]);
-  useEffect(()=>{Promise.all([lire("professionals",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token),lire("advertising_requests",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token)]).then(([a,b])=>setItems([...(a.ok?(a.data||[]).map(x=>({...x,kind:"Annuaire",title:x.business_name})):[]),...(b.ok?(b.data||[]).map(x=>({...x,kind:"Publicité",title:x.company||x.format})):[])])).catch(()=>{});},[user.token,refreshKey]);
-  if(!items.length) return null;
-  return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}><div style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,marginBottom:9}}>Mes demandes professionnelles</div><div style={{display:"grid",gap:7}}>{items.map(x=>{const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};return <div key={`${x.kind}-${x.id}`} style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}><div><div style={{fontFamily:F,fontSize:12,color:C.terra,fontWeight:700}}>{x.kind}</div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {x.moderation_note}</div>}</div><span style={{alignSelf:"start",background:e.bg,color:e.color,borderRadius:20,padding:"3px 8px",fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span>{["refusee","modifications_demandees","en_attente"].includes(x.status)&&<button onClick={()=>x.kind==="Annuaire"?onEditService(x):onEditPub(x)} style={{alignSelf:"start",border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:"7px 10px",fontFamily:F,cursor:"pointer"}}>Compléter ma demande</button>}</div>})}</div></section>;
+function MesDemandesPro({user,refreshKey,onEditService,onEditPub,showEmpty=false}) {
+  const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[retry,setRetry]=useState(0);
+  useEffect(()=>{
+    let active=true;setLoading(true);setError('');setItems([]);
+    Promise.all([lire("professionals",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token),lire("advertising_requests",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token)]).then(([a,b])=>{
+      if(!active)return;
+      if(!a.ok||!b.ok)throw Error('Impossible de charger vos demandes professionnelles.');
+      setItems([...(a.data||[]).map(x=>({...x,kind:"Annuaire",title:x.business_name})),...(b.data||[]).map(x=>({...x,kind:"Publicité",title:x.company||x.format}))]);
+    }).catch(()=>{if(active)setError('Impossible de charger vos demandes professionnelles.');}).finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[user.id,user.token,refreshKey,retry]);
+  if(loading)return showEmpty?<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement de vos demandes professionnelles…</p>:null;
+  if(error)return <div><BandeauErreur texte={error}/><button onClick={()=>setRetry(x=>x+1)}>Réessayer</button></div>;
+  return <>{[
+    {kind:'Annuaire',heading:'Ma présence dans l’annuaire',empty:'Aucune fiche pour le moment. Utilisez « Rejoindre l’annuaire » pour présenter votre activité.'},
+    {kind:'Publicité',heading:'Mes demandes publicitaires',empty:'Aucune demande pour le moment. Utilisez « Faire de la publicité » pour préparer votre campagne.'},
+  ].map(group=>{
+    const rows=items.filter(x=>x.kind===group.kind);
+    if(!showEmpty&&!rows.length)return null;
+    return <section key={group.kind} style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}>
+      <h2 style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,margin:'0 0 9px'}}>{group.heading}</h2>
+      {!rows.length&&<p style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:0}}>{group.empty}</p>}
+      <div style={{display:'grid',gap:7}}>{rows.map(x=>{
+        const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};
+        return <div key={x.id} style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}>
+          <div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>Réponse de Sokilé : {x.moderation_note}</div>}</div>
+          <span style={{alignSelf:'start',background:e.bg,color:e.color,borderRadius:20,padding:'3px 8px',fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span>
+          {['refusee','modifications_demandees','en_attente'].includes(x.status)&&<button onClick={()=>x.kind==='Annuaire'?onEditService(x):onEditPub(x)} style={{alignSelf:'start',border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:'7px 10px',fontFamily:F,cursor:'pointer'}}>Compléter ma demande</button>}
+        </div>;
+      })}</div>
+    </section>;
+  })}</>;
 }
 
 export default function App() {
@@ -3651,7 +3679,7 @@ button,input,select,textarea{font-size:inherit}
         )}
 
         {/* ── ESPACE PRO ── */}
-        {route.nom==="accueil"&&tab==="pro"&&(
+        {route.nom==="accueil"&&tab==="pro"&&!programPublisher&&(
           <div>
             {/* Hero Pro */}
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px 16px"}}>
@@ -3709,7 +3737,7 @@ button,input,select,textarea{font-size:inherit}
           <EspaceAdmin user={user} apercu={apercu} onApercu={v=>{setApercu(v); if(v) switchTab("accueil");}} programRefresh={programRefresh}/>
         )}
 
-        {route.nom==="accueil"&&tab==="compte"&&(
+        {route.nom==="accueil"&&(tab==="compte"||(tab==="pro"&&programPublisher))&&(
           <div style={{paddingTop:"20px"}}>
             {estAdmin(user)&&!apercu&&new URLSearchParams(window.location.search).get("paiement")==="test"&&<div className="sp"><div className="sp-note">Vous êtes de retour de l’essai de paiement. Consultez le résultat confirmé dans Gestion.<div className="sp-actions"><button onClick={()=>switchTab("admin")}>Voir les essais de paiement</button></div></div></div>}
             {!vu?(
@@ -3726,13 +3754,23 @@ button,input,select,textarea{font-size:inherit}
                   <div style={{width:48,height:48,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",fontWeight:700,color:C.white,fontFamily:F}}>
                     {vu.name?.slice(0,2).toUpperCase()}
                   </div>
-                  <div>
-                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{vu.name}</h2>
+                  <div style={{minWidth:0,overflowWrap:"anywhere"}}>
+                    <h2 style={{margin:"0 0 2px",color:C.white,fontFamily:FT,fontSize:"18px"}}>{programPublisher?(vu.agency||vu.name):vu.name}</h2>
                     <p style={{margin:"0 0 5px",color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>{vu.email}</p>
-                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"12px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>Membre Sokilé</span>
+                    <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"12px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>{programPublisher?"Compte professionnel":estAdmin(vu)?"Administratrice Sokilé":"Membre Sokilé"}</span>
                   </div>
                 </div>
+                {programPublisher?<ProfessionalActions
+                  onListing={()=>{setPartnerType("pro");setShowPartner(true);}}
+                  onProgram={newProgram}
+                  onDirectory={()=>setShowServiceForm(true)}
+                  onAdvertising={()=>setShowPub(true)}
+                />:<button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginBottom:16,background:C.terra,border:"none",color:C.white,borderRadius:8,padding:13,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:F}}>Publier une annonce</button>}
                 <div style={{display:"grid",gap:"7px"}}>
+                    <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
+                    <MesDemandesPro user={vu} showEmpty={programPublisher} refreshKey={proRefresh} onEditService={setEditingService} onEditPub={setEditingPub}/>
+                    {programPublisher&&<ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={editProgram} refreshKey={programRefresh}/>}
+                    <PersonalAccountTools professional={programPublisher}>
                                       {/* Biens sauvegardés */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${C.sand}`}}>
                       <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"8px"}}>Biens sauvegardés <span style={{color:C.sub,fontWeight:400}}>({savedProps.length})</span></div>
@@ -3753,20 +3791,8 @@ button,input,select,textarea{font-size:inherit}
                         </div>
                       )}
                     </div>
-                    <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
-                    <MesDemandesPro user={vu} refreshKey={proRefresh} onEditService={setEditingService} onEditPub={setEditingPub}/>
                     <MesAlertes user={vu} load={lire} rpc={alertRpc} refreshKey={alertsRefresh}/>
-                    {programPublisher&&<ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={editProgram} refreshKey={programRefresh}/>}
-                    {/* Autres items */}
-                    {[{label:"Messages agents",value:"Fonctionnalité à venir"}].map(item=>(
-                    <div key={item.label} style={{background:C.white,borderRadius:"8px",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",border:`1px solid ${C.sand}`}}>
-                      <div>
-                        <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F}}>{item.label}</div>
-                        <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{item.value}</div>
-                      </div>
-                      <span style={{color:C.sub,fontSize:"16px"}}>›</span>
-                    </div>
-                  ))}
+                    </PersonalAccountTools>
                     {/* Contact / Support */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
                       <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
@@ -3779,7 +3805,6 @@ button,input,select,textarea{font-size:inherit}
                       </a>
                     </div>
                 </div>
-                <button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginTop:"14px",background:C.terra,border:"none",color:C.white,borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>Publier une annonce</button>
                 <button onClick={()=>{setUser(null);effacerLocal(CLE_SESSION);}} style={{width:"100%",marginTop:"8px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"11px",fontWeight:600,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Se déconnecter</button>
               </>
             )}
