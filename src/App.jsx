@@ -10,6 +10,7 @@ import { ProfessionalActions, PersonalAccountTools } from "./professional-accoun
 import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } from "./programs.jsx";
 import { AdPreviewNotice, AdPreviewSlot } from "./ad-preview.jsx";
 import { previewOffer } from "./ad-preview.mjs";
+import { HomeDiscovery } from "./home-discovery.jsx";
 import { PaidOffers } from "./paid-offers.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
@@ -2841,7 +2842,6 @@ function SokileApp() {
   const [filterSurfaceMax, setFilterSurfaceMax] = useState("");
   const [filterRooms, setFilterRooms] = useState("Tous");
   const [filterEquipements, setFilterEquipements] = useState([]);
-  const [filterVerified, setFilterVerified] = useState(false);
   const [filterRegion, setFilterRegion] = useState("Tous");
   const [sortBy, setSortBy] = useState("recent");
   const [search, setSearch] = useState("");
@@ -2946,14 +2946,13 @@ function SokileApp() {
     (filterPriceMin||filterPriceMax) && {cle:"prix", texte:`${filterPriceMin?fmtEUR(+filterPriceMin):"0 €"} – ${filterPriceMax?fmtEUR(+filterPriceMax):"sans limite"}`, retirer:()=>{setFilterPriceMin("");setFilterPriceMax("");}},
     (filterSurfaceMin||filterSurfaceMax) && {cle:"surf", texte:`${filterSurfaceMin||0} – ${filterSurfaceMax||"…"} m²`, retirer:()=>{setFilterSurfaceMin("");setFilterSurfaceMax("");}},
     filterRooms!=="Tous"       && {cle:"pieces", texte:`${filterRooms} pièces`, retirer:()=>setFilterRooms("Tous")},
-    filterVerified             && {cle:"verif",  texte:"Annonces modérées", retirer:()=>setFilterVerified(false)},
     ...filterEquipements.map(eq=>({cle:"eq-"+eq, texte:eq, retirer:()=>toggleEquipement(eq)})),
   ].filter(Boolean);
 
   const toggleEquipement = eq => setFilterEquipements(prev=>prev.includes(eq)?prev.filter(e=>e!==eq):[...prev,eq]);
-  const resetFilters = () => { setFilterCountry("Tous"); setFilterTransaction("tous"); setFilterNature("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setFilterVerified(false); setSortBy("recent"); setSearch(""); };
+  const resetFilters = () => { setFilterCountry("Tous"); setFilterTransaction("tous"); setFilterNature("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setSortBy("recent"); setSearch(""); };
 
-  const activeFiltersCount = [filterCountry!=="Tous",filterTransaction!=="tous",filterNature!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0,filterVerified].filter(Boolean).length;
+  const activeFiltersCount = [filterCountry!=="Tous",filterTransaction!=="tous",filterNature!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0].filter(Boolean).length;
   const filteredCountries = filterRegion==="Tous"?COUNTRIES_ANNONCES:COUNTRIES_ANNONCES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
   const paysActifs = filteredCountries.filter(c=>comptesPays[c.name]>0);
 
@@ -2970,8 +2969,7 @@ function SokileApp() {
     const msMax=!filterSurfaceMax||(p.surface&&p.surface<=parseInt(filterSurfaceMax));
     const mrm=filterRooms==="Tous"||(p.rooms&&p.rooms>=parseInt(filterRooms));
     const meq=filterEquipements.length===0||filterEquipements.every(eq=>p.features?.includes(eq));
-    const mv=!filterVerified||p.verified;
-    return mc&&mr&&mt&&mtr&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq&&mv;
+    return mc&&mr&&mt&&mtr&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq;
   });
   // "Plus récent" : les vraies annonces d'abord, puis par date de dépôt
   const quand = (x) => x.created_at ? new Date(x.created_at).getTime() : 0;
@@ -3295,30 +3293,12 @@ button,input,select,textarea{font-size:inherit}
 
             {adPreview==="reach"&&<AdPreviewSlot placement="banner"/>}
 
-            {/* Filtres rapides */}
-            <div style={{background:C.white,borderBottom:`1px solid ${C.sand}`,padding:"10px 20px",display:"flex",gap:"7px",overflowX:"auto",marginBottom:"1px"}}>
-              {[
-                ["Acheter",  ()=>{setFilterTransaction("vente");setFilterNature("Tous");}, filterTransaction==="vente"&&filterNature==="Tous"],
-                ["Louer",    ()=>{setFilterTransaction("location");setFilterNature("Tous");}, filterTransaction==="location"&&filterNature==="Tous"],
-                ["Terrains", ()=>{setFilterTransaction("tous");setFilterNature("terrain");}, filterNature==="terrain"],
-                ["Immeubles",()=>{setFilterTransaction("tous");setFilterNature("immeuble");}, filterNature==="immeuble"],
-                ["Locaux pro",()=>{setFilterTransaction("tous");setFilterNature("commerce");}, filterNature==="commerce"],
-              ].map(([l,action,actif])=>(
-                <button key={l} onClick={()=>{action();switchTab("biens");}} style={chipBase(actif)}>{l}</button>
-              ))}
-              <button onClick={()=>{setFilterVerified(!filterVerified);switchTab("biens");}} style={chipBase(filterVerified)}>Annonces modérées</button>
-              <button onClick={openPrograms} style={chipBase(false)}>Programmes neufs</button>
-            </div>
-
-            {/* Les bénéfices clés remplacent les statistiques tant que la plateforme est en lancement */}
-            <div style={{display:"flex",background:C.light,borderBottom:`1px solid ${C.sand}`,marginBottom:"20px",flexWrap:"wrap"}}>
-              {[["Trouver un bien","Vente, location et terrains"],["Trouver un professionnel","Prestataires par pays"],["Comprendre","Guides pratiques"],["Contact direct","WhatsApp ou téléphone"]].map(([v,l],i)=>(
-                <div key={l} style={{flex:"1 1 170px",padding:"14px 10px",textAlign:"center",borderRight:i<3?`1px solid ${C.sand}`:"none"}}>
-                  <div style={{fontSize:"14px",fontWeight:800,color:C.forest,fontFamily:F}}>{v}</div>
-                  <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F}}>{l}</div>
-                </div>
-              ))}
-            </div>
+            <HomeDiscovery
+              onBrowse={(transaction,nature)=>{resetFilters();setFilterTransaction(transaction);setFilterNature(nature);switchTab("biens");}}
+              onPrograms={openPrograms}
+              onProfessionals={()=>openAnnuaire()}
+              onGuides={()=>{setSousOnglet("guides");switchTab("guides");}}
+            />
 
             {/* Sélection */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"14px"}}>
@@ -3528,12 +3508,7 @@ button,input,select,textarea{font-size:inherit}
                   </div>
                 </div>
 
-                <div className="bloc">
-                  <div style={{display:"flex",alignItems:"center",gap:"9px",cursor:"pointer"}} onClick={()=>setFilterVerified(!filterVerified)}>
-                    <span style={{width:19,height:19,borderRadius:"4px",border:`1.5px solid ${filterVerified?C.terra:C.sand}`,background:filterVerified?C.terra:"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontSize:"13px",flexShrink:0}}>{filterVerified?"✓":""}</span>
-                    <span style={{fontSize:"14.5px",color:C.dark,fontFamily:F}}>N'afficher que les annonces passées en modération</span>
-                  </div>
-                </div>
+
               </div>
             )}
 
@@ -3793,7 +3768,7 @@ button,input,select,textarea{font-size:inherit}
       {/* MODALS */}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
-      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:filterVerified}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
+      {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:false}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}
