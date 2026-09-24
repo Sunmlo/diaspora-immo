@@ -72,3 +72,8 @@ export function applySessionRefresh(current, requestedToken, data) {
 export function isAdminSession(user, adminEmail) {
   return Boolean(user?.id && user?.token && normalizeEmail(user.email) === normalizeEmail(adminEmail));
 }
+
+// Professional publishing is separate from administrator moderation.
+export function canManagePrograms(user, adminEmail) {
+  return Boolean(user?.id && user?.token && user.account_type === 'pro' && !isAdminSession(user, adminEmail));
+}
