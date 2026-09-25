@@ -2774,8 +2774,8 @@ const ETATS_DOSSIER = {
   en_attente:{label:"En attente de validation",color:"#8A6116",bg:"#FFF4D6"},
   validee:{label:"Publiée",color:C.success,bg:C.successBg},
   publiee:{label:"Publiée",color:C.success,bg:C.successBg},
-  refusee:{label:"Refusée",color:"#9B2C2C",bg:"#FDE8E8"},
-  rejetee:{label:"Refusée",color:"#9B2C2C",bg:"#FDE8E8"},
+  refusee:{label:"Suite à donner",color:"#9B2C2C",bg:"#FDE8E8"},
+  rejetee:{label:"Suite à donner",color:"#9B2C2C",bg:"#FDE8E8"},
   modifications_demandees:{label:"Modifications demandées",color:"#934C13",bg:"#FFF0E4"},
 };
 
