@@ -444,6 +444,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
   const [phone, setPhone] = useState("");
   const [accountType, setAccountType] = useState("particulier");
   const [agency, setAgency] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(callback?.error || "");
   const [success, setSuccess] = useState("");
@@ -456,6 +457,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
 
   const handleSubmit = async () => {
     if (loading) return;
+    if (mode === "signup" && !termsAccepted) { setError("Veuillez accepter les conditions d’utilisation pour créer votre compte."); return; }
     const validation = authFormError(mode, {email, password, agency, accountType});
     if (validation) { setError(validation); return; }
     if (mode === "signup" && phone.trim() && !normalizePhone(phoneCode, phone)) {
@@ -480,14 +482,14 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
           }
         }
       } else if (mode==="signup") {
-        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:""});
+        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:"", terms_accepted_at:new Date().toISOString(), terms_version:"2026-09-25"});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
-        else setSuccess("Compte créé ! Vérifiez votre email.");
+        else { window.sokileAnalytics?.event("signup_request"); setSuccess("Compte créé ! Vérifiez votre email."); }
       } else {
         const d = await signIn(email, password);
         const session = userSessionFromAuth(d);
         if (!session) setError(d.error?.message || "Connexion non confirmée par le serveur. Veuillez réessayer.");
-        else { onLogin(session); onClose(); }
+        else { window.sokileAnalytics?.event("login"); onLogin(session); onClose(); }
       }
     } catch(e) {
       setError("Connexion impossible pour le moment. Vérifiez votre connexion et réessayez.");
@@ -498,7 +500,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
   const canSubmit = !loading && (
     mode==="forgot" ? Boolean(email) :
     mode==="reset" ? password.length>=8 :
-    Boolean(email&&password) && !(mode==="signup"&&accountType==="pro"&&!agency)
+    Boolean(email&&password) && !(mode==="signup"&&accountType==="pro"&&!agency) && (mode!=="signup" || termsAccepted)
   );
 
   
@@ -541,10 +543,17 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
                 <select value={phoneCode} onChange={e=>setPhoneCode(e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
                   {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                 </select>
-                <input type="tel" placeholder="6 12 34 56 78" value={phone} onChange={e=>setPhone(e.target.value)} style={{...inputStyle,flex:1}}/>
+                <input type="tel" placeholder="6 12 34 56 78" value={phone} onChange={e=>setPhone(e.target.value)} style={{...inputStyle,flex:1,minWidth:0}}/>
               </div>
             </div>
           )}
+          {mode==="signup"&&<>
+            <label style={{display:"flex",gap:10,alignItems:"flex-start",fontFamily:F,fontSize:14,lineHeight:1.5,marginBottom:12}}>
+              <input type="checkbox" required checked={termsAccepted} onChange={e=>setTermsAccepted(e.target.checked)} style={{flexShrink:0,width:18,height:18,marginTop:2}}/>
+              <span>J’accepte les <a href="/cgu.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>conditions d’utilisation</a>.</span>
+            </label>
+            <p style={{fontFamily:F,fontSize:13,lineHeight:1.5,color:C.sub,margin:"0 0 14px"}}>Vos informations servent à gérer votre compte et vos annonces. Consultez la <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>politique de confidentialité</a> pour connaître vos droits et nous contacter.</p>
+          </>}
           {error&&<div role="alert" style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{error}</div>}
           {success&&<div role="status" style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{success}</div>}
           <button type="submit" disabled={!canSubmit} style={{width:"100%",background:canSubmit?C.terra:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:canSubmit?"pointer":"not-allowed",fontFamily:F,marginBottom:"12px",letterSpacing:"0.03em"}}>
@@ -674,6 +683,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     }
 
     // trace interne, sans conséquence pour l'utilisateur si elle échoue
+    window.sokileAnalytics?.event(existing ? "listing_update" : "listing_submit");
     setLoading(false); setSent(true); onSaved?.();
   };
 
@@ -1177,17 +1187,18 @@ function DemandeDocument({ doc, user, onClose }) {
     return () => { active = false; };
   }, [doc.fichier]);
 
-  const valide = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email) && consent;
+  const valide = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email.trim());
 
   const envoyer = async () => {
     if (!valide || !documentReady || loading) return;
     setErreur(""); setLoading(true);
     const r = await ecrire("leads", {
       name: prenom || "—", email, status: "telechargement",
-      message: `TÉLÉCHARGEMENT | ${doc.titre} | consentement newsletter : oui`,
+      message: `TÉLÉCHARGEMENT | ${doc.titre} | consentement newsletter : ${consent ? "oui" : "non"} | choix recueilli le ${new Date().toISOString()} | formulaire 2026-09-25`,
     }).catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
+    window.sokileAnalytics?.event("document_request");
     setPret(true);
   };
 
@@ -1208,7 +1219,7 @@ function DemandeDocument({ doc, user, onClose }) {
         </div>
       ) : (<>
         <p style={{margin:"0 0 16px",fontSize:"14.5px",color:C.sub,fontFamily:F,lineHeight:1.65}}>
-          Indiquez votre adresse pour accéder au document.
+          Indiquez votre adresse pour accéder au document. Elle sert à traiter votre demande. L’abonnement aux publications est facultatif. <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>Politique de confidentialité</a>
         </p>
         <div style={{marginBottom:"12px"}}>
           <label style={lbl}>Prénom</label>
@@ -1221,7 +1232,7 @@ function DemandeDocument({ doc, user, onClose }) {
         <label style={{display:"flex",gap:"10px",alignItems:"flex-start",marginBottom:"16px",cursor:"pointer"}}>
           <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:"3px",width:18,height:18,flexShrink:0,accentColor:C.forest}}/>
           <span style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55}}>
-            J'accepte que Sokilé conserve mon adresse pour m'envoyer ce document et, occasionnellement, ses prochaines publications. Je peux me désinscrire à tout moment en écrivant à {CONTACT_MAIL}. <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>Politique de confidentialité</a>
+            Je souhaite aussi recevoir les prochaines publications de Sokilé par email (facultatif). Je peux retirer mon consentement à tout moment en écrivant à {CONTACT_MAIL}. <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>Politique de confidentialité</a>
           </span>
         </label>
         <BandeauErreur texte={erreur} onRetry={envoyer}/>
@@ -2441,6 +2452,7 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
+    window.sokileAnalytics?.event(existing ? "professional_update" : "professional_submit");
     setSent(true); onSaved?.();
   };
   return (
@@ -2754,6 +2766,7 @@ function SiteFooter({ onNav, onPub }) {
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>© 2026 Sokilé — Tous droits réservés</div>
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Sokilé met en relation et n&apos;intervient pas dans les transactions</div>
       </div>
+      <button type="button" data-sokile-cookies className="sokile-cookie-link" style={{color:"rgba(255,255,255,.8)"}}>Gérer les cookies</button>
     </footer>
   );
 }
@@ -2765,8 +2778,8 @@ const ETATS_DOSSIER = {
   en_attente:{label:"En attente de validation",color:"#8A6116",bg:"#FFF4D6"},
   validee:{label:"Publiée",color:C.success,bg:C.successBg},
   publiee:{label:"Publiée",color:C.success,bg:C.successBg},
-  refusee:{label:"Refusée",color:"#9B2C2C",bg:"#FDE8E8"},
-  rejetee:{label:"Refusée",color:"#9B2C2C",bg:"#FDE8E8"},
+  refusee:{label:"Suite à donner",color:"#9B2C2C",bg:"#FDE8E8"},
+  rejetee:{label:"Suite à donner",color:"#9B2C2C",bg:"#FDE8E8"},
   modifications_demandees:{label:"Modifications demandées",color:"#934C13",bg:"#FFF0E4"},
 };
 
@@ -2841,6 +2854,10 @@ function SokileApp() {
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
   const [sousOnglet, setSousOnglet] = useState("guides");
+  useEffect(() => {
+    const name = route.nom !== "accueil" ? route.nom : tab === "guides" ? sousOnglet : tab;
+    window.sokileAnalytics?.page(name, route.id);
+  }, [tab, sousOnglet, route.nom, route.id]);
   const [simulation, setSimulation] = useState(initialSimulation);
   // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
   const [apercu, setApercu] = useState("");
@@ -3173,6 +3190,8 @@ button,input,select,textarea{font-size:inherit}
 .sok-tri select:focus{border-color:#1A3C2E}
 
 @media(max-width:560px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{font-size:16px!important;min-width:0}
+
   .sok-newsbar{gap:8px;padding:8px 13px}.sok-newsbar-date{display:none}.sok-newsbar-label{font-size:10.5px}
   .sok-recherche{top:70px}
   .sok-segment{width:100%}
