@@ -484,12 +484,12 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
       } else if (mode==="signup") {
         const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:"", terms_accepted_at:new Date().toISOString(), terms_version:"2026-09-25"});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
-        else setSuccess("Compte créé ! Vérifiez votre email.");
+        else { window.sokileAnalytics?.event("signup_request"); setSuccess("Compte créé ! Vérifiez votre email."); }
       } else {
         const d = await signIn(email, password);
         const session = userSessionFromAuth(d);
         if (!session) setError(d.error?.message || "Connexion non confirmée par le serveur. Veuillez réessayer.");
-        else { onLogin(session); onClose(); }
+        else { window.sokileAnalytics?.event("login"); onLogin(session); onClose(); }
       }
     } catch(e) {
       setError("Connexion impossible pour le moment. Vérifiez votre connexion et réessayez.");
@@ -683,6 +683,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     }
 
     // trace interne, sans conséquence pour l'utilisateur si elle échoue
+    window.sokileAnalytics?.event(existing ? "listing_update" : "listing_submit");
     setLoading(false); setSent(true); onSaved?.();
   };
 
@@ -1197,6 +1198,7 @@ function DemandeDocument({ doc, user, onClose }) {
     }).catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
+    window.sokileAnalytics?.event("document_request");
     setPret(true);
   };
 
@@ -2450,6 +2452,7 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
+    window.sokileAnalytics?.event(existing ? "professional_update" : "professional_submit");
     setSent(true); onSaved?.();
   };
   return (
@@ -2763,6 +2766,7 @@ function SiteFooter({ onNav, onPub }) {
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>© 2026 Sokilé — Tous droits réservés</div>
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Sokilé met en relation et n&apos;intervient pas dans les transactions</div>
       </div>
+      <button type="button" data-sokile-cookies className="sokile-cookie-link" style={{color:"rgba(255,255,255,.8)"}}>Gérer les cookies</button>
     </footer>
   );
 }
@@ -2850,6 +2854,10 @@ function SokileApp() {
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
   const [sousOnglet, setSousOnglet] = useState("guides");
+  useEffect(() => {
+    const name = route.nom !== "accueil" ? route.nom : tab === "guides" ? sousOnglet : tab;
+    window.sokileAnalytics?.page(name, route.id);
+  }, [tab, sousOnglet, route.nom, route.id]);
   const [simulation, setSimulation] = useState(initialSimulation);
   // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
   const [apercu, setApercu] = useState("");
