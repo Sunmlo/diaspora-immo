@@ -702,7 +702,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
             <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Votre annonce est maintenant en attente de validation par Sokilé.</p>
             <button onClick={onClose} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
           </div>):!type?(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"10px"}}>
               {[{id:"particulier",title:"Particulier",desc:"Je vends ou loue mon bien"},{id:"pro",title:"Professionnel",desc:"Agent ou promoteur"}].map(t=>(
                 <div key={t.id} onClick={()=>setType(t.id)} style={{border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"18px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}
                   onMouseEnter={e=>e.currentTarget.style.borderColor=C.terra}
@@ -733,20 +733,21 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
                 <div key={f.key} style={{marginBottom:"10px"}}>
                   <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
-                  <input type={f.type||"text"} placeholder={f.ph} value={form[f.key]} onChange={e=>set(f.key,e.target.value)} style={inputStyle}/>
+                  <input type={f.type||"text"} placeholder={f.ph} value={form[f.key]} onChange={e=>set(f.key,e.target.value)} style={champ(f.key)}/>
                 </div>
               ))}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone WhatsApp</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone / WhatsApp *</label>
                 <div style={{display:"flex",gap:"6px"}}>
                   <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
                     {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
                   </select>
-                  <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...champ("phone"),flex:1}}/>
+                  <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} aria-describedby="listing-phone-help" style={{...champ("phone"),flex:1,minWidth:0}}/>
                 </div>
               </div>
+              <p id="listing-phone-help" style={{fontSize:12.5,color:C.sub,lineHeight:1.5,margin:"-4px 0 12px",fontFamily:F}}>Ce numéro est obligatoire pour être contacté. Il sera accessible aux visiteurs après publication de l’annonce.</p>
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays *</label>
                 <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...champ("country")}}>
                   {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
@@ -754,7 +755,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               {/* Vendre ou louer */}
               <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Vous souhaitez *</label>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"8px"}}>
                   {[["vente","Vendre"],["location","Louer"]].map(([v,l])=>(
                     <button key={v} type="button" onClick={()=>{set("transaction",v);set("type",v==="location"?"Location":"Vente");}}
                       style={{background:form.transaction===v?C.forest:C.white,color:form.transaction===v?C.white:C.dark,border:`1px solid ${form.transaction===v?C.forest:(manquants.includes("transaction")?"#C0392B":C.sand)}`,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:"pointer",fontFamily:F}}>{l}</button>
@@ -785,7 +786,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 <input placeholder="Ex: Villa 4 pièces avec piscine à Cocody" value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
               </div>
               {/* Ville + Quartier */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"8px",marginBottom:"10px"}}>
                 <div>
                   <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Ville *</label>
                   <input placeholder="Ex: Abidjan" value={form.city||""} onChange={e=>set("city",e.target.value)} style={champ("city")}/>
@@ -797,8 +798,8 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               </div>
               {/* Prix */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{form.transaction==="location"?"Loyer mensuel":"Prix de vente"}</label>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{form.transaction==="location"?"Loyer mensuel *":"Prix de vente *"}</label>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"8px"}}>
                   <div style={{position:"relative"}}>
                     <input type="number" placeholder={form.transaction==="location"?"Loyer en €":"Prix en €"} value={form.price_eur||""} onChange={e=>{set("price_eur",e.target.value);set("price_xof",Math.round(e.target.value*655.957));}} style={{...champ("price_eur"),paddingRight:"28px"}}/>
                     <span style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",fontSize:"13px",color:C.sub,fontFamily:F}}>€</span>
@@ -866,7 +867,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               </div>
               {/* Description */}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien * · 30 caractères minimum</label>
                 <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
