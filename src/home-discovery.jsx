@@ -5,6 +5,8 @@ function DiscoveryIcon({kind}){
     buy:<><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></>,
     rent:<><circle cx="8" cy="9" r="5"/><path d="m12 13 8 8m-5-5 3-3m0 6 3-3"/></>,
     land:<><path d="m3 8 7-4 11 4v12l-11-4-7 4V8Zm7-4v12M3 8l18 12M16 3v8"/></>,
+    agriculture:<><path d="M12 21V4M12 10C5 10 4 5 4 5s8-1 8 5Zm0 6c7 0 8-5 8-5s-8-1-8 5Z"/></>,
+    farm:<><path d="m3 10 9-7 9 7v11H3V10Zm6 11v-8h6v8M5 21V10h14"/></>,
     building:<><path d="M5 21V3h14v18M3 21h18M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1M10 21v-3h4v3"/></>,
     shop:<><path d="M4 10v11h16V10M3 10l2-7h14l2 7M3 10c0 4 6 4 6 0 0 4 6 4 6 0 0 4 6 4 6 0M9 21v-6h6v6"/></>,
     new:<><path d="M4 21V9h9v12M13 21V3h7v18M7 13h3m-3 4h3m6-10h1m-1 4h1M2 21h20"/></>,
@@ -17,7 +19,7 @@ function DiscoveryIcon({kind}){
 export function HomeDiscovery({onBrowse,onPrograms,onProfessionals,onGuides}){
   const choices=[
     ['buy','Acheter','vente','Tous'],['rent','Louer','location','Tous'],
-    ['land','Terrains','tous','terrain'],['building','Immeubles','tous','immeuble'],
+    ['land','Terrains et parcelles','tous','terrain'],['agriculture','Terrains agricoles','tous','agricole'],['farm','Fermes et plantations','tous','ferme'],['building','Immeubles','tous','immeuble'],
     ['shop','Locaux pro','tous','commerce'],['new','Programmes neufs'],
   ];
   return <section className="home-discovery" aria-label="Explorer Sokilé">
