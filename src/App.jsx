@@ -1581,16 +1581,16 @@ function ReponseModeration({ table, dossier, value, onChange, onRefuse, busy, er
   }
   return <section style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${C.sand}`}}>
     <label htmlFor={id} style={lbl}>Réponse personnalisée au déposant</label>
-    <p id={`${id}-aide`} style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:"0 0 9px"}}>Pour un refus ou une demande de précisions, expliquez ce qui pose problème dans ce dossier et indiquez les corrections possibles ou la raison d'un refus définitif. Ce texte sera visible dans le compte et repris dans l'email.</p>
+    <p id={`${id}-aide`} style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:"0 0 9px"}}>Pour un retour sans publication ou une demande de précisions, expliquez votre décision et les corrections possibles. Ce texte sera visible dans le compte et repris dans l'email.</p>
     <textarea id={id} aria-describedby={`${id}-aide`} value={value} disabled={busy} maxLength={MAX_RESPONSE_LENGTH} onChange={e=>{onChange(e.target.value);setApercu(false);}} style={{...inp,minHeight:130,resize:"vertical",marginBottom:5}} placeholder="Rédigez ici votre réponse après avoir examiné ce dossier…"/>
     <div style={{fontFamily:F,fontSize:12,color:C.sub,marginBottom:12}}>30 caractères minimum pour justifier la décision · {Array.from(value.trim()).length} / {MAX_RESPONSE_LENGTH}</div>
     {(error||erreurApercu)&&<p role="alert" style={{background:"#FDE8E8",color:"#9B2C2C",padding:12,borderRadius:9,fontFamily:F,fontSize:14,lineHeight:1.6}}>{error||erreurApercu}</p>}
-    {!message&&<button type="button" disabled={busy} onClick={()=>setApercu(true)} style={{background:"transparent",color:"#A93226",border:"1px solid #A93226",borderRadius:9,padding:12,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F,width:"100%"}}>Préparer le refus</button>}
-    {message&&<section aria-label="Aperçu de la réponse de refus" style={{background:C.cream,border:`1px solid ${C.sand}`,padding:15,borderRadius:10}}>
+    {!message&&<button type="button" disabled={busy} onClick={()=>setApercu(true)} style={{background:"transparent",color:"#A93226",border:"1px solid #A93226",borderRadius:9,padding:12,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F,width:"100%"}}>Préparer le retour sans publication</button>}
+    {message&&<section aria-label="Aperçu du retour sans publication" style={{background:C.cream,border:`1px solid ${C.sand}`,padding:15,borderRadius:10}}>
       <div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark}}>Relisez la réponse avant de confirmer</div>
       <div style={{fontFamily:F,fontSize:12,color:C.sub,margin:"8px 0",wordBreak:"break-word"}}>À : {message.to[0]}<br/>{message.subject}</div>
       <div style={{fontFamily:F,fontSize:14,lineHeight:1.7,color:C.dark,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{message.text}</div>
-      <button type="button" disabled={busy} onClick={onRefuse} style={{marginTop:14,width:"100%",background:"#A93226",color:C.white,border:0,borderRadius:9,padding:13,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F}}>{busy?"Enregistrement…":"Confirmer le refus et transmettre la réponse"}</button>
+      <button type="button" disabled={busy} onClick={onRefuse} style={{marginTop:14,width:"100%",background:"#A93226",color:C.white,border:0,borderRadius:9,padding:13,fontWeight:700,cursor:busy?"wait":"pointer",fontFamily:F}}>{busy?"Enregistrement…":"Confirmer et transmettre la réponse"}</button>
     </section>}
   </section>;
 }
@@ -1624,7 +1624,7 @@ function AdminPublicites({ user }) {
     setOuverte(null);setNote("");charger();
   };
 
-  const libelles={en_attente:"À étudier",en_cours:"En discussion",acceptee:"Acceptées",refusee:"Refusées",modifications_demandees:"À compléter"};
+  const libelles={en_attente:"À étudier",en_cours:"En discussion",acceptee:"Acceptées",refusee:"Non retenues",modifications_demandees:"À compléter"};
   return <div>
     <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:6,marginBottom:16}}>
       {Object.entries(libelles).map(([k,l])=><button key={k} onClick={()=>setStatut(k)} style={{flexShrink:0,background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:20,padding:"9px 15px",fontSize:14,fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>)}
@@ -1686,7 +1686,7 @@ function AdminModeration({ user }) {
   return (
     <div>
       <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
-        {[["en_attente","En attente"],["validee","Publiées"],["expiree","Expirées"],["rejetee","Rejetées"]].map(([k,l])=>(
+        {[["en_attente","En attente"],["validee","Publiées"],["expiree","Expirées"],["rejetee","À revoir"]].map(([k,l])=>(
           <button key={k} onClick={()=>setStatut(k)} style={{background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:"20px",padding:"9px 16px",fontSize:"14px",fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>
         ))}
         <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"20px",padding:"9px 14px",fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Actualiser</button>
@@ -1715,7 +1715,7 @@ function AdminModeration({ user }) {
                 <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
                   <button onClick={()=>{setOuvert(p);setMotif(p.motif_rejet||"");setErreurDecision("");}} style={{background:"transparent",border:`1px solid ${C.forest}`,color:C.forest,borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Examiner</button>
                   {statut!=="validee"&&statut!=="expiree"&&<button disabled={enregistrement} onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier · {publicationMonths(p)===6?"6 mois":"1 an"}</button>}
-                  {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");setErreurDecision("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Rejeter…</button>}
+                  {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");setErreurDecision("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Retourner avec un message…</button>}
                 </div>
               </div>
             </div>
@@ -1732,7 +1732,7 @@ function AdminModeration({ user }) {
           )}
           <div style={{fontSize:"14.5px",color:C.dark,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-line",marginBottom:"14px"}}>{ouvert.description}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"8px",marginBottom:"16px"}}>
-            {caracteristiques(ouvert).map(([l,v])=>(
+            {[...caracteristiques(ouvert),...[{k:"quartier",l:"Quartier",v:ouvert.neighborhood},...CHAMPS_SECTEUR.map(c=>({...c,v:ouvert.details?.[c.k]}))].filter(c=>c.v!==undefined&&c.v!==null&&String(c.v).trim()).map(c=>[c.l,String(c.v)])].map(([l,v])=>(
               <div key={l} style={{background:C.cream,borderRadius:"8px",padding:"9px 11px"}}>
                 <div style={{fontSize:"11px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>{l}</div>
                 <div style={{fontSize:"14.5px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
@@ -1863,7 +1863,7 @@ function AdminPrestataires({ user }) {
     setOuverte(null); setNote(""); charger();
   };
 
-  const libelles={en_attente:"À vérifier",validee:"Publiés",modifications_demandees:"À compléter",refusee:"Refusés"};
+  const libelles={en_attente:"À vérifier",validee:"Publiés",modifications_demandees:"À compléter",refusee:"Non retenus"};
 
   return (
     <div>

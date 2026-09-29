@@ -62,3 +62,12 @@ test('downloads require an available document, never an error page or missing ob
  }
  assert.equal(await isDocumentAvailable('https://example.test/document',async()=>{throw new Error('offline');}),false);
 });
+
+ test('French phone normalization rejects zero fixtures and remains stable after editing',()=>{
+ for(const value of ['+33000000000','+3300000000','+33612']) assert.equal(normalizePhone('',value),null);
+ for(const value of ['+33 (0)6 12 34 56 78','+221771234567','+2250123456789']) {
+ const normalized=normalizePhone('',value);
+ const split=splitPhone(normalized,[{code:'+33'},{code:'+221'},{code:'+225'}]);
+ assert.equal(normalizePhone(split.phoneCode,split.phone),normalized);
+ }
+ });

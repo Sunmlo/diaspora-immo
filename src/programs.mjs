@@ -1,7 +1,7 @@
 export const PROGRAM_COUNTRIES=["Bénin","Burkina Faso","Côte d'Ivoire","Mali","Niger","Sénégal","Togo","Cameroun","Centrafrique","Congo","Gabon","Tchad"];
 export const PROGRAM_STAGES={sur_plan:"Sur plan",construction:"En construction",livre:"Livré"};
 export const UNIT_STATES={disponible:"Disponible",reserve:"Réservé",vendu:"Vendu"};
-export const PROGRAM_STATES={en_attente:"En attente",validee:"Publié",refusee:"Refusé",modifications_demandees:"Précisions demandées",archive:"Archivé"};
+export const PROGRAM_STATES={en_attente:"En attente",validee:"Publié",refusee:"Non publié",modifications_demandees:"Précisions demandées",archive:"Archivé"};
 export const IMAGE_KINDS={photo:"Photo",perspective:"Perspective non contractuelle",chantier:"Photo du chantier"};
 export const programDate=v=>v?new Date(v).toLocaleDateString("fr-FR",{timeZone:"UTC"}):"";
 export const fcfa=v=>v==null||v===""?"Prix sur demande":`${Number(v).toLocaleString("fr-FR")} FCFA`;
