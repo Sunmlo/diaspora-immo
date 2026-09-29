@@ -1,0 +1,33 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+const {PGlite}=await import(process.env.SOKILE_PGLITE_PATH||'@electric-sql/pglite');
+const db=new PGlite();
+const A='10000000-0000-4000-8000-000000000001',B='10000000-0000-4000-8000-000000000002';
+await db.exec(`create role authenticated;create schema auth;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create function public.sokile_is_admin() returns boolean language sql stable as $$select coalesce(current_setting('request.jwt.claim.email',true),'')='contact@sokile.com'$$;
+grant usage on schema auth to authenticated;
+create table properties(id int primary key,owner_id uuid,title text);
+alter table properties enable row level security;
+grant select,insert,update,delete on properties to authenticated;
+-- Snapshot of the four production properties policies retrieved 2026-09-29.
+create policy sokile_delete_properties on properties for DELETE to authenticated using (((owner_id = auth.uid()) OR sokile_is_admin()));
+create policy sokile_insert_properties on properties for INSERT to authenticated with check (((owner_id = auth.uid()) OR sokile_is_admin()));
+create policy sokile_read_properties on properties for SELECT to authenticated using (((owner_id = auth.uid()) OR sokile_is_admin()));
+create policy sokile_update_properties on properties for UPDATE to authenticated using (((owner_id = auth.uid()) OR sokile_is_admin())) with check (((owner_id = auth.uid()) OR sokile_is_admin()));
+insert into properties values(1,'${A}','Compte A'),(2,'${B}','Compte B');
+set role authenticated;`);
+const asUser=async id=>db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);
+test('two accounts are isolated for reading, editing, deleting and ownership transfer',async()=>{
+ await asUser(A);
+ assert.deepEqual((await db.query('select id from properties')).rows,[{id:1}]);
+ assert.equal((await db.query("update properties set title='Intrusion' where id=2 returning id")).rows.length,0);
+ assert.equal((await db.query('delete from properties where id=2 returning id')).rows.length,0);
+ await assert.rejects(db.query("insert into properties values(3,$1,'Intrusion')",[B]),/row-level security/);
+ await assert.rejects(db.query('update properties set owner_id=$1 where id=1',[B]),/row-level security/);
+ assert.equal((await db.query("update properties set title='Modification autorisée' where id=1 returning id")).rows.length,1);
+ await asUser(B);
+ assert.deepEqual((await db.query('select id,title from properties')).rows,[{id:2,title:'Compte B'}]);
+ assert.equal((await db.query("update properties set title='Intrusion' where id=1 returning id")).rows.length,0);
+ await db.close();
+});
