@@ -15,6 +15,7 @@ import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } 
 import { AdPreviewNotice, AdPreviewSlot } from "./ad-preview.jsx";
 import { previewOffer } from "./ad-preview.mjs";
 import { HomeDiscovery } from "./home-discovery.jsx";
+import { DemoListings } from "./demo-listings.jsx";
 import { PaidOffers } from "./paid-offers.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
@@ -3391,6 +3392,7 @@ button,input,select,textarea{font-size:inherit}
             />
 
             {/* Sélection */}
+            {ALL_PROPS.length>0&&<>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"14px"}}>
               <h2 style={{fontFamily:FT,fontSize:"22px",fontWeight:500,color:C.cacao,margin:0}}>Annonces récentes</h2>
               <span onClick={()=>switchTab("biens")} style={{fontSize:"13px",color:C.terra,fontWeight:700,cursor:"pointer",fontFamily:F}}>Voir tout →</span>
@@ -3398,6 +3400,9 @@ button,input,select,textarea{font-size:inherit}
             <div className="sok-grid" style={{marginBottom:"28px"}}>
               {ALL_PROPS.slice(0,4).map(p=><PropertyCard key={p.id} p={p} onClick={ouvrirAnnonce} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>)}
             </div>
+            </>}
+
+            <DemoListings onPublish={()=>{setPartnerType(vu?.account_type==="pro"?"pro":"particulier");vu?setShowPartner(true):setShowLogin(true);}}/>
 
             <ProgramHome api={programApi} onOpen={openProgram} onAll={openPrograms}/>
             <div className="sok-home-actions">
