@@ -19,6 +19,7 @@ export function normalizePhone(prefix, value) {
   } else if (number.startsWith('+330')) {
     number = '+33' + number.slice(4);
   }
+  if (number.startsWith('+33') && !/^\+33[1-9]\d{8}$/.test(number)) return null;
   return /^\+[1-9]\d{7,14}$/.test(number) ? number : null;
 }
 export const propertyTransaction = p => p?.transaction || (/location/i.test(p?.type || '') ? 'location' : 'vente');
