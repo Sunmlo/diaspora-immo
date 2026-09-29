@@ -2813,6 +2813,8 @@ function SiteFooter({ onNav, onPub }) {
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Nous contacter</div>
           <a href={`mailto:${CONTACT_MAIL}`} style={{...link,color:"#E8A07E",fontWeight:600,wordBreak:"break-word"}}>{CONTACT_MAIL}</a>
           <a href="https://www.sokile.com" style={link}>www.sokile.com</a>
+          <p style={{fontSize:"14px",lineHeight:1.6,color:"rgba(255,255,255,0.85)",fontFamily:F,margin:"14px 0 8px"}}>Un problème technique ou une suggestion pour améliorer Sokilé ? Faites-nous-en part par email.</p>
+          <a href={`mailto:${CONTACT_MAIL}?subject=Retour%20sur%20Sokil%C3%A9`} style={{...link,color:"#E8A07E",fontWeight:600,textDecoration:"underline"}}>Signaler un problème ou proposer une amélioration</a>
         </div>
       </div>
       <div style={{maxWidth:"1200px",margin:"26px auto 0",paddingTop:"18px",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",flexWrap:"wrap",gap:"8px 18px",alignItems:"center",justifyContent:"space-between"}}>
