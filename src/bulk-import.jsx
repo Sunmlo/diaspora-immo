@@ -7,12 +7,13 @@ function Photo({file}){const [url,setUrl]=useState('');useEffect(()=>{const u=UR
 export function BulkImport({user,schema,api,onClose,onSaved}){
   const dialog=useRef(null),lock=useRef(false),uploaded=useRef(new Map());
   const [rows,setRows]=useState([]),[existing,setExisting]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[progress,setProgress]=useState(''),[sent,setSent]=useState([]);
+  const [authorityAccepted,setAuthorityAccepted]=useState(false);
   const [contact,setContact]=useState({name:user.name||'',agency:user.agency||'',email:user.email||'',phone:user.phone||''});
   useEffect(()=>{dialog.current?.showModal();const d=dialog.current;return()=>d?.close();},[]);
   const setRow=(index,change)=>{uploaded.current.delete(index);setRows(old=>old.map((r,i)=>i===index?{...r,...change}:r));};
   const inspect=async file=>{
     if(!file||lock.current)return;setBusy(true);lock.current=true;setError('');
-    try{const parsed=await readImportFile(file,schema.columns);const current=await ownListings(api.read,user);setExisting(current);setRows(parsed.map(data=>({data,photos:[],selected:true})));setSent([]);uploaded.current.clear();setProgress('Fichier lu. Vérifiez les annonces et ajoutez leurs photos.');}
+    try{const parsed=await readImportFile(file,schema.columns);const current=await ownListings(api.read,user);setExisting(current);setRows(parsed.map(data=>({data,photos:[],selected:true})));setAuthorityAccepted(false);setSent([]);uploaded.current.clear();setProgress('Fichier lu. Vérifiez les annonces et ajoutez leurs photos.');}
     catch(e){setError(e.message||'Impossible de lire ce fichier.');}finally{setBusy(false);lock.current=false;}
   };
   const errorsFor=(r,current=existing)=>validateRow(r.data,schema,rows.filter(x=>x.selected).map(x=>x.data),current||[]);
@@ -20,6 +21,7 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
   const invalid=selected.some(r=>errorsFor(r).length||!r.photos.length);
   const send=async()=>{
     if(lock.current||!selected.length)return;
+    if(!authorityAccepted){setError("Confirmez être propriétaire ou autorisé à proposer chacun des biens sélectionnés.");return;}
     const phone=normalizePhone('',contact.phone);
     if(!contact.name.trim()||!contact.agency.trim()||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact.email)||!phone){setError('Renseignez le nom du contact, l’agence, l’email et un téléphone avec indicatif international (ex. +221…).');return;}
     if(!user.id||!user.token){setError('Reconnectez-vous avant l’envoi.');return;}
@@ -32,7 +34,9 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
         const r=selected[i];setProgress(`Préparation des photos : annonce ${i+1}/${selected.length}`);
         let urls=uploaded.current.get(r.index);
         if(!urls){urls=await api.upload(r.photos,user);if(urls.length!==r.photos.length)throw Error(`Photos incomplètes pour ${r.data.reference}. Réessayez : aucune annonce de ce lot n’a été envoyée.`);uploaded.current.set(r.index,urls);}
-        payload.push(rowPayload(r.data,{...user,...contact,phone},urls,schema));
+        const listing=rowPayload(r.data,{...user,...contact,phone},urls,schema);
+        listing.details={...listing.details,publication_authorized:true,publication_authorized_at:new Date().toISOString(),publication_authorization_version:1};
+        payload.push(listing);
       }
       setProgress(`Envoi de ${payload.length} annonces en validation…`);
       let result;try{result=await api.write('properties',payload,user.token);}catch{result=null;}
@@ -67,7 +71,8 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
           {!r.photos.length&&<p>Ajoutez au moins une photo avant l’envoi.</p>}
           <div className="sok-bulk-photos">{r.photos.map((file,i)=><div key={i}><Photo file={file}/><small>{i===0?'Couverture':`Photo ${i+1}`}</small><button disabled={busy} onClick={()=>setRow(index,{photos:r.photos.filter((_,n)=>i!==n)})} aria-label={`Retirer la photo ${i+1} de ${r.data.reference}`}>Retirer</button>{i>0&&<button disabled={busy} onClick={()=>setRow(index,{photos:[file,...r.photos.filter((_,n)=>n!==i)]})}>Couverture</button>}</div>)}</div></>}
         </article>;})}
-        <div className="sok-bulk-submit"><p>Les annonces sélectionnées seront soumises à Sokilé. Elles deviendront publiques après validation.</p><button disabled={busy||invalid||!selected.length||existing===null} onClick={send}>{busy?'Traitement en cours…':`Envoyer ${selected.length} annonce(s) en validation`}</button>{invalid&&<small>Corrigez les erreurs et ajoutez les photos, ou décochez les lignes à traiter plus tard.</small>}</div>
+        <label style={{display:"flex",gap:10,alignItems:"flex-start",margin:"16px 0"}}><input type="checkbox" disabled={busy} checked={authorityAccepted} onChange={e=>setAuthorityAccepted(e.target.checked)}/><span>Je confirme être propriétaire de chacun des biens sélectionnés ou autorisé à les proposer à la vente ou à la location. *</span></label>
+        <div className="sok-bulk-submit"><p>Les annonces sélectionnées seront soumises à Sokilé. Elles deviendront publiques après validation.</p><button disabled={busy||invalid||!authorityAccepted||!selected.length||existing===null} onClick={send}>{busy?'Traitement en cours…':`Envoyer ${selected.length} annonce(s) en validation`}</button>{invalid&&<small>Corrigez les erreurs et ajoutez les photos, ou décochez les lignes à traiter plus tard.</small>}</div>
       </>}
     </div>
   </dialog>;
