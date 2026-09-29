@@ -18,7 +18,7 @@ import { HomeDiscovery } from "./home-discovery.jsx";
 import { PaidOffers } from "./paid-offers.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
 import { paymentGateway } from "./payments.mjs";
-import { normalizeEmail, authFormError, authCallbackState, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh } from "./auth-session.mjs";
+import { normalizeEmail, authFormError, authCallbackState, readAuthResponse, userSessionFromAuth, isAdminSession, applySessionRefresh, watchSession } from "./auth-session.mjs";
 import { buildDecisionMessage, validateModerationResponse, MAX_RESPONSE_LENGTH } from "../supabase/functions/notify-admin/moderation.mjs";
 
 const C = {
@@ -2959,17 +2959,21 @@ function SokileApp() {
   const openAnnuaire = (spec="Tous",pays="Tous") => { setAnnFilter({spec,pays}); setSelectedProp(null); switchTab("prestataires"); };
   useEffect(()=>{if(showServiceForm&&!user){setShowServiceForm(false);setShowLogin(true)}},[showServiceForm,user]);
 
-  // Rafraîchit automatiquement le jeton Supabase conservé en local.
+  // Keep open tabs authenticated, including after phone sleep or network recovery.
   useEffect(()=>{
     if (!user) return;
     if (!user.refresh_token) { setUser(null); return; }
-    const requestedToken=user.refresh_token;
-    let active=true;
-    refreshSession(requestedToken).then(d=>{
-      if(active)setUser(u=>applySessionRefresh(u,requestedToken,d));
-    }).catch(()=>{if(active)setUser(u=>applySessionRefresh(u,requestedToken,null));});
-    return()=>{active=false;};
-  }, []);
+    return watchSession({session:user, refresh:refreshSession, events:window, page:document,
+      onResult:(requestedToken,data)=>setUser(current=>applySessionRefresh(current,requestedToken,data))});
+  }, [user?.refresh_token,user?.expires_at]);
+  useEffect(()=>{
+    const sync = event => {
+      if (event.key !== CLE_SESSION) return;
+      try { setUser(event.newValue ? JSON.parse(event.newValue) : null); } catch { /* Ignore corrupt storage. */ }
+    };
+    window.addEventListener('storage',sync);
+    return()=>window.removeEventListener('storage',sync);
+  },[]);
 
   // La base retire les annonces expirées, l'interface suit aussi l'échéance si elle reste ouverte.
   const mapProperty = r => ({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"});
