@@ -90,3 +90,39 @@ test("program management is restricted to signed-in professionals, excluding adm
   assert.equal(canManagePrograms(user,adminEmail),false);
  }
 });
+
+import { watchSession } from '../src/auth-session.mjs';
+function harness(refresh, session={refresh_token:'test',expires_at:3600}) {
+ let time=0, tick, result=[];
+ const events=new EventTarget(), page=new EventTarget();
+ const stop=watchSession({session,refresh,onResult:(...x)=>result.push(x),events,page,now:()=>time,
+  every:fn=>{tick=fn;return 1},cancel:()=>{tick=null}});
+ return {events,page,result,stop,setTime:t=>{time=t},tick:()=>tick?.()};
+}
+test('session expiration is retained from server or relative lifetime',()=>{
+ assert.equal(userSessionFromAuth({...valid,expires_at:1234},1000).expires_at,1234);
+ assert.equal(userSessionFromAuth({...valid,expires_in:3600},100000).expires_at,3700);
+});
+test('an open session refreshes ahead of expiration once, without reloading',async()=>{
+ let calls=0;const h=harness(async()=>{calls++;return valid});
+ await h.tick();assert.equal(calls,0);
+ h.setTime(3510000);await h.tick();await h.tick();
+ assert.equal(calls,1);assert.equal(h.result.length,1);h.stop();
+});
+test('return from sleep triggers refresh and avoids concurrent requests',async()=>{
+ let calls=0,resolve;const h=harness(()=>{calls++;return new Promise(r=>resolve=r)});
+ h.setTime(4000000);h.page.dispatchEvent(new Event('visibilitychange'));
+ h.events.dispatchEvent(new Event('focus'));assert.equal(calls,1);
+ resolve(valid);await new Promise(r=>setImmediate(r));assert.equal(h.result.length,1);h.stop();
+});
+test('temporary network and server failures retry without signing out',async()=>{
+ let calls=0;const h=harness(async()=>{calls++;if(calls===1)throw Error('offline');if(calls===2)return {error:{status:503}};return valid});
+ h.setTime(4000000);await h.tick();assert.equal(h.result.length,0);
+ await h.tick();assert.equal(calls,1);
+ h.setTime(4030000);await h.tick();assert.equal(h.result.length,0);
+ h.setTime(4060000);await h.tick();assert.equal(h.result.length,1);h.stop();
+});
+test('terminal refresh errors are reported and unmounted requests cannot restore session',async()=>{
+ const h=harness(async()=>({error:{status:400}}));h.setTime(4000000);await h.tick();assert.equal(h.result.length,1);h.stop();
+ let resolve;const late=harness(()=>new Promise(r=>resolve=r));late.setTime(4000000);const pending=late.tick();late.stop();resolve(valid);await pending;assert.equal(late.result.length,0);
+});

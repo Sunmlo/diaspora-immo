@@ -50,7 +50,7 @@ export async function readAuthResponse(response) {
   return data;
 }
 
-export function userSessionFromAuth(data) {
+export function userSessionFromAuth(data, now = Date.now()) {
   if (data?.error || data?.error_code || !data?.user?.id || !data.user.email ||
       !data.access_token || !data.refresh_token) return null;
   const meta = data.user.user_metadata || {};
@@ -59,6 +59,7 @@ export function userSessionFromAuth(data) {
     id: data.user.id, email, name: meta.name || email.split("@")[0],
     account_type: meta.account_type || "particulier", agency: meta.agency || "", phone: meta.phone || "",
     token: data.access_token, refresh_token: data.refresh_token,
+    expires_at: Number(data.expires_at) || (Number(data.expires_in) > 0 ? Math.floor(now / 1000) + Number(data.expires_in) : 0),
   };
 }
 
@@ -76,4 +77,41 @@ export function isAdminSession(user, adminEmail) {
 // Professional publishing is separate from administrator moderation.
 export function canManagePrograms(user, adminEmail) {
   return Boolean(user?.id && user?.token && user.account_type === 'pro' && !isAdminSession(user, adminEmail));
+}
+
+// Refresh before expiry, and recheck after a suspended tab or network recovery.
+// Transient failures preserve the session and retry; terminal auth failures clear it.
+export function watchSession({session, refresh, onResult, events, page,
+  now = Date.now, every = setInterval, cancel = clearInterval}) {
+  let stopped = false, busy = false, retryAt = 0, completed = false;
+  const tick = async () => {
+    if (stopped || completed || busy || now() < retryAt) return;
+    if (Number(session.expires_at) * 1000 > now() + 90000) return;
+    busy = true;
+    try {
+      const data = await refresh(session.refresh_token);
+      if (stopped) return;
+      const status = data?.error?.status;
+      if (data?.error && (!status || status === 429 || status >= 500)) {
+        retryAt = now() + 30000;
+        return;
+      }
+      completed = true;
+      onResult(session.refresh_token, data);
+    } catch {
+      retryAt = now() + 30000;
+    } finally { busy = false; }
+  };
+  const timer = every(tick, 30000);
+  events.addEventListener('focus', tick);
+  events.addEventListener('online', tick);
+  page.addEventListener('visibilitychange', tick);
+  void tick();
+  return () => {
+    stopped = true;
+    cancel(timer);
+    events.removeEventListener('focus', tick);
+    events.removeEventListener('online', tick);
+    page.removeEventListener('visibilitychange', tick);
+  };
 }
