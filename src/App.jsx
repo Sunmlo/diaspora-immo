@@ -581,6 +581,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const [envoiPhoto, setEnvoiPhoto] = useState("");
   const [photoErr, setPhotoErr] = useState("");
   const [sent, setSent] = useState(false);
+  const [authorityAccepted, setAuthorityAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erreur, setErreur] = useState("");
   const [manquants, setManquants] = useState([]);
@@ -633,6 +634,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
       const value=form.details?.[c.k];
       if(value!==undefined && value!=="" && (!Number.isFinite(Number(value)) || Number(value)<0)) vides.push({k:"d_"+c.k,l:c.l+" (nombre positif ou nul)"});
     });
+    if (!authorityAccepted) vides.push({k:"authority",l:"Confirmation de votre autorisation à publier"});
     if (!(photos.length)) vides.push({k:"photos",l:"Au moins une photo"});
     return vides;
   };
@@ -671,7 +673,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
       type: form.transaction==="location" ? "Location" : "Vente",
       transaction: form.transaction,
       nature: form.nature,
-      details: Object.fromEntries(Object.entries(form.details||{}).filter(([,v])=>String(v).trim()!=="")),
+      details: {...Object.fromEntries(Object.entries(form.details||{}).filter(([,v])=>String(v).trim()!=="")), publication_authorized:true, publication_authorized_at:new Date().toISOString(), publication_authorization_version:1},
       country:form.country, city:form.city, neighborhood:form.neighborhood,
       description:form.description, price_eur:parseInt(form.price_eur)||null,
       price:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
@@ -906,12 +908,16 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 {photoErr&&<div style={{marginTop:"6px",fontSize:"13px",color:C.terra,fontWeight:600,fontFamily:F}}>{photoErr}</div>}
                 {envoiPhoto&&<div style={{marginTop:"6px",fontSize:"13px",color:C.forest,fontWeight:700,fontFamily:F}}>{envoiPhoto}</div>}
               </div>
+              <label style={{display:"flex",gap:10,alignItems:"flex-start",padding:12,marginBottom:12,borderRadius:8,border:`1px solid ${manquants.includes("authority")?"#C0392B":C.sand}`,fontFamily:F,fontSize:14,lineHeight:1.5}}>
+                <input type="checkbox" checked={authorityAccepted} onChange={e=>setAuthorityAccepted(e.target.checked)} style={{marginTop:4,flexShrink:0}}/>
+                <span>Je confirme être propriétaire de ce bien ou autorisé à le proposer à la vente ou à la location. *</span>
+              </label>
               <BandeauErreur texte={erreur} onRetry={erreur&&!manquants.length?handleSubmit:null}/>
               <button onClick={handleSubmit} disabled={loading} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
                 {loading?(envoiPhoto||"Envoi en cours…"):(existing?"Envoyer mes modifications":"Publier mon annonce")}
               </button>
               <p style={{margin:"10px 0 0",fontSize:"12.5px",color:C.sub,fontFamily:F,textAlign:"center",lineHeight:1.5}}>
-                Votre annonce est vérifiée par Sokilé avant publication. Les champs marqués * sont obligatoires.
+                Votre annonce est examinée par Sokilé avant publication. Cette modération ne constitue pas une vérification de propriété. Les champs marqués * sont obligatoires.
               </p>
             </>
           )}
@@ -1106,11 +1112,11 @@ const naturesDeFamille = (fam) => Object.entries(NATURES).filter(([,v])=>v.famil
 function champsDe(nature, transaction) {
   const n = NATURES[nature];
   if (!n) return [];
-  const propres = n.champs.filter(c => !c.only || c.only === transaction);
+  const propres = [{k:"advertiser_role",l:"Vous publiez cette annonce en tant que",t:"choix",requis:true,options:["Propriétaire","Agence immobilière","Représentant du propriétaire"]}, ...n.champs.filter(c => !c.only || c.only === transaction)];
   return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole","ferme"].includes(nature))] : [...propres, ...CHAMPS_VENTE];
 }
 
-const BULK_DETAIL_FIELDS=[...new Map([...Object.values(NATURES).flatMap(n=>n.champs),...CHAMPS_LOCATION,...CHAMPS_VENTE,...CHAMPS_SECTEUR].map(c=>[c.k,c])).values()];
+const BULK_DETAIL_FIELDS=[...new Map([{k:"advertiser_role",l:"Vous publiez cette annonce en tant que",t:"choix",requis:true,options:["Propriétaire","Agence immobilière","Représentant du propriétaire"]},...Object.values(NATURES).flatMap(n=>n.champs),...CHAMPS_LOCATION,...CHAMPS_VENTE,...CHAMPS_SECTEUR].map(c=>[c.k,c])).values()];
 const BULK_SCHEMA={countries:COUNTRIES_ANNONCES.map(c=>c.name),natures:Object.keys(NATURES),detailFields:BULK_DETAIL_FIELDS,columns:[...CORE_COLUMNS,...BULK_DETAIL_FIELDS.map(c=>c.k)],fields:(n,t)=>[...champsDe(n,t),...CHAMPS_SECTEUR],labels:{reference:"Référence agence",titre:"Titre",pays:"Pays",ville:"Ville",quartier:"Quartier",prix_fcfa:"Prix / loyer mensuel (FCFA)",surface_m2:"Surface habitable ou utile (m²)",description:"Description",equipements:"Équipements séparés par |",nature:"Nature",transaction:"Transaction"}};
 
 // Résumé court d'un bien, pour les cartes
@@ -1751,6 +1757,7 @@ function AdminModeration({ user }) {
             </div>
           )}
           <div style={{fontSize:"14.5px",color:C.dark,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-line",marginBottom:"14px"}}>{ouvert.description}</div>
+          <p style={{fontFamily:F,fontSize:14,background:C.cream,padding:12,borderRadius:8}}><strong>Autorisation déclarée :</strong> {ouvert.details?.publication_authorized===true?"Attestation confirmée par l’annonceur":"Non renseignée (annonce antérieure ou à compléter)"}. Cette déclaration ne prouve pas la propriété du bien.</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"8px",marginBottom:"16px"}}>
             {[...caracteristiques(ouvert),...[{k:"quartier",l:"Quartier",v:ouvert.neighborhood},...CHAMPS_SECTEUR.map(c=>({...c,v:ouvert.details?.[c.k]}))].filter(c=>c.v!==undefined&&c.v!==null&&String(c.v).trim()).map(c=>[c.l,String(c.v)])].map(([l,v])=>(
               <div key={l} style={{background:C.cream,borderRadius:"8px",padding:"9px 11px"}}>
