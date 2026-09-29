@@ -90,10 +90,23 @@ test("un appel non autorisé ne déclenche aucun email", async () => {
   const missing = setup(undefined, { WEBHOOK_SECRET: undefined });
   assert.equal((await missing.request(decision("properties", "rejetee"))).status, 401);
 });
-test("les nouveaux dossiers continuent d'alerter uniquement l'administration", async () => {
+test("les dépôts, modifications et suppressions ne sollicitent pas la boîte de contact", async () => {
+  const { calls, request } = setup(undefined, { RESEND_API_KEY: undefined });
+  for (const table of ["properties", "professionals", "advertising_requests", "development_programs"]) {
+    for (const type of ["INSERT", "UPDATE", "DELETE"]) {
+      const result = await request({ ...decision(table, "en_attente"), type });
+      assert.equal(result.status, 200);
+      assert.equal((await result.json()).ignored, true);
+    }
+  }
+  assert.equal(calls.length, 0);
+});
+test("un signalement reste une exception et alerte le support", async () => {
   const { calls, request } = setup();
-  await request({ ...decision("properties", "en_attente"), type: "INSERT" });
+  await request({ table: "reports", type: "INSERT", record: { id: 1, reason: "Problème sur une annonce", email: "client@example.test" } });
   assert.deepEqual(calls[0].message.to, ["contact@sokile.com"]);
+  await request({ table: "reports", type: "UPDATE", record: { id: 1, status: "traite" } });
+  assert.equal(calls.length, 1);
 });
 
 test("les décisions négatives gardent un objet accueillant et la réponse personnalisée", () => {
