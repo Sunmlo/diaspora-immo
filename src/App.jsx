@@ -2044,11 +2044,11 @@ function SignalerModal({ p, onClose }) {
     const idBrut = String(p.id).replace(/^db-/, "");
     // trace principale, toujours enregistrée
     const r = await ecrire("leads", {
-      name: "Signalement", email: email || CONTACT_MAIL, status: "signalement",
+      property_id: idBrut, name: "Signalement", email: email || CONTACT_MAIL, status: "signalement",
       message: `SIGNALEMENT | Annonce #${idBrut} — ${p.title} (${p.city}, ${p.country}) | Motif : ${motif} | ${detail}`,
     }).catch(e=>({ok:false,statut:0,motif:String(e)}));
     // table dédiée si elle existe, sans bloquer l'utilisateur
-    ecrire("reports", { property_id: idBrut, reason: motif, details: detail || null, reporter_email: email || null }).catch(()=>{});
+    ecrire("reports", { property_id: idBrut, reason: motif, details: detail || null, status: "pending" }).catch(()=>{});
     setLoading(false);
     if (!r.ok) { setErreur(messageErreur(r)); return; }
     setSent(true);
