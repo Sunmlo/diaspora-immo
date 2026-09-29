@@ -1,3 +1,4 @@
+import "./brand.css";
 import { BulkImport } from "./bulk-import.jsx";
 import { CORE_COLUMNS } from "./bulk-import.mjs";
 import "./listing-details.css";
@@ -2787,6 +2788,10 @@ function GuideModal({ guide, onClose, onFindPro }) {
   );
 }
 
+function BrandLogo({footer=false}) {
+  return <span className={`sok-brand${footer?' sok-brand-footer':''}`} role="img" aria-label="Sokilé"><span className="sok-brand-mark"/><span className="sok-brand-word"/></span>;
+}
+
 // ─── PIED DE PAGE ─────────────────────────────────
 function SiteFooter({ onNav, onPub }) {
   const link = {color:"rgba(255,255,255,0.72)",fontSize:"14px",fontFamily:F,textDecoration:"none",cursor:"pointer",background:"none",border:"none",padding:0,textAlign:"left",lineHeight:1.9,display:"block"};
@@ -2794,7 +2799,7 @@ function SiteFooter({ onNav, onPub }) {
     <footer style={{background:`linear-gradient(145deg,${C.cacao},#251A16)`,borderTop:`3px solid ${C.gold}`,marginTop:"32px",padding:"34px 20px calc(96px + env(safe-area-inset-bottom))"}}>
       <div style={{maxWidth:"1200px",margin:"0 auto",display:"flex",flexWrap:"wrap",gap:"30px 48px"}}>
         <div style={{flex:"1 1 220px",minWidth:0}}>
-          <div style={{fontSize:"30px",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.02em"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
+          <BrandLogo footer/>
           <div style={{fontSize:"14px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"10px",lineHeight:1.65,maxWidth:"320px"}}>
             Le réflexe immobilier en Afrique francophone.
           </div>
@@ -3304,7 +3309,7 @@ button,input,select,textarea{font-size:inherit}
         <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:"78px",gap:"8px",boxSizing:"border-box"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div>
-              <div onClick={()=>switchTab("accueil")} style={{fontSize:"clamp(27px,6.6vw,38px)",fontWeight:500,color:C.white,fontFamily:FT,lineHeight:1,letterSpacing:"-0.03em",cursor:"pointer",whiteSpace:"nowrap"}}>So<span style={{color:C.gold,fontStyle:"italic"}}>ki</span><span style={{color:"#E8A07E"}}>lé</span></div>
+              <button aria-label="Sokilé — accueil" onClick={()=>switchTab("accueil")} style={{display:"block",background:"transparent",border:0,padding:0,cursor:"pointer"}}><BrandLogo/></button>
               <div style={{fontSize:"11.5px",color:"rgba(255,255,255,0.62)",fontFamily:F,marginTop:"5px",letterSpacing:"0.02em",whiteSpace:"nowrap"}}>L'immobilier en Afrique</div>
             </div>
           </div>

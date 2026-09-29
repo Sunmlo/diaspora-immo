@@ -1,0 +1,5 @@
+.sok-brand{display:inline-flex;align-items:center;gap:5px;width:158px;height:46px;vertical-align:middle;overflow:hidden;border-radius:3px;background:#143b2e}
+.sok-brand-mark{display:block;flex:0 0 46px;height:46px;background-image:url('/brand/sokile-logo-valide.png');background-size:191px 127.4px;background-position:-72.1px -13.7px;background-repeat:no-repeat}
+.sok-brand-word{display:block;flex:0 0 107px;height:35px;background-image:url('/brand/sokile-logo-valide.png');background-size:288.34px 192.23px;background-position:-90.11px -88.23px;background-repeat:no-repeat}
+.sok-brand-footer{width:190px;height:56px;padding:5px 10px;box-sizing:content-box}
+@media(max-width:380px){.sok-brand:not(.sok-brand-footer){width:158px;zoom:.86}}
