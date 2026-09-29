@@ -606,6 +606,14 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const inputStyle = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F};
   const champ = (k) => manquants.includes(k) ? {...inputStyle, border:"2px solid #C0392B", background:"#FDF3F2"} : inputStyle;
 
+  const landForm = ["terrain","agricole","ferme"].includes(form.nature);
+  const sectionStyle = {border:`1px solid ${C.sand}`,borderRadius:12,padding:16,margin:"0 0 16px",minWidth:0,background:C.white};
+  const legendStyle = {fontFamily:F,fontSize:16,fontWeight:700,color:C.forest,padding:"0 6px"};
+  const renderFields = fields => <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>{fields.map(c=><div key={c.k} style={{gridColumn:c.t==="texte"?"1 / -1":undefined}}>
+    <label htmlFor={`listing-${c.k}`} style={{display:"block",fontFamily:F,fontSize:13,fontWeight:600,marginBottom:5}}>{c.l}{c.requis?" *":""}</label>
+    {c.t==="choix"?<select id={`listing-${c.k}`} value={form.details?.[c.k]??""} onChange={e=>setDetail(c.k,e.target.value)} style={champ("d_"+c.k)}><option value="">Choisir</option>{c.options.map(o=><option key={o}>{o}</option>)}</select>:<input id={`listing-${c.k}`} type={c.t==="nombre"?"number":"text"} min={c.t==="nombre"?0:undefined} step={c.t==="nombre"?"any":undefined} placeholder={c.aide||""} value={form.details?.[c.k]??""} onChange={e=>setDetail(c.k,e.target.value)} style={champ("d_"+c.k)}/>}
+  </div>)}</div>;
+
   // Champs indispensables pour qu'une annonce serve à quelque chose
   const CHAMPS_REQUIS = [
     ["name","Votre nom"], ["email","Votre email"], ["phone","Votre téléphone"],
@@ -673,10 +681,10 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
       type: form.transaction==="location" ? "Location" : "Vente",
       transaction: form.transaction,
       nature: form.nature,
-      details: {...Object.fromEntries(Object.entries(form.details||{}).filter(([,v])=>String(v).trim()!=="")), publication_authorized:true, publication_authorized_at:new Date().toISOString(), publication_authorization_version:1},
+      details: {...Object.fromEntries(Object.entries(form.details||{}).filter(([k,v])=>[...champsDe(form.nature,form.transaction),...CHAMPS_SECTEUR].some(c=>c.k===k)&&String(v).trim()!=="")), publication_authorized:true, publication_authorized_at:new Date().toISOString(), publication_authorization_version:1},
       country:form.country, city:form.city, neighborhood:form.neighborhood,
       description:form.description, price_eur:parseInt(form.price_eur)||null,
-      price:parseInt(form.price_xof)||null, surface:parseInt(form.surface)||null,
+      price:parseInt(form.price_xof)||null, surface:landForm?(form.nature==="terrain"?Number(form.details?.superficie)||null:(Number(form.details?.superficie_ha)*10000)||null):parseInt(form.surface)||null,
       rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
       tags:form.features||[], status:"en_attente", active:false, verified:false, advertiser_type:type,
       agency_name:form.agency||null, photos:toutesPhotos, moderation_note:null, motif_rejet:null,
@@ -726,42 +734,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
           ):(
             <>
               {!(defaultType||user?.account_type)&&<button onClick={()=>setType(null)} style={{background:"transparent",border:"none",color:C.sub,cursor:"pointer",fontSize:"14px",marginBottom:"14px",fontFamily:F,padding:0}}>← Retour</button>}
-              {/* Message avertissement */}
-              <div style={{background:"#FBF3EC",border:"1px solid #D97757",borderLeft:"4px solid #D97757",borderRadius:"8px",padding:"12px 14px",marginBottom:"14px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
-                <span style={{fontSize:"18px",flexShrink:0}}>⚠️</span>
-                <div>
-                  <p style={{fontFamily:FT,fontWeight:600,fontSize:"14px",color:"#3D2B1F",margin:"0 0 3px"}}>Avant de publier votre annonce</p>
-                  <p style={{fontSize:"13px",lineHeight:1.5,color:"#5A4636",margin:0,fontFamily:F}}>Assurez-vous que toutes les informations sont exactes et vérifiables. Sokilé peut suspendre toute annonce signalée. Les fausses annonces exposent leur auteur à une suspension définitive et peuvent engager sa responsabilité légale.</p>
-                </div>
-              </div>
-              {type==="pro"&&(
-                <div style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
-                  <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={champ("agency")}/>
-                </div>
-              )}
-              {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
-                <div key={f.key} style={{marginBottom:"10px"}}>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
-                  <input type={f.type||"text"} placeholder={f.ph} value={form[f.key]} onChange={e=>set(f.key,e.target.value)} style={inputStyle}/>
-                </div>
-              ))}
-              <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone WhatsApp</label>
-                <div style={{display:"flex",gap:"6px"}}>
-                  <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
-                    {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
-                  </select>
-                  <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...champ("phone"),flex:1}}/>
-                </div>
-              </div>
-              <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays</label>
-                <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...champ("country")}}>
-                  {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
-                </select>
-              </div>
-              {/* Vendre ou louer */}
+<p style={{fontFamily:F,fontSize:14,color:C.sub,marginBottom:18}}>Complétez les rubriques ci-dessous. Les champs marqués * sont obligatoires.</p><fieldset style={sectionStyle}><legend style={legendStyle}>1. Votre projet</legend>              {/* Vendre ou louer */}
               <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Vous souhaitez *</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
@@ -789,10 +762,12 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                   </div>
                 ))}
               </div>
-              {/* Titre */}
-              <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
-                <input placeholder={form.nature==="terrain"?"Ex : Parcelle de 500 m² à vendre":form.nature==="agricole"?"Ex : Terrain agricole de 5 hectares":form.nature==="ferme"?"Ex : Plantation de cacao de 10 hectares":"Ex : Villa 4 pièces avec piscine à Cocody"} value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
+</fieldset>
+{form.transaction&&form.nature&&<> <fieldset style={sectionStyle}><legend style={legendStyle}>2. Localisation du bien</legend>              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays *</label>
+                <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...champ("country")}}>
+                  {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
+                </select>
               </div>
               {/* Ville + Quartier */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
@@ -805,7 +780,34 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                   <input placeholder="Ex: Cocody" value={form.neighborhood||""} onChange={e=>set("neighborhood",e.target.value)} style={inputStyle}/>
                 </div>
               </div>
-              {/* Prix */}
+{renderFields(CHAMPS_SECTEUR)}</fieldset>
+<fieldset style={sectionStyle}><legend style={legendStyle}>3. Description et caractéristiques</legend>              {/* Titre */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
+                <input placeholder={form.nature==="terrain"?"Ex : Parcelle de 500 m² à vendre":form.nature==="agricole"?"Ex : Terrain agricole de 5 hectares":form.nature==="ferme"?"Ex : Plantation de cacao de 10 hectares":"Ex : Villa 4 pièces avec piscine à Cocody"} value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
+              </div>
+{renderFields((NATURES[form.nature]?.champs||[]).filter(c=>!c.only||c.only===form.transaction))}{!landForm&&<>              {/* Surface générale */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface habitable ou utile (m²)</label>
+                <input type="number" placeholder="Ex: 150" value={form.surface||""} onChange={e=>set("surface",e.target.value)} style={inputStyle}/>
+              </div>
+</>}              {/* Équipements */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</label>
+                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                  {(landForm?["Clôture","Forage","Eau courante","Électricité","Gardien","Énergie solaire"]:["Piscine","Jardin","Parking","Terrasse","Gardien","Groupe électrogène","Eau courante","Climatisation","Réservoir d’eau","Forage","Énergie solaire","Internet","Balcon"]).map(eq=>{
+                    const selected=(form.features||[]).includes(eq);
+                    return <button key={eq} type="button" onClick={()=>set("features",selected?(form.features||[]).filter(f=>f!==eq):[...(form.features||[]),eq])} style={{background:selected?C.terra:C.cream,color:selected?C.white:C.dark,border:`1px solid ${selected?C.terra:C.sand}`,borderRadius:"5px",padding:"4px 9px",fontSize:"12px",fontWeight:selected?700:500,cursor:"pointer",fontFamily:F}}>{selected?"✓ ":""}{eq}</button>
+                  })}
+                </div>
+              </div>
+              {/* Description */}
+              <div style={{marginBottom:"10px"}}>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
+                <textarea placeholder={form.transaction==="location"?"Présentez les pièces, le mobilier, les équipements et les conditions de séjour. Décrivez ensuite le quartier et les accès.":"Présentez les espaces, l’état du bien, ses atouts et les éventuels travaux. Précisez le terrain et les documents disponibles."} value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
+              </div>
+</fieldset>
+<fieldset style={sectionStyle}><legend style={legendStyle}>{form.transaction==="location"?"4. Loyer et conditions de location":"4. Prix et conditions de vente"}</legend>              {/* Prix */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{form.transaction==="location"?"Loyer mensuel":"Prix de vente"}</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
@@ -820,68 +822,30 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 </div>
                 {form.price_eur&&<div style={{fontSize:"12px",color:C.terra,marginTop:"4px",fontFamily:F}}>≈ {new Intl.NumberFormat("fr-FR").format(Math.round(form.price_eur*655.957))} FCFA · {new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(form.price_eur)}</div>}
               </div>
-              {/* Caractéristiques propres à la nature du bien */}
-              {form.nature ? (
-                <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"15px",marginBottom:"12px"}}>
-                  <div style={{fontSize:"12px",fontWeight:700,color:C.forest,letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:F,marginBottom:"12px",display:"flex",alignItems:"center",gap:"7px"}}>
-                    <span style={{fontSize:"16px"}}>{NATURES[form.nature].icone}</span>
-                    {NATURES[form.nature].label}{form.transaction==="location"?" · à louer":""}
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"10px"}}>
-                    {[...champsDe(form.nature, form.transaction), ...CHAMPS_SECTEUR].map(c=>{
-                      const val = form.details?.[c.k] ?? "";
-                      const enDefaut = manquants.includes("d_"+c.k);
-                      const st = enDefaut ? {...inputStyle,border:"2px solid #C0392B",background:"#FDF3F2"} : inputStyle;
-                      return (
-                        <Fragment key={c.k}>
-                          {(c.k===(form.transaction==="location"?CHAMPS_LOCATION.filter(x=>x.k!=="meuble"||!["terrain","agricole","ferme"].includes(form.nature))[0]?.k:"negociable")||c.k==="repere")&&<h3 style={{gridColumn:"1 / -1",fontSize:16,color:C.forest,margin:"16px 0 10px"}}>{c.k==="repere"?"Le quartier":form.transaction==="location"?"Conditions de location":"Conditions de vente"}</h3>}
-                        <div style={{gridColumn:["documents_vente","frais_vente","repere","environnement","conditions_location"].includes(c.k)?"1 / -1":undefined}}>
-                          <label style={{fontSize:"12px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F}}>
-                            {c.l}{c.requis?" *":""}
-                          </label>
-                          {c.t==="choix" ? (
-                            <select aria-label={c.l} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}>
-                              <option value="">—</option>
-                              {c.options.map(o=><option key={o} value={o}>{o}</option>)}
-                            </select>
-                          ) : (
-                            <input aria-label={c.l} type={c.t==="nombre"?"number":"text"} min={c.t==="nombre"?0:undefined} step={c.t==="nombre"?"any":undefined} inputMode={c.t==="nombre"?"numeric":undefined}
-                              placeholder={c.aide||""} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}/>
-                          )}
-                        </div></Fragment>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div style={{background:C.cream,border:`1px dashed ${C.sand}`,borderRadius:"12px",padding:"18px",marginBottom:"12px",textAlign:"center"}}>
-                  <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.55}}>
-                    Choisissez la nature du bien ci-dessus : les caractéristiques à renseigner s'adapteront.
-                  </div>
+{renderFields(form.transaction==="location"?CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!landForm):CHAMPS_VENTE)}</fieldset>
+<fieldset style={sectionStyle}><legend style={legendStyle}>5. Vous et vos coordonnées</legend>{renderFields(champsDe(form.nature,form.transaction).filter(c=>c.k==="advertiser_role"))}              {type==="pro"&&(
+                <div style={{marginBottom:"10px"}}>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
+                  <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={champ("agency")}/>
                 </div>
               )}
-
-              {/* Surface générale */}
+              {[{label:"Prénom et nom *",key:"name",ph:"Votre nom"},{label:"Email *",key:"email",ph:"votre@email.com",type:"email"}].map(f=>(
+                <div key={f.key} style={{marginBottom:"10px"}}>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{f.label}</label>
+                  <input type={f.type||"text"} placeholder={f.ph} value={form[f.key]} onChange={e=>set(f.key,e.target.value)} style={inputStyle}/>
+                </div>
+              ))}
               <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Surface habitable ou utile (m²)</label>
-                <input type="number" placeholder="Ex: 150" value={form.surface||""} onChange={e=>set("surface",e.target.value)} style={inputStyle}/>
-              </div>
-              {/* Équipements */}
-              <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</label>
-                <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                  {["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse","Gardien","Groupe électrogène","Eau courante","Climatisation","Réservoir d’eau","Forage","Énergie solaire","Internet","Balcon"].map(eq=>{
-                    const selected=(form.features||[]).includes(eq);
-                    return <button key={eq} type="button" onClick={()=>set("features",selected?(form.features||[]).filter(f=>f!==eq):[...(form.features||[]),eq])} style={{background:selected?C.terra:C.cream,color:selected?C.white:C.dark,border:`1px solid ${selected?C.terra:C.sand}`,borderRadius:"5px",padding:"4px 9px",fontSize:"12px",fontWeight:selected?700:500,cursor:"pointer",fontFamily:F}}>{selected?"✓ ":""}{eq}</button>
-                  })}
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone WhatsApp</label>
+                <div style={{display:"flex",gap:"6px"}}>
+                  <select value={form.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"9px 8px",fontSize:"13px",color:C.dark,fontFamily:F,flexShrink:0,maxWidth:"155px"}}>
+                    {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
+                  </select>
+                  <input type="tel" placeholder="6 12 34 56 78" value={form.phone} onChange={e=>set("phone",e.target.value)} style={{...champ("phone"),flex:1}}/>
                 </div>
               </div>
-              {/* Description */}
-              <div style={{marginBottom:"10px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
-                <textarea placeholder={form.transaction==="location"?"Présentez les pièces, le mobilier, les équipements et les conditions de séjour. Décrivez ensuite le quartier et les accès.":"Présentez les espaces, l’état du bien, ses atouts et les éventuels travaux. Précisez le terrain et les documents disponibles."} value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
-              </div>
-              <div style={{marginBottom:"14px"}}>
+</fieldset>
+<fieldset style={sectionStyle}><legend style={legendStyle}>6. Photos et confirmation</legend>              <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
 
                 {photos.length>0&&(
@@ -912,8 +876,9 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 <input type="checkbox" checked={authorityAccepted} onChange={e=>setAuthorityAccepted(e.target.checked)} style={{marginTop:4,flexShrink:0}}/>
                 <span>Je confirme être propriétaire de ce bien ou autorisé à le proposer à la vente ou à la location. *</span>
               </label>
-              <BandeauErreur texte={erreur} onRetry={erreur&&!manquants.length?handleSubmit:null}/>
-              <button onClick={handleSubmit} disabled={loading} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
+</fieldset>
+</>}               <BandeauErreur texte={erreur} onRetry={erreur&&!manquants.length?handleSubmit:null}/>
+              <button onClick={handleSubmit} disabled={loading||!form.transaction||!form.nature} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
                 {loading?(envoiPhoto||"Envoi en cours…"):(existing?"Envoyer mes modifications":"Publier mon annonce")}
               </button>
               <p style={{margin:"10px 0 0",fontSize:"12.5px",color:C.sub,fontFamily:F,textAlign:"center",lineHeight:1.5}}>
