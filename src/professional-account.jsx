@@ -1,8 +1,9 @@
 import './professional-account.css';
 
-export function ProfessionalActions({onListing,onProgram,onDirectory,onAdvertising}) {
+export function ProfessionalActions({onListing,onImport,onProgram,onDirectory,onAdvertising}) {
   const actions=[
     {title:'Publier une annonce',text:'Proposez un bien à vendre ou à louer.',onClick:onListing,primary:true},
+    {title:'Importer mes annonces',text:'Gratuit · Excel ou CSV, jusqu’à 50 biens par fichier.',onClick:onImport},
     {title:'Présenter un programme neuf',text:'Présentez une résidence et ses logements.',onClick:onProgram},
     {title:'Rejoindre l’annuaire',text:'Faites connaître votre agence ou votre activité.',onClick:onDirectory},
     {title:'Publicité et mise en lumière',text:'Consultez les tarifs. Options payantes pas encore ouvertes.',onClick:onAdvertising},

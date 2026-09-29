@@ -1,3 +1,5 @@
+import { BulkImport } from "./bulk-import.jsx";
+import { CORE_COLUMNS } from "./bulk-import.mjs";
 import "./listing-details.css";
 import { Fragment, useState, useRef, useEffect } from "react";
 import { Simulateurs } from "./simulations.jsx";
@@ -1087,6 +1089,9 @@ function champsDe(nature, transaction) {
   const propres = n.champs.filter(c => !c.only || c.only === transaction);
   return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole"].includes(nature))] : [...propres, ...CHAMPS_VENTE];
 }
+
+const BULK_DETAIL_FIELDS=[...new Map([...Object.values(NATURES).flatMap(n=>n.champs),...CHAMPS_LOCATION,...CHAMPS_VENTE,...CHAMPS_SECTEUR].map(c=>[c.k,c])).values()];
+const BULK_SCHEMA={countries:COUNTRIES_ANNONCES.map(c=>c.name),natures:Object.keys(NATURES),detailFields:BULK_DETAIL_FIELDS,columns:[...CORE_COLUMNS,...BULK_DETAIL_FIELDS.map(c=>c.k)],fields:(n,t)=>[...champsDe(n,t),...CHAMPS_SECTEUR],labels:{reference:"Référence agence",titre:"Titre",pays:"Pays",ville:"Ville",quartier:"Quartier",prix_fcfa:"Prix / loyer mensuel (FCFA)",surface_m2:"Surface habitable ou utile (m²)",description:"Description",equipements:"Équipements séparés par |",nature:"Nature",transaction:"Transaction"}};
 
 // Résumé court d'un bien, pour les cartes
 function resumeBien(p) {
@@ -2927,6 +2932,7 @@ function SokileApp() {
   const [search, setSearch] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
+  const [showBulkImport,setShowBulkImport]=useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLogin, setShowLogin] = useState(() => Boolean(authCallbackState(window.location.hash)));
   const [partnerType, setPartnerType] = useState(null);
@@ -3773,6 +3779,7 @@ button,input,select,textarea{font-size:inherit}
                 </div>
                 {programPublisher?<ProfessionalActions
                   onListing={()=>{setPartnerType("pro");setShowPartner(true);}}
+                  onImport={()=>setShowBulkImport(true)}
                   onProgram={newProgram}
                   onDirectory={()=>setShowServiceForm(true)}
                   onAdvertising={()=>setShowPub(true)}
@@ -3851,6 +3858,7 @@ button,input,select,textarea{font-size:inherit}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:false}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
+      {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}
