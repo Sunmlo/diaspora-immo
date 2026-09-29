@@ -24,7 +24,7 @@ export function createNotificationHandler({ env, send = fetch, digest = value =>
       if (payload.type !== "INSERT") return json({ ignored: true });
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(record.recipient_email || "")) return json({ error: "Invalid recipient" }, 422);
       kind = "program-inquiry";
-      message = { to: [...new Set([record.recipient_email, ADMIN])], reply_to: ADMIN, subject: "Sokilé — Nouvelle demande pour votre programme neuf", text: `Bonjour,\n\nUne demande a été enregistrée pour « ${record.title} ».\n\nContact : ${record.contact_name}\nEmail : ${record.email}\nTéléphone : ${record.phone || "Non renseigné"}\n\n${record.message}\n\nRetrouvez la demande dans « Mon compte → Mes programmes neufs » : https://www.sokile.com/?tab=compte\n\nL'équipe Sokilé` };
+      message = { to: [record.recipient_email], reply_to: ADMIN, subject: "Sokilé — Nouvelle demande pour votre programme neuf", text: `Bonjour,\n\nUne demande a été enregistrée pour « ${record.title} ».\n\nContact : ${record.contact_name}\nEmail : ${record.email}\nTéléphone : ${record.phone || "Non renseigné"}\n\n${record.message}\n\nRetrouvez la demande dans « Mon compte → Mes programmes neufs » : https://www.sokile.com/?tab=compte\n\nL'équipe Sokilé` };
     } else if (table !== "reports" && record.status !== "en_attente") {
       const responseChanged = ["rejetee", "refusee", "modifications_demandees"].includes(record.status) && moderationResponse(table, record) !== moderationResponse(table, previous);
       if (payload.type !== "UPDATE" || (record.status === previous.status && !responseChanged)) return json({ ignored: true });
@@ -33,15 +33,10 @@ export function createNotificationHandler({ env, send = fetch, digest = value =>
       if (!message) return json({ ignored: true });
       kind = "decision";
     } else {
-      if (table === "reports" && payload.type !== "INSERT") return json({ ignored: true });
-      const action = payload.type === "UPDATE" ? "Modification" : "Nouvelle demande";
-      const labels = { properties: "annonce", professionals: "fiche prestataire", advertising_requests: "publicité", reports: "signalement", development_programs: "programme neuf" };
-      const title = record.title || record.business_name || record.company || record.reason || `Dossier #${record.id || ""}`;
-      const details = [`Type : ${labels[table]}`, `Action : ${action}`, `Titre : ${title}`,
-        record.email ? `Email : ${record.email}` : "", record.user_email ? `Email : ${record.user_email}` : "",
-        record.country ? `Pays : ${record.country}` : "", record.status ? `Statut : ${record.status}` : "",
-        previous.status ? `Ancien statut : ${previous.status}` : ""].filter(Boolean).join("\n");
-      message = { to: [ADMIN], subject: `Sokilé — ${action} : ${labels[table]}`, text: `Un dossier nécessite votre attention.\n\n${details}\n\nOuvrez Gestion sur https://www.sokile.com/ pour le contrôler.` };
+      // Routine dossiers stay in Gestion; only user-reported problems alert support.
+      if (table !== "reports" || payload.type !== "INSERT") return json({ ignored: true, reason: "managed_in_admin" });
+      const details = [`Signalement #${record.id || ""}`, record.reason || "", record.message || "", record.email ? `Email : ${record.email}` : ""].filter(Boolean).join("\n");
+      message = { to: [ADMIN], subject: "Sokilé — Signalement à examiner", text: `Un problème a été signalé.\n\n${details}\n\nRetrouvez ce signalement dans Gestion sur https://www.sokile.com/.` };
     }
     const key = env("RESEND_API_KEY");
     if (!key) return json({ error: "Email service unavailable" }, 503);
