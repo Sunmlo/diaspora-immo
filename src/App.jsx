@@ -1,3 +1,4 @@
+import "./listing-details.css";
 import { useState, useRef, useEffect } from "react";
 import { Simulateurs } from "./simulations.jsx";
 import { initialSimulation, simulationFromListing } from "./simulations.mjs";
@@ -625,6 +626,10 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
           if (v===undefined || String(v).trim()==="") vides.push({k:"d_"+c.k, l:c.l});
         });
     }
+    champsDe(form.nature, form.transaction).filter(c=>c.t==="nombre").forEach(c=>{
+      const value=form.details?.[c.k];
+      if(value!==undefined && value!=="" && (!Number.isFinite(Number(value)) || Number(value)<0)) vides.push({k:"d_"+c.k,l:c.l+" (nombre positif ou nul)"});
+    });
     if (!(photos.length)) vides.push({k:"photos",l:"Au moins une photo"});
     return vides;
   };
@@ -818,12 +823,13 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                     {NATURES[form.nature].label}{form.transaction==="location"?" · à louer":""}
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"10px"}}>
-                    {champsDe(form.nature, form.transaction).map(c=>{
+                    {[...champsDe(form.nature, form.transaction), ...CHAMPS_SECTEUR].map(c=>{
                       const val = form.details?.[c.k] ?? "";
                       const enDefaut = manquants.includes("d_"+c.k);
                       const st = enDefaut ? {...inputStyle,border:"2px solid #C0392B",background:"#FDF3F2"} : inputStyle;
                       return (
-                        <div key={c.k}>
+                        <div key={c.k} style={{gridColumn:["documents_vente","frais_vente","repere","environnement","conditions_location"].includes(c.k)?"1 / -1":undefined}}>
+                          {(c.k===(form.transaction==="location"?CHAMPS_LOCATION.filter(x=>x.k!=="meuble"||!["terrain","agricole"].includes(form.nature))[0]?.k:"negociable")||c.k==="repere")&&<h3 style={{fontSize:16,color:C.forest,margin:"16px 0 10px"}}>{c.k==="repere"?"Le quartier":form.transaction==="location"?"Conditions de location":"Conditions de vente"}</h3>}
                           <label style={{fontSize:"12px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F}}>
                             {c.l}{c.requis?" *":""}
                           </label>
@@ -833,7 +839,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                               {c.options.map(o=><option key={o} value={o}>{o}</option>)}
                             </select>
                           ) : (
-                            <input aria-label={c.l} type={c.t==="nombre"?"number":"text"} inputMode={c.t==="nombre"?"numeric":undefined}
+                            <input aria-label={c.l} type={c.t==="nombre"?"number":"text"} min={c.t==="nombre"?0:undefined} step={c.t==="nombre"?"any":undefined} inputMode={c.t==="nombre"?"numeric":undefined}
                               placeholder={c.aide||""} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}/>
                           )}
                         </div>
@@ -858,7 +864,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</label>
                 <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                  {["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse","Gardien","Groupe électrogène","Eau courante","Climatisation"].map(eq=>{
+                  {["Piscine","Jardin","Parking","Meublé","Titre foncier","Terrasse","Gardien","Groupe électrogène","Eau courante","Climatisation","Réservoir d’eau","Forage","Énergie solaire","Internet","Balcon"].map(eq=>{
                     const selected=(form.features||[]).includes(eq);
                     return <button key={eq} type="button" onClick={()=>set("features",selected?(form.features||[]).filter(f=>f!==eq):[...(form.features||[]),eq])} style={{background:selected?C.terra:C.cream,color:selected?C.white:C.dark,border:`1px solid ${selected?C.terra:C.sand}`,borderRadius:"5px",padding:"4px 9px",fontSize:"12px",fontWeight:selected?700:500,cursor:"pointer",fontFamily:F}}>{selected?"✓ ":""}{eq}</button>
                   })}
@@ -867,7 +873,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               {/* Description */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Description du bien</label>
-                <textarea placeholder="Décrivez votre bien : emplacement, atouts, accès, environnement..." value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
+                <textarea placeholder={form.transaction==="location"?"Présentez les pièces, le mobilier, les équipements et les conditions de séjour. Décrivez ensuite le quartier et les accès.":"Présentez les espaces, l’état du bien, ses atouts et les éventuels travaux. Précisez le terrain et les documents disponibles."} value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
               </div>
               <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
@@ -1050,12 +1056,26 @@ const NATURES = {
 // Champs communs à toutes les locations
 const CHAMPS_LOCATION = [
   {k:"meuble",       l:"Meublé",                t:"choix", requis:true, options:["Meublé","Non meublé","Partiellement"]},
-  {k:"charges_loc",  l:"Charges mensuelles (FCFA)", t:"nombre"},
+  {k:"charges_incluses", l:"Charges comprises dans le loyer", t:"choix", options:["Oui","Non","En partie"]},
+  {k:"charges_loc",  l:"Charges mensuelles séparées (FCFA)", t:"nombre"},
+  {k:"avance", l:"Avance de loyer (nombre de mois)", t:"nombre"},
+  {k:"frais_agence", l:"Frais d’agence (FCFA)", t:"nombre"},
+  {k:"conditions_location", l:"Autres conditions de location", t:"texte", aide:"Durée minimale, charges incluses, conditions…"},
   {k:"caution",      l:"Caution (nombre de mois)", t:"nombre"},
   {k:"duree_bail",   l:"Durée du bail",         t:"choix", options:["Courte durée","1 an","2 ans","3 ans et plus","Négociable"]},
   {k:"disponibilite",l:"Disponible à partir du", t:"texte", aide:"Ex : immédiatement, ou 1er décembre"},
 ];
 
+const CHAMPS_VENTE = [
+  {k:"negociable", l:"Prix négociable", t:"choix", options:["Oui","Non"]},
+  {k:"occupation_vente", l:"Occupation du bien", t:"choix", options:["Libre","Occupé","Loué"]},
+  {k:"documents_vente", l:"Documents disponibles (déclarés par le vendeur)", t:"texte", aide:"Nom exact des documents dans votre pays, sans numéro personnel"},
+  {k:"frais_vente", l:"Frais à prévoir", t:"texte", aide:"Précisez les frais connus et qui les prend en charge"},
+];
+const CHAMPS_SECTEUR = [
+  {k:"repere", l:"Repère proche", t:"texte", aide:"Un marché, une école, un axe principal… sans adresse exacte"},
+  {k:"environnement", l:"Quartier et accès", t:"texte", aide:"Accès routier, commerces, transports, environnement…"},
+];
 const FAMILLES = ["Habitation","Terrain","Professionnel"];
 const naturesDeFamille = (fam) => Object.entries(NATURES).filter(([,v])=>v.famille===fam);
 
@@ -1064,7 +1084,7 @@ function champsDe(nature, transaction) {
   const n = NATURES[nature];
   if (!n) return [];
   const propres = n.champs.filter(c => !c.only || c.only === transaction);
-  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole"].includes(nature))] : propres;
+  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole"].includes(nature))] : [...propres, ...CHAMPS_VENTE];
 }
 
 // Résumé court d'un bien, pour les cartes
@@ -1090,13 +1110,13 @@ function caracteristiques(p) {
   if (p.surface) out.push(["Surface", new Intl.NumberFormat("fr-FR").format(p.surface) + " m²"]);
   champsDe(natureDe(p), transactionDe(p)).forEach(c => {
     const v = d[c.k];
-    if (v === undefined || String(v).trim() === "") return;
+    if (v === undefined || v === null || String(v).trim() === "") return;
     const est = c.t === "nombre" && !isNaN(Number(v));
     const unite = /\(m²\)/.test(c.l) ? " m²" : /hectares/.test(c.l) ? " ha" : /FCFA/.test(c.l) ? " FCFA" : "";
     out.push([c.l.replace(/\s*\([^)]*\)\s*$/, ""), est ? new Intl.NumberFormat("fr-FR").format(Number(v)) + unite : String(v)]);
   });
   if (out.length === 1 && p.rooms) out.push(["Pièces", String(p.rooms)]);
-  return out.slice(0, 10);
+  return out;
 }
 const libelleTransaction = (p) => transactionDe(p) === "location" ? "Location" : "Vente";
 
@@ -1681,7 +1701,7 @@ function AdminModeration({ user }) {
                   {libelleTransaction(p)} · {libelleNature(p)} · {p.city}, {p.country} · {dateCourte(p.created_at)}
                 </div>
                 <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"5px"}}>{p.title}</div>
-                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)} · {p.photos?.length||0} photo(s)</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""} · {p.photos?.length||0} photo(s)</div>
                 <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>
                   {p.user_name} · {p.user_email} · {p.user_phone}
                 </div>
@@ -2041,7 +2061,7 @@ function telPropre(brut) {
 }
 function lienWhatsApp(p) {
   const n = telPropre(p.user_phone).replace(/^\+/, "");
-  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}).`;
+  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}).`;
   return n ? `https://wa.me/${n}?text=${encodeURIComponent(txt)}` : null;
 }
 function lienAppel(p) {
@@ -2050,7 +2070,7 @@ function lienAppel(p) {
 }
 function lienMailSokile(p) {
   const sujet = `Demande de contact — annonce ${p.title} (${p.city})`;
-  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nMerci,\n`;
+  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}\n\nMerci,\n`;
   return `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
 }
 
@@ -2060,7 +2080,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const photo = p.photos?.[0];
   const shareWA = (e) => {
     e && e.stopPropagation();
-    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nVu sur Sokilé — https://www.sokile.com`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   if (compact) return (
@@ -2070,7 +2090,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       <div style={{padding:"10px 12px",flex:1,minWidth:0}}>
         <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
         <div style={{fontSize:"14px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
-        <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
+        <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
       </div>
     </div>
   );
@@ -2108,8 +2128,8 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
           ))}
         </div>
         <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"11px"}}>
-          <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{fmtEUR(p.price_eur)}</div>
-          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{fmtXOF(p.price)}</div>
+          <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</div>
         </div>
       </div>
     </div>
@@ -2123,7 +2143,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
   useEffect(()=>{ setImg(0); }, [p?.id]);
   if (!p) return null;
   const shareWA = () => {
-    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}\n\nVu sur Sokilé — https://www.sokile.com`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   return (
@@ -2171,8 +2191,8 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
             </div>
           </div>}
           <div style={{background:C.cream,borderRadius:"8px",padding:"12px",marginBottom:"14px",borderLeft:`3px solid ${C.terra}`}}>
-            <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}</div>
-            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</div>
+            <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</div>
           </div>
           <div style={{background:C.cream,borderRadius:"8px",padding:"10px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"10px"}}>
             <div style={{width:34,height:34,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:700,fontSize:"14px",fontFamily:F}}>
@@ -2232,35 +2252,60 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
 }
 
 
+function ListingConditions({p}) {
+  const rental=transactionDe(p)==="location";
+  const fields=rental?CHAMPS_LOCATION:CHAMPS_VENTE;
+  const rows=fields.filter(c=>p.details?.[c.k]!==undefined&&p.details?.[c.k]!==null&&String(p.details[c.k]).trim()!=="");
+  return <section className="sok-listing-section"><h2>{rental?"Conditions de location":"Conditions de vente"}</h2>
+    {rows.length?<dl>{rows.map(c=><div key={c.k}><dt>{c.l}</dt><dd>{p.details[c.k]}</dd></div>)}</dl>:<p>Les conditions détaillées sont à préciser avec l’annonceur.</p>}
+    {!rental&&p.details?.documents_vente&&<small>Documents déclarés par le vendeur. Leur validité reste à vérifier auprès d’un professionnel compétent.</small>}
+  </section>;
+}
+
 // ─── PAGE D'UNE ANNONCE ───────────────────────────
 function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires, onBudget }) {
   const [img, setImg] = useState(0);
+  const [gallery, setGallery] = useState(false);
+  const galleryRef=useRef(null);
   const [signaler, setSignaler] = useState(false);
   const [copie, setCopie] = useState(false);
 
-  useEffect(()=>{ setImg(0); window.scrollTo(0,0); }, [p?.id]);
+  useEffect(()=>{ setImg(0); setGallery(false); window.scrollTo(0,0); }, [p?.id]);
   useEffect(()=>{
     if (!p) return;
     document.title = `${p.title} — ${p.city}, ${p.country} | Sokilé`;
     return () => { document.title = "Sokilé — L'immobilier en Afrique"; };
   }, [p]);
 
+  useEffect(()=>{
+    if(!gallery) return;
+    const previous=document.activeElement;
+    galleryRef.current?.showModal();
+    const listener=e=>{if(e.key==="Escape")setGallery(false);};
+    document.addEventListener("keydown",listener);
+    return ()=>{document.removeEventListener("keydown",listener);galleryRef.current?.close();previous?.focus?.();};
+  },[gallery]);
   if (!p) return null;
   const photos = p.photos?.length ? p.photos : [];
   const wa = lienWhatsApp(p), tel = lienAppel(p);
 
   const partager = async () => {
     const url = urlAnnonce(p);
-    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}`;
+    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}`;
     if (navigator.share) { try { await navigator.share({title:p.title, text:texte, url}); return; } catch(e) {} }
     try { await navigator.clipboard.writeText(url); setCopie(true); setTimeout(()=>setCopie(false), 2500); }
     catch(e) { window.open(`https://wa.me/?text=${encodeURIComponent(texte+"\n"+url)}`,"_blank"); }
   };
 
   return (
-    <div style={{paddingBottom:"10px"}}>
+    <div className="sok-listing-page" style={{paddingBottom:"10px"}}>
       {signaler&&<SignalerModal p={p} onClose={()=>setSignaler(false)}/>}
 
+      {gallery&&<dialog ref={galleryRef} className="sok-gallery" aria-label="Photos du bien" onCancel={()=>setGallery(false)}>
+        <button autoFocus onClick={()=>setGallery(false)} aria-label="Fermer la galerie">Fermer ✕</button>
+        <img src={photos[img]} alt={`${p.title} — photo ${img+1}`}/>
+        <div><button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} aria-label="Photo précédente">←</button><span>{img+1} / {photos.length}</span><button onClick={()=>setImg(i=>(i+1)%photos.length)} aria-label="Photo suivante">→</button></div>
+      </dialog>}
       {/* Fil d'ariane */}
       <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"16px 0 12px",flexWrap:"wrap"}}>
         <button onClick={onRetour} style={{background:"transparent",border:"none",color:C.terra,fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,padding:0}}>← Retour aux annonces</button>
@@ -2273,6 +2318,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
         <div style={{minWidth:0}}>
           {/* Galerie */}
           <div className="sok-annonce-photo" style={{position:"relative",borderRadius:"14px",overflow:"hidden",backgroundColor:C.forest,backgroundImage:photos[img]?`url('${photos[img]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center"}}>
+            {photos.length>0&&<button className="sok-open-gallery" onClick={()=>setGallery(true)}>Voir les {photos.length} photo{photos.length>1?"s":""}</button>}
             {!photos.length&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.5)",fontFamily:F,fontSize:"15px"}}>Pas de photo</div>}
             <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
               <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
@@ -2297,13 +2343,13 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           <h1 style={{margin:"20px 0 6px",fontFamily:FT,fontSize:"clamp(24px,3.4vw,34px)",fontWeight:500,color:C.dark,lineHeight:1.22}}>{p.title}</h1>
           <p style={{margin:"0 0 14px",color:C.sub,fontSize:"15px",fontFamily:F}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</p>
           <div style={{display:"flex",alignItems:"baseline",gap:"12px",flexWrap:"wrap",marginBottom:"18px"}}>
-            <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{fmtEUR(p.price_eur)}</span>
-            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}</span>
+            <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</span>
+            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</span>
           </div>
 
           {/* Caractéristiques */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:"9px",marginBottom:"20px"}}>
-            {caracteristiques(p).map(([l,v])=>(
+            {caracteristiques(p).filter(([l])=>![...CHAMPS_LOCATION,...CHAMPS_VENTE].some(c=>c.l.replace(/\s*\([^)]*\)\s*$/, "")===l)).map(([l,v])=>(
               <div key={l} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"13px"}}>
                 <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"3px"}}>{l}</div>
                 <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
@@ -2311,6 +2357,10 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
             ))}
           </div>
 
+          <ListingConditions p={p}/>
+          <section className="sok-listing-section"><h2>Le quartier</h2><p>{[p.neighborhood,p.city,p.country].filter(Boolean).join(" · ")}</p>
+          {CHAMPS_SECTEUR.filter(c=>p.details?.[c.k]).map(c=><p key={c.k}><strong>{c.l} : </strong>{p.details[c.k]}</p>)}
+          <small>Adresse exacte à demander à l’annonceur.</small></section>
           {p.description&&(<>
             <h2 style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark,margin:"0 0 9px"}}>Description</h2>
             <p style={{margin:"0 0 20px",fontSize:"16px",lineHeight:1.72,color:C.dark,fontFamily:F,whiteSpace:"pre-line"}}>{p.description}</p>
@@ -2360,6 +2410,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
         </aside>
       </div>
 
+      {!p.demo&&!gallery&&<div className="sok-listing-contact"><strong>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</strong>{tel&&<a href={tel}>Appeler</a>}{wa&&<a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>}{!tel&&!wa&&<a href={lienMailSokile(p)}>Contacter</a>}</div>}
       {/* Biens similaires */}
       {similaires?.length>0&&(
         <div style={{marginTop:"34px"}}>
@@ -3742,7 +3793,7 @@ button,input,select,textarea{font-size:inherit}
                               <div style={{width:40,height:40,borderRadius:"6px",background:p.bg,flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div>
-                                <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}</div>
+                                <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
                               </div>
                               <span onClick={e=>{e.stopPropagation();handleSave(p);}} style={{fontSize:"16px",cursor:"pointer"}}>❤️</span>
                             </div>
