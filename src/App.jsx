@@ -790,12 +790,12 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               {/* Titre */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
-                <input placeholder="Ex: Villa 4 pièces avec piscine à Cocody" value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
+                <input placeholder={form.nature==="terrain"?"Ex : Parcelle de 500 m² à vendre":form.nature==="agricole"?"Ex : Terrain agricole de 5 hectares":form.nature==="ferme"?"Ex : Plantation de cacao de 10 hectares":"Ex : Villa 4 pièces avec piscine à Cocody"} value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
               </div>
               {/* Ville + Quartier */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
                 <div>
-                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Ville *</label>
+                  <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{["terrain","agricole","ferme"].includes(form.nature)?"Ville / village / localité *":"Ville *"}</label>
                   <input placeholder="Ex: Abidjan" value={form.city||""} onChange={e=>set("city",e.target.value)} style={champ("city")}/>
                 </div>
                 <div>
@@ -832,7 +832,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                       const st = enDefaut ? {...inputStyle,border:"2px solid #C0392B",background:"#FDF3F2"} : inputStyle;
                       return (
                         <Fragment key={c.k}>
-                          {(c.k===(form.transaction==="location"?CHAMPS_LOCATION.filter(x=>x.k!=="meuble"||!["terrain","agricole"].includes(form.nature))[0]?.k:"negociable")||c.k==="repere")&&<h3 style={{gridColumn:"1 / -1",fontSize:16,color:C.forest,margin:"16px 0 10px"}}>{c.k==="repere"?"Le quartier":form.transaction==="location"?"Conditions de location":"Conditions de vente"}</h3>}
+                          {(c.k===(form.transaction==="location"?CHAMPS_LOCATION.filter(x=>x.k!=="meuble"||!["terrain","agricole","ferme"].includes(form.nature))[0]?.k:"negociable")||c.k==="repere")&&<h3 style={{gridColumn:"1 / -1",fontSize:16,color:C.forest,margin:"16px 0 10px"}}>{c.k==="repere"?"Le quartier":form.transaction==="location"?"Conditions de location":"Conditions de vente"}</h3>}
                         <div style={{gridColumn:["documents_vente","frais_vente","repere","environnement","conditions_location"].includes(c.k)?"1 / -1":undefined}}>
                           <label style={{fontSize:"12px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F}}>
                             {c.l}{c.requis?" *":""}
@@ -980,12 +980,14 @@ const NATURES = {
     ],
   },
   terrain: {
-    label:"Terrain à bâtir", famille:"Terrain", icone:"📐",
+    label:"Terrains et parcelles", famille:"Terrain", icone:"📐",
     resume:(d)=>[d.superficie&&`${d.superficie} m²`, d.statut_juridique, d.viabilise&&`viabilisé : ${d.viabilise}`],
     champs:[
       {k:"superficie",       l:"Superficie (m²)",     t:"nombre", requis:true},
-      {k:"statut_juridique", l:"Statut juridique",    t:"choix", requis:true, options:["Titre foncier","Bail emphytéotique","Délibération","Acte administratif","Non titré"]},
-      {k:"viabilise",        l:"Viabilisé",           t:"choix", options:["Eau et électricité","Eau seulement","Électricité seulement","Non viabilisé"]},
+      {k:"statut_juridique", l:"Document ou situation foncière", t:"texte", requis:true, aide:"Nom utilisé dans votre pays, ou non titré / à vérifier"},
+      {k:"lotissement",     l:"Terrain loti", t:"choix", options:["Oui","Non","À vérifier"]},
+      {k:"etat_terrain", l:"État du terrain", t:"choix", options:["Terrain nu","Avec construction","À préciser"]},
+      {k:"viabilise",        l:"Eau et électricité",           t:"choix", options:["Eau et électricité","Eau seulement","Électricité seulement","Non viabilisé"]},
       {k:"cloture",          l:"Clôturé",             t:"choix", options:["Oui","Partiellement","Non"]},
       {k:"acces",            l:"Accès",               t:"choix", options:["Route bitumée","Piste carrossable","Difficile"]},
       {k:"constructible",    l:"Constructible",       t:"choix", options:OUI_NON},
@@ -993,16 +995,33 @@ const NATURES = {
     ],
   },
   agricole: {
-    label:"Terrain agricole ou exploitation", famille:"Terrain", icone:"🌾",
+    label:"Terrains agricoles", famille:"Terrain", icone:"🌾",
     resume:(d)=>[d.superficie_ha&&`${d.superficie_ha} ha`, d.eau, d.cultures],
     champs:[
       {k:"superficie_ha",    l:"Superficie (hectares)", t:"nombre", requis:true},
-      {k:"statut_juridique", l:"Statut juridique",      t:"choix", requis:true, options:["Titre foncier","Bail emphytéotique","Délibération","Acte administratif","Non titré"]},
-      {k:"eau",              l:"Accès à l'eau",         t:"choix", options:["Forage","Rivière ou marigot","Réseau","Aucun"]},
+      {k:"statut_juridique", l:"Document ou situation foncière", t:"texte", requis:true, aide:"Nom utilisé dans votre pays, ou non titré / à vérifier"},
+      {k:"eau",              l:"Accès à l'eau",         t:"choix", options:["Forage","Puits","Rivière ou marigot","Réseau","Aucun"]},
       {k:"cultures",         l:"Cultures en place",     t:"texte", aide:"Ex : manguiers, arachide, maraîchage"},
       {k:"batiments",        l:"Bâtiments",             t:"texte", aide:"Ex : hangar, logement de gardien"},
       {k:"cloture",          l:"Clôturé",               t:"choix", options:["Oui","Partiellement","Non"]},
       {k:"acces",            l:"Accès",                 t:"choix", options:["Route bitumée","Piste carrossable","Difficile"]},
+    ],
+  },
+  ferme: {
+    label:"Fermes et plantations", famille:"Terrain", icone:"🌱",
+    resume:(d)=>[d.superficie_ha&&`${d.superficie_ha} ha`, d.type_exploitation, d.cultures],
+    champs:[
+      {k:"superficie_ha", l:"Superficie (hectares)", t:"nombre", requis:true},
+      {k:"type_exploitation", l:"Type de bien agricole", t:"choix", requis:true, options:["Ferme","Plantation","Verger","Domaine agricole","Autre exploitation agricole"]},
+      {k:"statut_juridique", l:"Document ou situation foncière", t:"texte", requis:true, aide:"Nom utilisé dans votre pays, ou non titré / à vérifier"},
+      {k:"activite_agricole", l:"Activité", t:"choix", options:["En activité","À l’arrêt","En cours d’aménagement"]},
+      {k:"cultures", l:"Cultures en place", t:"texte", aide:"Ex : cacao, café, palmier à huile, manguiers, maraîchage"},
+      {k:"elevage", l:"Élevage", t:"texte", aide:"Ex : volailles, bovins, pisciculture"},
+      {k:"eau", l:"Accès à l'eau", t:"choix", options:["Forage","Puits","Rivière ou marigot","Réseau","Aucun"]},
+      {k:"batiments", l:"Bâtiments", t:"texte", aide:"Ex : hangar, poulailler, logement de gardien"},
+      {k:"equipements_agricoles", l:"Équipements inclus", t:"texte", aide:"Ex : irrigation, pompe, matériel agricole"},
+      {k:"cloture", l:"Clôturé", t:"choix", options:["Oui","Partiellement","Non"]},
+      {k:"acces", l:"Accès", t:"choix", options:["Route bitumée","Piste carrossable","Difficile"]},
     ],
   },
   commerce: {
@@ -1088,7 +1107,7 @@ function champsDe(nature, transaction) {
   const n = NATURES[nature];
   if (!n) return [];
   const propres = n.champs.filter(c => !c.only || c.only === transaction);
-  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole"].includes(nature))] : [...propres, ...CHAMPS_VENTE];
+  return transaction === "location" ? [...propres, ...CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!["terrain","agricole","ferme"].includes(nature))] : [...propres, ...CHAMPS_VENTE];
 }
 
 const BULK_DETAIL_FIELDS=[...new Map([...Object.values(NATURES).flatMap(n=>n.champs),...CHAMPS_LOCATION,...CHAMPS_VENTE,...CHAMPS_SECTEUR].map(c=>[c.k,c])).values()];
