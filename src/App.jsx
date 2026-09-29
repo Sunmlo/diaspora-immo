@@ -1,5 +1,5 @@
 import "./listing-details.css";
-import { useState, useRef, useEffect } from "react";
+import { Fragment, useState, useRef, useEffect } from "react";
 import { Simulateurs } from "./simulations.jsx";
 import { initialSimulation, simulationFromListing } from "./simulations.mjs";
 import { listingForm, splitPhone, normalizePhone, propertyNature, propertyTransaction, contactError, websiteUrl, photoUrlsInOrder, readAllProperties, isDocumentAvailable } from "./form-fields.mjs";
@@ -828,8 +828,9 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                       const enDefaut = manquants.includes("d_"+c.k);
                       const st = enDefaut ? {...inputStyle,border:"2px solid #C0392B",background:"#FDF3F2"} : inputStyle;
                       return (
-                        <div key={c.k} style={{gridColumn:["documents_vente","frais_vente","repere","environnement","conditions_location"].includes(c.k)?"1 / -1":undefined}}>
-                          {(c.k===(form.transaction==="location"?CHAMPS_LOCATION.filter(x=>x.k!=="meuble"||!["terrain","agricole"].includes(form.nature))[0]?.k:"negociable")||c.k==="repere")&&<h3 style={{fontSize:16,color:C.forest,margin:"16px 0 10px"}}>{c.k==="repere"?"Le quartier":form.transaction==="location"?"Conditions de location":"Conditions de vente"}</h3>}
+                        <Fragment key={c.k}>
+                          {(c.k===(form.transaction==="location"?CHAMPS_LOCATION.filter(x=>x.k!=="meuble"||!["terrain","agricole"].includes(form.nature))[0]?.k:"negociable")||c.k==="repere")&&<h3 style={{gridColumn:"1 / -1",fontSize:16,color:C.forest,margin:"16px 0 10px"}}>{c.k==="repere"?"Le quartier":form.transaction==="location"?"Conditions de location":"Conditions de vente"}</h3>}
+                        <div style={{gridColumn:["documents_vente","frais_vente","repere","environnement","conditions_location"].includes(c.k)?"1 / -1":undefined}}>
                           <label style={{fontSize:"12px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F}}>
                             {c.l}{c.requis?" *":""}
                           </label>
@@ -842,7 +843,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                             <input aria-label={c.l} type={c.t==="nombre"?"number":"text"} min={c.t==="nombre"?0:undefined} step={c.t==="nombre"?"any":undefined} inputMode={c.t==="nombre"?"numeric":undefined}
                               placeholder={c.aide||""} value={val} onChange={e=>setDetail(c.k,e.target.value)} style={st}/>
                           )}
-                        </div>
+                        </div></Fragment>
                       );
                     })}
                   </div>
@@ -2061,7 +2062,7 @@ function telPropre(brut) {
 }
 function lienWhatsApp(p) {
   const n = telPropre(p.user_phone).replace(/^\+/, "");
-  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}).`;
+  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}).`;
   return n ? `https://wa.me/${n}?text=${encodeURIComponent(txt)}` : null;
 }
 function lienAppel(p) {
@@ -2070,7 +2071,7 @@ function lienAppel(p) {
 }
 function lienMailSokile(p) {
   const sujet = `Demande de contact — annonce ${p.title} (${p.city})`;
-  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}\n\nMerci,\n`;
+  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nMerci,\n`;
   return `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
 }
 
@@ -2080,7 +2081,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const photo = p.photos?.[0];
   const shareWA = (e) => {
     e && e.stopPropagation();
-    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   if (compact) return (
@@ -2143,7 +2144,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
   useEffect(()=>{ setImg(0); }, [p?.id]);
   if (!p) return null;
   const shareWA = () => {
-    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   return (
@@ -2291,7 +2292,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
 
   const partager = async () => {
     const url = urlAnnonce(p);
-    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}`;
+    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}`;
     if (navigator.share) { try { await navigator.share({title:p.title, text:texte, url}); return; } catch(e) {} }
     try { await navigator.clipboard.writeText(url); setCopie(true); setTimeout(()=>setCopie(false), 2500); }
     catch(e) { window.open(`https://wa.me/?text=${encodeURIComponent(texte+"\n"+url)}`,"_blank"); }
