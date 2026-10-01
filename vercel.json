@@ -32,6 +32,14 @@
     {
       "source": "/verification-professionnels",
       "destination": "/index.html"
+    },
+    {
+      "source": "/cadeau",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cadeau/",
+      "destination": "/index.html"
     }
   ]
 }

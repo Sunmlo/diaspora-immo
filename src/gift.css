@@ -1,0 +1,76 @@
+
+.sok-gift{padding:14px 0;font-family:Arial,sans-serif}
+.sok-gift *{box-sizing:border-box}
+.sok-gift .sg-app{--paper:light-dark(#fffdf8,#24231f);--ink:light-dark(#302d28,#f7f0e3);--soft:light-dark(#f2ede3,#333129);--line:light-dark(#e4dbce,#555045);--sub:light-dark(#71685d,#ccc1b0);--brand:light-dark(#99513c,#e7a78e);--photos:url('/gifts/ambiances.webp');--row:0%;max-width:670px;margin:auto;background:var(--paper);color:var(--ink);border-radius:22px;overflow:hidden;box-shadow:0 12px 38px #00000012}
+.sok-gift header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:23px 100px 20px 24px;border-bottom:1px solid var(--line)}
+.sok-gift .sg-logo{font-family:Georgia,serif;font-size:25px;letter-spacing:2px;color:var(--brand)}
+.sok-gift .sg-demo{font-size:11px;color:var(--sub);border:1px solid var(--line);border-radius:20px;padding:5px 8px}
+.sok-gift main{padding:26px}
+.sok-gift h2{font:400 32px/1.15 Georgia,serif;margin:0 0 13px}
+.sok-gift h3{font:400 25px/1.2 Georgia,serif;margin:0 0 12px}
+.sok-gift h4{font-size:15px;font-weight:500;line-height:1.45;margin:0 0 7px}
+.sok-gift p{font-size:14px;line-height:1.6;margin:0 0 18px;color:var(--sub)}
+.sok-gift .sg-eyebrow{font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--brand);margin:0 0 13px}
+.sok-gift .sg-progress{display:flex;gap:7px;margin:0 0 25px}
+.sok-gift .sg-progress span{height:3px;flex:1;background:var(--soft);border-radius:3px}
+.sok-gift .sg-progress .done{background:var(--brand)}
+.sok-gift button{font-family:inherit;font-size:14px;color:var(--ink);min-height:46px}
+.sok-gift button:focus-visible,.sok-gift select:focus-visible{outline:3px solid #bf9460;outline-offset:4px}
+.sok-gift .sg-options{display:grid;gap:10px;margin-top:22px}
+.sok-gift .sg-choice{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:17px;text-align:left;display:flex;align-items:center;gap:14px;width:100%}
+.sok-gift .sg-choice:hover,.sok-gift .sg-choice[aria-pressed=true],.sok-gift .sg-mood[aria-pressed=true]{background:var(--soft);border-color:var(--brand)}
+.sok-gift .sg-choice[aria-pressed=true],.sok-gift .sg-mood[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--brand)}
+.sok-gift .sg-choice strong{font-weight:500;font-size:16px;display:block}
+.sok-gift .sg-choice small{font-size:12px;color:var(--sub);display:block;margin-top:5px;line-height:1.45}
+.sok-gift .sg-icon{width:35px;height:35px;flex-shrink:0;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--brand)}
+.sok-gift .sg-arrow{margin-left:auto;color:var(--brand)}
+.sok-gift .sg-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:25px}
+.sok-gift .sg-primary{background:var(--brand);color:var(--paper);border:0;border-radius:12px;padding:14px 20px;font-weight:500}
+.sok-gift .sg-primary:disabled{opacity:.4}
+.sok-gift .sg-back{border:0;background:transparent;color:var(--sub);padding:10px 0}
+.sok-gift .sg-label{display:block;font-size:14px;margin:24px 0 10px}
+.sok-gift select,.sok-gift input[type=email]{width:100%;padding:15px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:var(--paper);color:var(--ink);min-height:50px}
+.sok-gift .sg-moods{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:23px}
+.sok-gift .sg-mood{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;text-align:left}
+.sok-gift .sg-photo{aspect-ratio:1.333333;background-image:var(--photos);background-size:400% 300%;background-repeat:no-repeat}
+.sok-gift [data-image=natural]{background-position:0% var(--row)}
+.sok-gift [data-image=modern]{background-position:33.333333% var(--row)}
+.sok-gift [data-image=warm]{background-position:66.666667% var(--row)}
+.sok-gift [data-image=light]{background-position:100% var(--row)}
+.sok-gift .sg-mood-text{padding:12px}
+.sok-gift .sg-mood-text strong{font-size:14px;font-weight:500;display:block}
+.sok-gift .sg-mood-text small{font-size:11px;color:var(--sub);display:block;margin-top:6px}
+.sok-gift .sg-fine{font-size:11px;text-align:center;color:var(--sub);margin:14px 0 0;line-height:1.5}
+.sok-gift .sg-board{border:1px solid var(--line);border-radius:17px;overflow:hidden;background:var(--paper);margin-top:22px}
+.sok-gift .sg-board-top{padding:25px 22px 5px}
+.sok-gift .sg-board-top h3{font-size:29px}
+.sok-gift .sg-chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 18px}
+.sok-gift .sg-chip{font-size:11px;background:var(--soft);border-radius:16px;padding:7px 10px}
+.sok-gift .sg-board-inside{padding:20px 22px 23px}
+.sok-gift .sg-palette{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:23px}
+.sok-gift .sg-swatch{height:35px;border-radius:6px;margin-bottom:7px}
+.sok-gift .sg-palette small{font-size:11px;color:var(--sub)}
+.sok-gift .sg-board-inside p{font-size:13px;margin-bottom:12px}
+.sok-gift .sg-caption{font-size:11px;color:var(--sub);padding:8px 12px;background:var(--soft)}
+.sok-gift .sg-gift-heading{margin-top:29px;margin-bottom:17px}
+.sok-gift .sg-guide{padding:18px;border:1px solid var(--line);border-radius:13px;margin-bottom:12px;display:grid;grid-template-columns:52px 1fr;gap:15px}
+.sok-gift .sg-cover{height:72px;background:var(--soft);color:var(--brand);border-left:4px solid var(--brand);border-radius:3px;display:flex;flex-direction:column;justify-content:space-between;padding:9px 5px;font-size:9px}
+.sok-gift .sg-cover strong{font-weight:500;font-size:11px}
+.sok-gift .sg-guide p{font-size:12px;margin-bottom:6px}
+.sok-gift .sg-read{background:transparent;border:0;padding:6px 0;color:var(--brand);text-align:left;font-size:12px}
+.sok-gift .sg-full{width:100%}
+.sok-gift .sg-signup{padding:22px;border-radius:14px;background:var(--soft);margin-top:20px}
+.sok-gift .sg-check{display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.5;margin:17px 0}
+.sok-gift .sg-check input{width:18px;height:18px;margin:0;flex-shrink:0}
+.sok-gift .sg-reader h4{margin-top:25px;color:var(--brand)}
+.sok-gift .sg-reader p{color:var(--ink)}
+.sok-gift .sg-reader ul{padding-left:19px;font-size:13px;line-height:1.6}
+@media(max-width:400px){.sok-gift main{padding:22px 16px}.sok-gift header{padding-left:16px}.sok-gift h2{font-size:29px}.sok-gift .sg-moods{gap:8px}.sok-gift .sg-mood-text{padding:10px 8px}.sok-gift .sg-board-top,.sok-gift .sg-board-inside{padding-left:16px;padding-right:16px}.sok-gift .sg-guide{padding:14px;gap:12px;grid-template-columns:43px 1fr}}
+.sok-gift h1{font:400 32px/1.2 'Fraunces',Georgia,serif;margin:0 0 18px;overflow-wrap:anywhere}
+.sok-gift button{cursor:pointer}.sok-gift button:disabled{cursor:not-allowed}
+.sok-gift .sg-guide h3{font:500 16px/1.5 'DM Sans',Arial,sans-serif}
+.sok-gift .sg-download{display:inline-block;color:var(--brand);font-size:14px;padding:10px 0}
+.sok-gift .sg-app{max-width:850px}.sok-gift .sg-board{max-width:660px;margin-left:auto;margin-right:auto}
+.sok-gift .gift-error{padding:14px;background:var(--soft);margin-bottom:20px;color:var(--ink)}
+.gift-banner{font-family:'DM Sans',Arial,sans-serif;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;background:#f5f0e8;color:#3a2923;padding:25px;border:1px solid #e8dfd0;border-radius:14px;margin:20px 0 26px}
+.gift-banner h2{font:500 25px 'Fraunces',Georgia,serif;margin:7px 0}.gift-banner p{max-width:520px;margin:0;font-size:14px;line-height:1.6}.gift-banner span{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#99513c}.gift-banner a{background:#99513c;color:#fff;text-decoration:none;padding:14px 18px;border-radius:10px;font-weight:600;font-size:14px}

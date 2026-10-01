@@ -1,3 +1,5 @@
+import {GiftPage,GiftBanner} from './gift.jsx';
+import {giftApi,cleanGift} from './gift.mjs';
 import {IndividualPanel} from './individual-verification.jsx';
 import {individualApi} from './individual-verification.mjs';
 import "./brand.css";
@@ -41,6 +43,7 @@ const FT = "'Fraunces', serif";
 
 const SUPABASE_URL = "https://nhyejaubfxjmmuvetayw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWVqYXViZnhqbW11dmV0YXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDIzODgsImV4cCI6MjA5NjQxODM4OH0.yIaB8nBbnBVufudtt-FsmoWPlSqOU2uYzLLQjtiTdR4";
+const giftsApi=giftApi(SUPABASE_URL,SUPABASE_KEY);
 
 const proVerificationApi = verificationApi(SUPABASE_URL,SUPABASE_KEY);
 const individualVerificationApi = individualApi(SUPABASE_URL,SUPABASE_KEY,verificationApi(SUPABASE_URL,SUPABASE_KEY,'individual-verification-documents'));
@@ -409,7 +412,8 @@ function BandeauErreur({ texte, onRetry }) {
 
 // ─── AUTH ─────────────────────────────────────────
 async function signUp(email, password, meta) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+  const redirect=meta.gift_project?`?redirect_to=${encodeURIComponent(window.location.origin+"/cadeau")}`:"";
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup${redirect}`, {
     method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
     body:JSON.stringify({email:normalizeEmail(email),password,data:meta}),
   });
@@ -446,7 +450,7 @@ async function updatePassword(accessToken, password) {
   return readAuthResponse(res);
 }
 // ─── LOGIN MODAL ──────────────────────────────────
-function LoginModal({ onClose, onLogin, initialMode="login" }) {
+function LoginModal({ onClose, onLogin, initialMode="login", giftProject=null }) {
   const [callback] = useState(() => authCallbackState(window.location.hash));
   const recoveryToken = callback?.token || "";
   const [mode, setMode] = useState(callback?.mode || initialMode);
@@ -495,9 +499,9 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
           }
         }
       } else if (mode==="signup") {
-        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:"", terms_accepted_at:new Date().toISOString(), terms_version:"2026-10-01"});
+        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:"", terms_accepted_at:new Date().toISOString(), terms_version:"2026-10-01", ...(cleanGift(giftProject)?{gift_project:cleanGift(giftProject)}:{})});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
-        else { window.sokileAnalytics?.event("signup_request"); setSuccess("Compte créé ! Vérifiez votre email."); }
+        else { window.sokileAnalytics?.event("signup_request"); const session=userSessionFromAuth(d); if(session){onLogin(session);onClose();}else setSuccess(giftProject?"Vérifiez votre email pour confirmer votre compte, puis revenez sur sokile.com/cadeau et connectez-vous pour récupérer votre cadeau.":"Compte créé ! Vérifiez votre email."); }
       } else {
         const d = await signIn(email, password);
         const session = userSessionFromAuth(d);
@@ -530,7 +534,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
                   </div>
         <form onSubmit={e=>{e.preventDefault();handleSubmit();}} style={{padding:"20px"}}>
 
-{mode==="signup"&&(
+{mode==="signup"&&!giftProject&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}}>
               {[["particulier","Particulier","Je cherche ou je vends un bien"],["pro","Professionnel","Agence, promoteur ou prestataire"]].map(([id,ti,de])=>(
                 <button key={id} type="button" onClick={()=>setAccountType(id)} style={{border:`1.5px solid ${accountType===id?C.terra:C.sand}`,background:accountType===id?"#FBF3EC":C.white,borderRadius:"10px",padding:"10px",textAlign:"left",cursor:"pointer",fontFamily:F}}>
@@ -543,13 +547,13 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
           {mode==="signup"&&accountType==="pro"&&(
             <div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence ou de la société *</label><input placeholder="Ex : Teranga Immobilier" value={agency} onChange={e=>setAgency(e.target.value)} style={inputStyle}/></div>
           )}
-          {mode==="signup"&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
+          {mode==="signup"&&!giftProject&&<div style={{marginBottom:"10px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Prénom et nom</label><input placeholder="Marie Laurence" value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/></div>}
           {mode!=="reset"&&<div style={{marginBottom:"10px"}}><label htmlFor="auth-email" style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Email</label><input id="auth-email" autoComplete="email" required type="email" placeholder="votre@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle}/></div>}
           {mode!=="forgot"&&<div style={{marginBottom:mode==="signup"?"10px":"8px"}}><label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}} htmlFor="auth-password">{mode==="reset"?"Nouveau mot de passe":"Mot de passe"}</label><input id="auth-password" required autoComplete={mode==="login"?"current-password":"new-password"} minLength={mode==="login"?undefined:8} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle}/></div>}
           {mode==="login"&&<div style={{textAlign:"right",marginBottom:"16px"}}><button type="button" onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{background:"none",border:"none",padding:0,color:C.terra,fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Mot de passe oublié ?</button></div>}
           {mode==="forgot"&&<p style={{fontSize:"13px",lineHeight:1.5,color:C.sub,fontFamily:F,margin:"0 0 16px"}}>Saisissez votre adresse e-mail. Vous recevrez un lien sécurisé pour choisir un nouveau mot de passe.</p>}
           {mode==="reset"&&<p style={{fontSize:"13px",lineHeight:1.5,color:C.sub,fontFamily:F,margin:"0 0 16px"}}>Choisissez au moins 8 caractères.</p>}
-          {mode==="signup"&&(
+          {mode==="signup"&&!giftProject&&(
             <div style={{marginBottom:"16px"}}>
               <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Téléphone (optionnel)</label>
               <div style={{display:"flex",gap:"6px"}}>
@@ -565,7 +569,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
               <input type="checkbox" required checked={termsAccepted} onChange={e=>setTermsAccepted(e.target.checked)} style={{flexShrink:0,width:18,height:18,marginTop:2}}/>
               <span>J’accepte les <a href="/cgu.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>conditions d’utilisation</a>.</span>
             </label>
-            <p style={{fontFamily:F,fontSize:13,lineHeight:1.5,color:C.sub,margin:"0 0 14px"}}>Vos informations servent à gérer votre compte et vos annonces. Consultez la <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>politique de confidentialité</a> pour connaître vos droits et nous contacter.</p>
+            <p style={{fontFamily:F,fontSize:13,lineHeight:1.5,color:C.sub,margin:"0 0 14px"}}>Vos informations servent à gérer votre compte, vos projets et vos annonces. Consultez la <a href="/confidentialites.html" target="_blank" rel="noopener noreferrer" style={{color:C.terra}}>politique de confidentialité</a> pour connaître vos droits et nous contacter.</p>
           </>}
           {error&&<div role="alert" style={{background:"#FEE2E2",color:"#DC2626",borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{error}</div>}
           {success&&<div role="status" style={{background:C.successBg,color:C.success,borderRadius:"8px",padding:"9px 12px",marginBottom:"12px",fontSize:"14px",fontFamily:F}}>{success}</div>}
@@ -1138,6 +1142,7 @@ const cheminGuide = (g) => `/guide/${g.id}`;
 
 function lireRoute() {
   if (typeof window === "undefined") return { nom: "accueil" };
+  if(window.location.pathname.replace(/\/$/,"")==="/cadeau") return {nom:"cadeau"};
   if(window.location.pathname.replace(/\/$/,"")==="/verification-professionnels") return {nom:"verification"};
   if(window.location.pathname==="/programmes-neufs") return {nom:"programmes"};
   const programme=window.location.pathname.match(/^\/programme\/([0-9a-f-]+)\/?$/i);
@@ -2937,6 +2942,21 @@ function SokileApp() {
     window.sokileAnalytics?.page(name, route.id);
   }, [tab, sousOnglet, route.nom, route.id]);
   const [simulation, setSimulation] = useState(initialSimulation);
+  const [signupCallback] = useState(()=>window.location.hash);
+  useEffect(()=>{
+    const hash=new URLSearchParams(signupCallback.slice(1));
+    if(hash.get("type")!=="signup"||!hash.get("access_token")||!hash.get("refresh_token"))return;
+    let active=true;
+    const access=hash.get("access_token"),refresh=hash.get("refresh_token"),expires=Number(hash.get("expires_in"))||3600;
+    window.history.replaceState({},"",window.location.pathname+window.location.search);
+    fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${access}`}}).then(async res=>{
+      if(!res.ok)throw new Error();const confirmed=await res.json();
+      const session=userSessionFromAuth({user:confirmed,access_token:access,refresh_token:refresh,expires_in:expires});
+      if(active&&session){setUser(session);if(cleanGift(session.gift_project)){window.history.replaceState({},"","/cadeau");setRoute({nom:"cadeau"});}}
+    }).catch(()=>{if(active)setShowLogin(true)});
+    return()=>{active=false};
+  },[]);
+
   // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
   const [apercu, setApercu] = useState("");
   const [filterCountry, setFilterCountry] = useState("Tous");
@@ -2955,6 +2975,7 @@ function SokileApp() {
   const [showPartner, setShowPartner] = useState(false);
   const [showBulkImport,setShowBulkImport]=useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [giftSignup,setGiftSignup]=useState(null);
   const [showLogin, setShowLogin] = useState(() => Boolean(authCallbackState(window.location.hash)));
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
@@ -3363,6 +3384,7 @@ button,input,select,textarea{font-size:inherit}
       {/* Keep fixed dialogs anchored to the viewport: a transformed ancestor traps them inside main. */}
       <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transition:"opacity 0.2s ease"}}>
 
+        {route.nom==="cadeau"&&<GiftPage user={apercu?null:user} api={giftsApi} onSignup={answers=>{setGiftSignup(answers);setShowLogin("signup")}} onFindPro={country=>openAnnuaire("Notaire",country)}/>}
         {route.nom==="verification"&&<VerificationPage/>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsError&&<p role="alert" style={{fontFamily:F,color:C.terra}}>Les annonces ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.</p>}
@@ -3404,6 +3426,7 @@ button,input,select,textarea{font-size:inherit}
           <div>
             {/* Hero Carrousel */}
             <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
+            <GiftBanner/>
 
             {adPreview==="reach"&&<AdPreviewSlot placement="banner"/>}
 
@@ -3821,6 +3844,7 @@ button,input,select,textarea{font-size:inherit}
                     <MesDemandesPro user={vu} showEmpty={programPublisher} refreshKey={proRefresh} onEditService={setEditingService} onEditPub={setEditingPub}/>
                     {programPublisher&&<ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={editProgram} refreshKey={programRefresh}/>}
                     <PersonalAccountTools professional={programPublisher}>
+                    <GiftBanner account/>
                                       {/* Biens sauvegardés */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${C.sand}`}}>
                       <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"8px"}}>Biens sauvegardés <span style={{color:C.sub,fontWeight:400}}>({savedProps.length})</span></div>
@@ -3888,7 +3912,7 @@ button,input,select,textarea{font-size:inherit}
 
       {/* MODALS */}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
-      {showLogin&&<LoginModal initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
+      {showLogin&&<LoginModal giftProject={giftSignup} initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>{setShowLogin(false);setGiftSignup(null)}} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:false}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos,verification:proVerificationApi}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 

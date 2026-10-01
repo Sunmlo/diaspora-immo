@@ -56,6 +56,7 @@ export function userSessionFromAuth(data, now = Date.now()) {
   const meta = data.user.user_metadata || {};
   const email = normalizeEmail(data.user.email);
   return {
+    gift_project: meta.gift_project || null,
     id: data.user.id, email, name: meta.name || email.split("@")[0],
     account_type: meta.account_type || "particulier", agency: meta.agency || "", phone: meta.phone || "",
     token: data.access_token, refresh_token: data.refresh_token,
