@@ -495,7 +495,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
           }
         }
       } else if (mode==="signup") {
-        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:"", terms_accepted_at:new Date().toISOString(), terms_version:"2026-09-25"});
+        const d = await signUp(email, password, {name, phone:normalizePhone(phoneCode,phone)||"", account_type:accountType, agency:accountType==="pro"?agency:"", terms_accepted_at:new Date().toISOString(), terms_version:"2026-10-01"});
         if (d.error) setError(d.error.message||"Erreur lors de l'inscription");
         else { window.sokileAnalytics?.event("signup_request"); setSuccess("Compte créé ! Vérifiez votre email."); }
       } else {
