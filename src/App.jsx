@@ -1,4 +1,7 @@
 import "./brand.css";
+import {VerificationPage, VerificationPanel, VerificationWorkspace, DirectoryVerifications, VerificationAdmin, VerificationAdminHint, VerificationBadge} from './pro-verification.jsx';
+import {verificationApi} from './pro-verification-api.mjs';
+import {specialtyActivity} from './pro-regulations.mjs';
 import { BulkImport } from "./bulk-import.jsx";
 import { CORE_COLUMNS } from "./bulk-import.mjs";
 import "./listing-details.css";
@@ -36,6 +39,8 @@ const FT = "'Fraunces', serif";
 
 const SUPABASE_URL = "https://nhyejaubfxjmmuvetayw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWVqYXViZnhqbW11dmV0YXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDIzODgsImV4cCI6MjA5NjQxODM4OH0.yIaB8nBbnBVufudtt-FsmoWPlSqOU2uYzLLQjtiTdR4";
+
+const proVerificationApi = verificationApi(SUPABASE_URL,SUPABASE_KEY);
 
 const PHONE_CODES = [
   // Classement alphabétique par pays
@@ -578,6 +583,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
 function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const [type, setType] = useState(existing?.advertiser_type||defaultType||user?.account_type||null);
   const [form, setForm] = useState(() => listingForm(existing, user, PHONE_CODES));
+  const [professionalActivity,setProfessionalActivity]=useState(existing?.professional_activity||"agence");
   const [photos, setPhotos] = useState(() => (Array.isArray(existing?.photos)?existing.photos:[]).map(url=>({url,apercu:url})));
   const [envoiPhoto, setEnvoiPhoto] = useState("");
   const [photoErr, setPhotoErr] = useState("");
@@ -688,7 +694,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
       price:parseInt(form.price_xof)||null, surface:landForm?(form.nature==="terrain"?Number(form.details?.superficie)||null:(Number(form.details?.superficie_ha)*10000)||null):parseInt(form.surface)||null,
       rooms:parseInt(form.rooms)||null, bathrooms:parseInt(form.bathrooms)||null,
       tags:form.features||[], status:"en_attente", active:false, verified:false, advertiser_type:type,
-      agency_name:form.agency||null, photos:toutesPhotos, moderation_note:null, motif_rejet:null,
+      professional_activity:type==="pro"?professionalActivity:null, agency_name:type==="pro"?form.agency||null:null, photos:toutesPhotos, moderation_note:null, motif_rejet:null,
     };
     const r = await (existing
       ? modifier("properties", existing.id, payload, user.token)
@@ -873,7 +879,8 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 {photoErr&&<div style={{marginTop:"6px",fontSize:"13px",color:C.terra,fontWeight:600,fontFamily:F}}>{photoErr}</div>}
                 {envoiPhoto&&<div style={{marginTop:"6px",fontSize:"13px",color:C.forest,fontWeight:700,fontFamily:F}}>{envoiPhoto}</div>}
               </div>
-              <label style={{display:"flex",gap:10,alignItems:"flex-start",padding:12,marginBottom:12,borderRadius:8,border:`1px solid ${manquants.includes("authority")?"#C0392B":C.sand}`,fontFamily:F,fontSize:14,lineHeight:1.5}}>
+              {type==="pro"&&<><label style={{display:"block",fontFamily:F,fontSize:14,fontWeight:700}}>Votre activité pour cette annonce<select style={inputStyle} value={professionalActivity} onChange={e=>setProfessionalActivity(e.target.value)}><option value="agence">Agence / agent immobilier</option><option value="courtier">Courtier immobilier</option><option value="promoteur">Promoteur immobilier</option></select></label><VerificationPanel api={proVerificationApi} user={user} country={form.country} activity={professionalActivity} businessName={form.agency}/></>}
+            <label style={{display:"flex",gap:10,alignItems:"flex-start",padding:12,marginBottom:12,borderRadius:8,border:`1px solid ${manquants.includes("authority")?"#C0392B":C.sand}`,fontFamily:F,fontSize:14,lineHeight:1.5}}>
                 <input type="checkbox" checked={authorityAccepted} onChange={e=>setAuthorityAccepted(e.target.checked)} style={{marginTop:4,flexShrink:0}}/>
                 <span>Je confirme être propriétaire de ce bien ou autorisé à le proposer à la vente ou à la location. *</span>
               </label>
@@ -1127,6 +1134,7 @@ const cheminGuide = (g) => `/guide/${g.id}`;
 
 function lireRoute() {
   if (typeof window === "undefined") return { nom: "accueil" };
+  if(window.location.pathname.replace(/\/$/,"")==="/verification-professionnels") return {nom:"verification"};
   if(window.location.pathname==="/programmes-neufs") return {nom:"programmes"};
   const programme=window.location.pathname.match(/^\/programme\/([0-9a-f-]+)\/?$/i);
   if(programme) return {nom:"programme",id:programme[1]};
@@ -1297,7 +1305,7 @@ async function uploadProgramDocument(file,user) {
   if(!response.ok)throw new Error("Le document n’a pas pu être envoyé. Réessayez.");
   return `${SUPABASE_URL}/storage/v1/object/public/program-documents/${path}`;
 }
-const programApi={load:lire,rpc:alertRpc,uploadPhotos:envoyerPhotos,uploadDocument:uploadProgramDocument};
+const programApi={load:lire,rpc:alertRpc,uploadPhotos:envoyerPhotos,uploadDocument:uploadProgramDocument,verification:proVerificationApi};
 
 const peutRediger = (user) => isAdminSession(user, EMAIL_REDACTION);
 
@@ -1526,6 +1534,7 @@ const RUBRIQUES_ADMIN = [
   {id:"demandes",     label:"Demandes"},
   {id:"publicites",   label:"Publicités"},
   {id:"paiements",    label:"Paiements"},
+  {id:"verifications",label:"Vérifications pro"},
   {id:"prestataires", label:"Prestataires"},
   {id:"actualites",   label:"Actualités"},
   {id:"chiffres",     label:"Chiffres"},
@@ -1553,6 +1562,7 @@ function EspaceAdmin({ user, onApercu, apercu, programRefresh }) {
       {rub==="demandes"&&<AdminDemandes user={user}/>}
       {rub==="publicites"&&<AdminPublicites user={user}/>}
       {rub==="paiements"&&<PaymentsAdmin api={billingApi} user={user}/>}
+      {rub==="verifications"&&<VerificationAdmin api={proVerificationApi} user={user}/>}
       {rub==="prestataires"&&<AdminPrestataires user={user}/>}
       {rub==="actualites"&&<Actualite user={user}/>}
       {rub==="chiffres"&&<AdminChiffres user={user}/>}
@@ -1671,7 +1681,7 @@ function AdminModeration({ user }) {
     const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, motif_rejet:motifRejet?.trim()||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
       .catch(e=>({ok:false,statut:0}));
     setEnregistrement(false);
-    if (!r.ok) { setErreurDecision("La décision n'a pas pu être enregistrée. Votre réponse est conservée ici pour réessayer."); setErreur("La décision n'a pas pu être enregistrée."); return; }
+    if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez le dossier dans Vérifications pro, puis réessayez."); setErreur("La décision n'a pas pu être enregistrée."); return; }
     setOuvert(null); setMotif(""); charger();
   };
 
@@ -1852,7 +1862,7 @@ function AdminPrestataires({ user }) {
       moderation_note:["validee","acceptee"].includes(nouveau)?null:note.trim()||null,
     }, user.token, "PATCH").catch(()=>({ok:false}));
     setEnregistrement(false);
-    if (!r.ok) { setErreurDecision("La décision n'a pas pu être enregistrée. Votre réponse est conservée ici pour réessayer."); return; }
+    if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez le dossier dans Vérifications pro, puis réessayez."); return; }
     setOuverte(null); setNote(""); charger();
   };
 
@@ -1897,6 +1907,7 @@ function AdminPrestataires({ user }) {
         <div style={{display:"grid",gap:9,marginBottom:15}}>
           {[["Spécialité",ouverte.specialty],["Pays",(ouverte.countries||[]).join(", ")],["Zones",ouverte.zones],["Email",ouverte.email],["Téléphone",ouverte.phone],["Site",ouverte.website],["Immatriculation / ordre",ouverte.verification_reference],["Tarifs",ouverte.pricing],["Présentation",ouverte.description]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
         </div>
+        <VerificationAdminHint country={(ouverte.countries||[]).join(", ")} activity={specialtyActivity(ouverte.specialty)}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           <button disabled={enregistrement} onClick={()=>decider(ouverte,"validee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Valider et publier</button>
           <button disabled={enregistrement} onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander à compléter</button>
@@ -2105,6 +2116,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
         {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</div>}
+        {p.professional_verified&&<div style={{position:"absolute",bottom:8,left:8}} onClick={e=>e.stopPropagation()}><VerificationBadge valid/></div>}
         <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
           <span style={{background:transactionDe(p)==="location"?C.forest:C.terra,color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 9px",borderRadius:"4px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{transactionDe(p)==="location"?"À louer":"À vendre"}</span>
           <span style={{background:"rgba(255,255,255,0.92)",color:C.dark,fontSize:"11px",fontWeight:600,padding:"3px 9px",borderRadius:"4px",fontFamily:F}}>{libelleNature(p)}</span>
@@ -2160,7 +2172,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
           <div style={{position:"relative",zIndex:1}}>
             <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
-            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}
+            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}<VerificationBadge valid={p.professional_verified}/>
           </div>
         </div>
         {p.photos?.length>1&&(
@@ -2322,7 +2334,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
             <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
               <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
               {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}
-              {p.verified&&<span style={{background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}
+              {p.verified&&<span style={{background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}<VerificationBadge valid={p.professional_verified}/>
             </div>
             {photos.length>1&&(<>
               <button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>‹</button>
@@ -2439,7 +2451,7 @@ function ComingSoon({ title, desc }) {
 
 
 // ─── PRESTATAIRES : ANNUAIRE + FORMULAIRES ────────
-const SPECIALITES = ["Agence immobilière","Promoteur immobilier","Géomètre","Notaire","Architecte","BTP / Construction","Vérification terrain","Juridique","Financement","Déménagement"];
+const SPECIALITES = ["Agence immobilière","Courtier immobilier","Promoteur immobilier","Géomètre","Notaire","Architecte","BTP / Construction","Vérification terrain","Juridique","Financement","Déménagement"];
 
 // Fiches d'exemple (remplacées par les vrais prestataires une fois validés)
 const PRESTATAIRES_DEMO = [
@@ -2507,8 +2519,8 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
   };
   return (
     <ModalShell title={existing?"Modifier ma fiche professionnelle":"Rejoindre l'annuaire"} subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
-      {sent ? <SentMessage title="Demande envoyée" text="Nous vérifions votre identité professionnelle et revenons vers vous sous 48 h." onClose={onClose}/> : (<>
-        <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>La fiche n'est jamais publiée automatiquement. Sokilé contrôle les coordonnées et, lorsque c'est possible, l'immatriculation ou l'ordre professionnel.</div>
+      {sent ? <SentMessage title="Demande envoyée" text="Votre fiche sera examinée après validation des justificatifs de chaque pays. Suivez les réponses dans votre compte." onClose={onClose}/> : (<>
+        <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>La fiche n'est jamais publiée automatiquement. Sokilé vérifie le dossier professionnel pour chaque pays et l’activité déclarée avant de publier la fiche.</div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Nom ou société *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Spécialité *</label>
           <select style={inp} value={f.spec} onChange={e=>set("spec",e.target.value)}>
@@ -2533,7 +2545,8 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
           </div>
         </div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Site web</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Immatriculation ou ordre professionnel</label><input style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="RCCM, IFU, numéro d'ordre…"/><div style={{fontSize:12.5,color:C.sub,fontFamily:F,marginTop:4}}>Facultatif, mais recommandé pour accélérer la vérification.</div></div>
+        <DirectoryVerifications api={proVerificationApi} user={user} countries={f.pays} specialty={f.spec} businessName={f.name}/>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Référence complémentaire (facultative)</label><input style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="RCCM, IFU, numéro d'ordre…"/><div style={{fontSize:12.5,color:C.sub,fontFamily:F,marginTop:4}}>Les justificatifs professionnels se déposent dans les dossiers par pays ci-dessus.</div></div>
         <div style={{marginBottom:"10px"}}><label style={lbl}>Tarifs indicatifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Ex : à partir de 150 000 FCFA"/></div>
         <div style={{marginBottom:"14px"}}><label style={lbl}>Présentation</label><textarea rows={4} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Vos services, votre expérience, vos références…"/></div>
         <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette activité et j'accepte que ces informations professionnelles soient vérifiées puis publiées dans l'annuaire.</span></label>
@@ -2559,7 +2572,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
     lire("public_professionals","select=*&order=id.desc").then(r=>{
       if(!active)return;
       if(!r.ok||!Array.isArray(r.data))throw new Error("Annuaire indisponible");
-      setVerified(r.data.map(p=>({id:`pro-${p.id}`,name:p.business_name,specs:[p.specialty],pays:p.countries||[],zones:p.zones,phone:p.phone,site:p.website,tarifs:p.pricing,desc:p.description||"Professionnel référencé sur Sokilé.",emoji:"✓",verified:true})));
+      setVerified(r.data.map(p=>({id:`pro-${p.id}`,name:p.business_name,specs:[p.specialty],pays:p.countries||[],zones:p.zones,phone:p.phone,site:p.website,tarifs:p.pricing,desc:p.description||"Professionnel référencé sur Sokilé.",emoji:"✓",verified:p.professional_verified===true})));
     }).catch(()=>{if(active)setError(true);}).finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[retry]);
@@ -2593,7 +2606,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
               <div style={{fontSize:"12px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
               <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
             </div>
-            <span style={{background:p.verified?C.successBg:"rgba(0,0,0,0.06)",color:p.verified?C.success:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>{p.verified?"Validé":"Exemple"}</span>
+            <span style={{background:p.verified?C.successBg:"rgba(0,0,0,0.06)",color:p.verified?C.success:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>{p.verified?"Professionnel vérifié":"Exemple"}</span>
           </div>
           <div style={{fontSize:"13px",color:C.muted,fontFamily:F,lineHeight:1.4}}>{p.desc}</div>
         </div>
@@ -2807,6 +2820,7 @@ function SiteFooter({ onNav, onPub }) {
         <div style={{flex:"0 1 165px"}}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Informations</div>
           <a href="/mentions%20legales.html" style={link}>Mentions légales</a>
+          <a href="/verification-professionnels" style={link}>Vérifications professionnelles</a>
           <a href="/confidentialites.html" style={link}>Confidentialité</a>
           <a href="/cgu.html" style={link}>Conditions d&apos;utilisation</a>
         </div>
@@ -3341,6 +3355,7 @@ button,input,select,textarea{font-size:inherit}
       {/* Keep fixed dialogs anchored to the viewport: a transformed ancestor traps them inside main. */}
       <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transition:"opacity 0.2s ease"}}>
 
+        {route.nom==="verification"&&<VerificationPage/>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsError&&<p role="alert" style={{fontFamily:F,color:C.terra}}>Les annonces ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.</p>}
         {adPreview&&<AdPreviewNotice offer={adPreview}/>}
@@ -3402,6 +3417,7 @@ button,input,select,textarea{font-size:inherit}
             </div>
             </>}
 
+            <aside className="pv-trust-banner"><div><strong>Des professionnels vérifiés avant publication</strong><p>Identité professionnelle, justificatifs et habilitations selon le pays et l’activité.</p></div><a href="/verification-professionnels">Découvrir nos contrôles et les pièces requises →</a></aside>
             <DemoListings onPublish={()=>{setPartnerType(vu?.account_type==="pro"?"pro":"particulier");vu?setShowPartner(true):setShowLogin(true);}}/>
 
             <ProgramHome api={programApi} onOpen={openProgram} onAll={openPrograms}/>
@@ -3689,7 +3705,7 @@ button,input,select,textarea{font-size:inherit}
           <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
               <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels utiles sur place</div>
-              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Les fiches indiquent clairement si elles sont référencées, revendiquées ou contrôlées.</div>
+              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Les professionnels publiés disposent d’un dossier vérifié pour leur activité et les pays indiqués.</div>
             </div>
             <div style={{padding:"16px"}}>
               {adPreview==="spotlight"&&<AdPreviewSlot placement="spotlight"/>}
@@ -3784,6 +3800,7 @@ button,input,select,textarea{font-size:inherit}
                     <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",fontSize:"12px",fontWeight:600,padding:"2px 9px",borderRadius:"3px",fontFamily:F}}>{programPublisher?"Compte professionnel":estAdmin(vu)?"Administratrice Sokilé":"Membre Sokilé"}</span>
                   </div>
                 </div>
+                {programPublisher&&<VerificationWorkspace api={proVerificationApi} user={vu}/>}
                 {programPublisher?<ProfessionalActions
                   onListing={()=>{setPartnerType("pro");setShowPartner(true);}}
                   onImport={()=>setShowBulkImport(true)}
@@ -3865,7 +3882,7 @@ button,input,select,textarea{font-size:inherit}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>setShowLogin(false)} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:false}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
-      {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
+      {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos,verification:proVerificationApi}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}

@@ -3,11 +3,13 @@ import {CORE_COLUMNS,validateRow,rowPayload,ownListings,keyOf} from './bulk-impo
 import {readImportFile,downloadTemplate} from './bulk-import-files.mjs';
 import {normalizePhone} from './form-fields.mjs';
 import './bulk-import.css';
+import {VerificationPanel} from './pro-verification.jsx';
 function Photo({file}){const [url,setUrl]=useState('');useEffect(()=>{const u=URL.createObjectURL(file);setUrl(u);return()=>URL.revokeObjectURL(u);},[file]);return <img src={url} alt={file.name}/>;}
 export function BulkImport({user,schema,api,onClose,onSaved}){
   const dialog=useRef(null),lock=useRef(false),uploaded=useRef(new Map());
   const [rows,setRows]=useState([]),[existing,setExisting]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[progress,setProgress]=useState(''),[sent,setSent]=useState([]);
   const [authorityAccepted,setAuthorityAccepted]=useState(false);
+  const [activity,setActivity]=useState('agence');
   const [contact,setContact]=useState({name:user.name||'',agency:user.agency||'',email:user.email||'',phone:user.phone||''});
   useEffect(()=>{dialog.current?.showModal();const d=dialog.current;return()=>d?.close();},[]);
   const setRow=(index,change)=>{uploaded.current.delete(index);setRows(old=>old.map((r,i)=>i===index?{...r,...change}:r));};
@@ -35,6 +37,7 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
         let urls=uploaded.current.get(r.index);
         if(!urls){urls=await api.upload(r.photos,user);if(urls.length!==r.photos.length)throw Error(`Photos incomplètes pour ${r.data.reference}. Réessayez : aucune annonce de ce lot n’a été envoyée.`);uploaded.current.set(r.index,urls);}
         const listing=rowPayload(r.data,{...user,...contact,phone},urls,schema);
+        listing.professional_activity=activity;
         listing.details={...listing.details,publication_authorized:true,publication_authorized_at:new Date().toISOString(),publication_authorization_version:1};
         payload.push(listing);
       }
@@ -60,7 +63,8 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
       <p className="sok-bulk-help">Le fichier est lu dans votre navigateur. Les annonces et photos sont envoyées seulement lorsque vous cliquez sur « Envoyer en validation ». Gardez votre fichier : fermer cet écran efface l’aperçu.</p>
       {error&&<p className="sok-bulk-error" role="alert">{error}</p>}{progress&&<p role="status">{progress}</p>}
       {!!rows.length&&<>
-        <fieldset disabled={busy}><legend>Contact de l’agence pour ce lot</legend><div className="sok-bulk-grid">{[['name','Nom du contact'],['agency','Agence'],['email','Email'],['phone','Téléphone international']].map(([k,l])=><label key={k}>{l}<input type={k==='email'?'email':k==='phone'?'tel':'text'} value={contact[k]} onChange={e=>setContact({...contact,[k]:e.target.value})}/></label>)}</div></fieldset>
+        <fieldset disabled={busy}><legend>Structure et contact pour ce lot</legend><div className="sok-bulk-grid">{[['name','Nom du contact'],['agency','Nom légal de la structure'],['email','Email'],['phone','Téléphone international']].map(([k,l])=><label key={k}>{l}<input type={k==='email'?'email':k==='phone'?'tel':'text'} value={contact[k]} onChange={e=>setContact({...contact,[k]:e.target.value})}/></label>)}</div></fieldset>
+        <label>Activité pour ce lot<select disabled={busy} value={activity} onChange={e=>setActivity(e.target.value)}><option value="agence">Agence / agent immobilier</option><option value="courtier">Courtier immobilier</option><option value="promoteur">Promoteur immobilier</option></select></label><p className="pv-note">Chaque pays du lot nécessite un dossier professionnel validé avant publication. Vous pouvez transmettre les annonces pendant son examen.</p>{[...new Set(selected.map(r=>r.data.pays).filter(c=>schema.countries.includes(c)))].map(country=><VerificationPanel key={country} api={api.verification} user={user} country={country} activity={activity} businessName={contact.agency}/>)}
         <h3>{rows.length} annonce(s) dans le fichier · {selected.length} sélectionnée(s)</h3>
         {rows.map((r,index)=>{const errors=errorsFor(r),done=sent.includes(index);return <article key={index} className="sok-bulk-row">
           <label className="sok-bulk-select"><input type="checkbox" checked={r.selected&&!done} disabled={busy||done} onChange={e=>setRow(index,{selected:e.target.checked})}/><strong>{r.data.reference||`Ligne ${index+2}`} — {r.data.titre||'Sans titre'}</strong></label>

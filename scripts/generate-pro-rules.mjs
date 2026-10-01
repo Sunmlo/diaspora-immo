@@ -1,0 +1,4 @@
+import {RULES} from '../src/pro-regulations.mjs';
+import {writeFileSync} from 'node:fs';
+const q=s=>"'"+s.replaceAll("'","''")+"'";
+writeFileSync('supabase-pro-verification-rules-20261001.sql',`-- Generated from src/pro-regulations.mjs. No inferred legal exemptions.\nbegin;\ninsert into public.pro_verification_rules(country,activity,rule_version,review_required,required_documents,description,sources) values\n${RULES.map(r=>`(${q(r.country)},${q(r.activity)},${q(r.version)},${r.status!=='confirmed'},${q(JSON.stringify(r.docs))}::jsonb,${q(r.summary)},${q(JSON.stringify(r.sources))}::jsonb)`).join(',\n')}\non conflict(country,activity) do update set rule_version=excluded.rule_version,review_required=excluded.review_required,required_documents=excluded.required_documents,description=excluded.description,sources=excluded.sources;\ncommit;\n`);
