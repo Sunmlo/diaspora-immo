@@ -1,3 +1,5 @@
+import {IndividualPanel} from './individual-verification.jsx';
+import {individualApi} from './individual-verification.mjs';
 import "./brand.css";
 import {VerificationPage, VerificationPanel, VerificationWorkspace, DirectoryVerifications, VerificationAdmin, VerificationAdminHint, VerificationBadge} from './pro-verification.jsx';
 import {verificationApi} from './pro-verification-api.mjs';
@@ -41,6 +43,7 @@ const SUPABASE_URL = "https://nhyejaubfxjmmuvetayw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWVqYXViZnhqbW11dmV0YXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDIzODgsImV4cCI6MjA5NjQxODM4OH0.yIaB8nBbnBVufudtt-FsmoWPlSqOU2uYzLLQjtiTdR4";
 
 const proVerificationApi = verificationApi(SUPABASE_URL,SUPABASE_KEY);
+const individualVerificationApi = individualApi(SUPABASE_URL,SUPABASE_KEY,verificationApi(SUPABASE_URL,SUPABASE_KEY,'individual-verification-documents'));
 
 const PHONE_CODES = [
   // Classement alphabétique par pays
@@ -583,6 +586,7 @@ function LoginModal({ onClose, onLogin, initialMode="login" }) {
 function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const [type, setType] = useState(existing?.advertiser_type||defaultType||user?.account_type||null);
   const [form, setForm] = useState(() => listingForm(existing, user, PHONE_CODES));
+  const [savedProperty,setSavedProperty]=useState(null);
   const [professionalActivity,setProfessionalActivity]=useState(existing?.professional_activity||"agence");
   const [photos, setPhotos] = useState(() => (Array.isArray(existing?.photos)?existing.photos:[]).map(url=>({url,apercu:url})));
   const [envoiPhoto, setEnvoiPhoto] = useState("");
@@ -618,7 +622,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const legendStyle = {fontFamily:F,fontSize:16,fontWeight:700,color:C.forest,padding:"0 6px"};
   const renderFields = fields => <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>{fields.map(c=><div key={c.k} style={{gridColumn:c.t==="texte"?"1 / -1":undefined}}>
     <label htmlFor={`listing-${c.k}`} style={{display:"block",fontFamily:F,fontSize:13,fontWeight:600,marginBottom:5}}>{c.l}{c.requis?" *":""}</label>
-    {c.t==="choix"?<select id={`listing-${c.k}`} value={form.details?.[c.k]??""} onChange={e=>setDetail(c.k,e.target.value)} style={champ("d_"+c.k)}><option value="">Choisir</option>{c.options.map(o=><option key={o}>{o}</option>)}</select>:<input id={`listing-${c.k}`} type={c.t==="nombre"?"number":"text"} min={c.t==="nombre"?0:undefined} step={c.t==="nombre"?"any":undefined} placeholder={c.aide||""} value={form.details?.[c.k]??""} onChange={e=>setDetail(c.k,e.target.value)} style={champ("d_"+c.k)}/>}
+    {c.t==="choix"?<select id={`listing-${c.k}`} value={form.details?.[c.k]??""} onChange={e=>setDetail(c.k,e.target.value)} style={champ("d_"+c.k)}><option value="">Choisir</option>{c.options.filter(o=>c.k!=="advertiser_role"||type==="pro"||o!=="Agence immobilière").map(o=><option key={o}>{o}</option>)}</select>:<input id={`listing-${c.k}`} type={c.t==="nombre"?"number":"text"} min={c.t==="nombre"?0:undefined} step={c.t==="nombre"?"any":undefined} placeholder={c.aide||""} value={form.details?.[c.k]??""} onChange={e=>setDetail(c.k,e.target.value)} style={champ("d_"+c.k)}/>}
   </div>)}</div>;
 
   // Champs indispensables pour qu'une annonce serve à quelque chose
@@ -709,7 +713,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
 
     // trace interne, sans conséquence pour l'utilisateur si elle échoue
     window.sokileAnalytics?.event(existing ? "listing_update" : "listing_submit");
-    setLoading(false); setSent(true); onSaved?.();
+    setSavedProperty(r.data?.[0]||existing); setLoading(false); setSent(true); onSaved?.();
   };
 
   return (
@@ -724,7 +728,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
           {sent?(<div style={{textAlign:"center",padding:"16px 0"}}>
             <div style={{fontSize:"42px",marginBottom:"10px"}}>🎉</div>
             <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>{existing?"Modification envoyée !":"Demande envoyée !"}</h3>
-            <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Votre annonce est maintenant en attente de validation par Sokilé.</p>
+            <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Votre annonce est enregistrée. Sa publication attend la validation de Sokilé.</p>{type!=="pro"&&savedProperty&&<IndividualPanel api={individualVerificationApi} user={user} property={savedProperty}/>}
             <button onClick={onClose} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
           </div>):!type?(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
@@ -887,10 +891,10 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
 </fieldset>
 </>}               <BandeauErreur texte={erreur} onRetry={erreur&&!manquants.length?handleSubmit:null}/>
               <button onClick={handleSubmit} disabled={loading||!form.transaction||!form.nature} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
-                {loading?(envoiPhoto||"Envoi en cours…"):(existing?"Envoyer mes modifications":"Publier mon annonce")}
+                {loading?(envoiPhoto||"Envoi en cours…"):(existing?"Envoyer mes modifications":type==="particulier"?"Enregistrer et ajouter mes justificatifs":"Publier mon annonce")}
               </button>
               <p style={{margin:"10px 0 0",fontSize:"12.5px",color:C.sub,fontFamily:F,textAlign:"center",lineHeight:1.5}}>
-                Votre annonce est examinée par Sokilé avant publication. Cette modération ne constitue pas une vérification de propriété. Les champs marqués * sont obligatoires.
+                Après enregistrement, ajoutez les justificatifs privés de votre lien avec le bien. Sokilé examine le dossier et l’annonce avant publication. Ce contrôle ne garantit pas la propriété. Les champs marqués * sont obligatoires.
               </p>
             </>
           )}
@@ -1733,6 +1737,7 @@ function AdminModeration({ user }) {
             </div>
           )}
           <div style={{fontSize:"14.5px",color:C.dark,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-line",marginBottom:"14px"}}>{ouvert.description}</div>
+          {ouvert.advertiser_type!=="pro"&&<IndividualPanel key={ouvert.id} api={individualVerificationApi} user={user} property={ouvert} admin/>}
           <p style={{fontFamily:F,fontSize:14,background:C.cream,padding:12,borderRadius:8}}><strong>Autorisation déclarée :</strong> {ouvert.details?.publication_authorized===true?"Attestation confirmée par l’annonceur":"Non renseignée (annonce antérieure ou à compléter)"}. Cette déclaration ne prouve pas la propriété du bien.</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"8px",marginBottom:"16px"}}>
             {[...caracteristiques(ouvert),...[{k:"quartier",l:"Quartier",v:ouvert.neighborhood},...CHAMPS_SECTEUR.map(c=>({...c,v:ouvert.details?.[c.k]}))].filter(c=>c.v!==undefined&&c.v!==null&&String(c.v).trim()).map(c=>[c.l,String(c.v)])].map(([l,v])=>(
@@ -2854,6 +2859,7 @@ const ETATS_DOSSIER = {
 };
 
 function MesAnnonces({ user, refreshKey, onEdit }) {
+  const [evidenceProperty,setEvidenceProperty]=useState(null);
   const [rows,setRows]=useState([]), [loading,setLoading]=useState(true), [error,setError]=useState("");
   useEffect(()=>{
     let actif=true; setLoading(true); setError("");
@@ -2865,9 +2871,11 @@ function MesAnnonces({ user, refreshKey, onEdit }) {
     {loading&&<div style={{fontFamily:F,color:C.sub,fontSize:13}}>Chargement…</div>}
     {error&&<BandeauErreur texte={error}/>} 
     {!loading&&!error&&rows.length===0&&<div style={{fontFamily:F,color:C.sub,fontSize:13,lineHeight:1.5}}>Vous n'avez pas encore déposé d'annonce.</div>}
-    <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[isExpired(p)?"expiree":p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",gap:10,alignItems:"center"}}>
+    {evidenceProperty&&<ModalShell title="Justificatifs privés" subtitle={evidenceProperty.title} onClose={()=>setEvidenceProperty(null)}><IndividualPanel key={evidenceProperty.id} api={individualVerificationApi} user={user} property={evidenceProperty}/></ModalShell>}
+    <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[isExpired(p)?"expiree":p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
       <div style={{width:58,height:48,borderRadius:7,background:C.cream,overflow:"hidden",flexShrink:0}}>{p.photos?.[0]&&<img src={p.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>}</div>
       <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{p.expires_at&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5}}>{isExpired(p)?"Retirée de la recherche le":"Expiration le"} {dateCourte(p.expires_at)}</div>}{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
+      {p.advertiser_type!=="pro"&&<button type="button" onClick={()=>setEvidenceProperty(p)} style={{border:`1px solid ${C.forest}`,borderRadius:7,padding:8,cursor:"pointer"}}>Justificatifs privés</button>}
       <button onClick={()=>onEdit(p)} style={{border:`1px solid ${C.terra}`,background:C.white,color:C.terra,borderRadius:7,padding:"7px 10px",fontWeight:700,cursor:"pointer",fontFamily:F}}>{isExpired(p)?"Renouveler":"Modifier"}</button>
     </div>})}</div>
     <p style={{fontFamily:F,fontSize:12,color:C.sub,lineHeight:1.5,margin:"10px 0 0"}}>Toute modification ou demande de renouvellement repasse en validation. Après validation : 6 mois pour une location, 1 an pour une vente.</p>

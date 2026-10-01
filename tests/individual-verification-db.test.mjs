@@ -1,0 +1,70 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {ruleFor} from '../src/pro-regulations.mjs';
+const {PGlite}=await import(process.env.SOKILE_PGLITE_PATH||'@electric-sql/pglite');
+const db=new PGlite();
+const owner='10000000-0000-4000-8000-000000000001',other='10000000-0000-4000-8000-000000000002',admin='10000000-0000-4000-8000-000000000003';
+await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${owner}'),('${other}'),('${admin}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create function public.sokile_is_admin() returns boolean language sql stable as $$select auth.uid()='${admin}'::uuid$$;
+create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,created_at timestamptz default now());alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant select,insert,update,delete on storage.objects to authenticated;create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;
+create table public.properties(id bigint generated always as identity primary key,owner_id uuid,country text,agency_name text default 'Company',advertiser_type text,status text default 'en_attente',title text,active boolean default false,expires_at timestamptz default now()+interval '1 year');
+create table public.professionals(id bigint generated always as identity primary key,owner_id uuid,countries text[],business_name text default 'Company',specialty text,status text default 'en_attente',active boolean default false);
+create table public.development_programs(id uuid default gen_random_uuid() primary key,owner_id uuid,country text,publisher_kind text,developer_name text default 'Company',status text default 'en_attente',expires_at timestamptz default now()+interval '1 year');
+create view public.public_properties as select id,title,advertiser_type,country from properties where status='validee' and active and expires_at>now();
+create view public.public_professionals as select id,specialty,countries from professionals where status='validee' and active;
+create view public.public_programs as select id,country from development_programs where status='validee' and expires_at>now();
+grant select on public.public_properties,public.public_professionals,public.public_programs to anon,authenticated;grant select,insert,update on public.properties,public.professionals,public.development_programs to authenticated;grant usage on all sequences in schema public to authenticated;
+`);
+
+await db.exec(`alter table properties add column details jsonb default '{}',add column city text,add column validated_at timestamptz,add column publication_started_at timestamptz,add column updated_at timestamptz;
+create function emulate_publication_metadata() returns trigger language plpgsql as $$begin if new.status='validee' then new.validated_at:=now();new.publication_started_at:=now();end if;new.updated_at:=now();return new;end$$;
+create trigger metadata before update on properties for each row execute function emulate_publication_metadata();`);
+await db.exec(await readFile(new URL('../supabase-pro-verification-20261001.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase-pro-verification-rules-20261001.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase-individual-verification-20261001.sql',import.meta.url),'utf8'));
+const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
+async function as(id,fn){await db.exec(`set role ${id?'authenticated':'anon'};select set_config('request.jwt.claim.sub','${id||''}',false);`);try{return await fn();}finally{await db.exec('reset role');}}
+let property,record;
+const docs={};
+const approve=id=>as(admin,()=>q("select sokile_review_individual($1,'verified',$2,$3,'',current_date+90)",[id,{identity:true,right:true,authority:true,risk:true},'Document and holder independently cross-checked with the competent authority; property references and representation match; no unresolved contradiction.']));
+test('individual documents are private and no publication before the separate review',async()=>{
+ property=(await as(owner,()=>q("insert into properties(owner_id,country,city,title,advertiser_type,agency_name,details) values($1,'Cameroun','Yaoundé','Test','particulier',null,$2) returning *",[owner,{advertiser_role:'Représentant du propriétaire'}])))[0];
+ await assert.rejects(as(admin,()=>q("update properties set status='validee',active=true where id=$1",[property.id])));
+ for(const [i,code] of ['right','mandate'].entries()){const path=`${owner}/20000000-0000-4000-8000-${String(i+1).padStart(12,'0')}.pdf`;await as(owner,()=>q("insert into storage.objects(bucket_id,name) values('individual-verification-documents',$1)",[path]));docs[code]={path,reference:'REF',issuer:'Authority',no_expiry:true};}
+ await assert.rejects(as(owner,()=>q("insert into individual_verifications(property_id,owner_id,holder_name,basis,situation,documents,consent_at) values($1,$2,'Owner Name','Family representative','shared',$3,now())",[property.id,owner,{right:docs.right}])));
+ record=(await as(owner,()=>q("insert into individual_verifications(property_id,owner_id,holder_name,basis,situation,documents,consent_at) values($1,$2,'Owner Name','Family representative','shared',$3,now()) returning *",[property.id,owner,docs])))[0];
+ assert.equal((await as(other,()=>q('select * from individual_verifications'))).length,0);
+ assert.equal((await as(other,()=>q("select * from storage.objects where bucket_id='individual-verification-documents'"))).length,0);
+ await assert.rejects(as(null,()=>q('select * from individual_verifications')));
+ await assert.rejects(as(owner,()=>q("select sokile_review_individual($1,'verified','{}','Fake approval','',current_date+90)",[record.id])));
+ await as(owner,()=>q("update individual_verifications set status='verified' where id=$1",[record.id]));
+ assert.equal((await q('select status from individual_verifications where id=$1',[record.id]))[0].status,'en_attente');
+ await assert.rejects(as(admin,()=>q("select sokile_review_individual($1,'verified','{}','Incomplete','',current_date+90)",[record.id])));
+ await approve(record.id);
+ await as(admin,()=>q("update properties set status='validee',active=true where id=$1",[property.id]));
+ assert.equal((await as(null,()=>q('select * from public_properties'))).length,1);
+ assert.equal((await q('select evidence_revision from properties where id=$1',[property.id]))[0].evidence_revision,0);
+});
+test('editing the property invalidates the old review and cannot forge the revision',async()=>{
+ await as(owner,()=>q("update properties set country='Togo',status='en_attente',active=false,evidence_revision=0 where id=$1",[property.id]));
+ assert.equal((await q('select evidence_revision from properties where id=$1',[property.id]))[0].evidence_revision,1);
+ await assert.rejects(approve(record.id));
+ await assert.rejects(as(admin,()=>q("update properties set status='validee',active=true where id=$1",[property.id])));
+ await as(owner,()=>q('update individual_verifications set documents=$1 where id=$2',[docs,record.id]));
+ await approve(record.id);
+ await as(admin,()=>q("update properties set status='validee',active=true where id=$1",[property.id]));
+ assert.equal((await as(null,()=>q('select * from public_properties'))).length,1);
+ await as(admin,()=>q("select sokile_review_individual($1,'suspended','{}','',$2,null)",[record.id,'Le mandat doit être confirmé auprès du titulaire avant republication.']));
+ assert.equal((await as(null,()=>q('select * from public_properties'))).length,0);
+});
+test('private evidence cannot be reassigned or overwritten; expired files fail',async()=>{
+ await assert.rejects(as(owner,()=>q('update individual_verifications set owner_id=$1 where id=$2',[other,record.id])));
+ assert.equal((await as(owner,()=>q("update storage.objects set name='overwrite' where bucket_id='individual-verification-documents' returning name"))).length,0);
+ const expired={...docs,right:{...docs.right,no_expiry:false,expires_on:'2020-01-01'}};
+ await assert.rejects(as(owner,()=>q('update individual_verifications set documents=$1 where id=$2',[expired,record.id])));
+ const foreign={...docs,right:{...docs.right,path:`${other}/20000000-0000-4000-8000-000000000001.pdf`}};
+ await assert.rejects(as(owner,()=>q('update individual_verifications set documents=$1 where id=$2',[foreign,record.id])));
+ await assert.rejects(as(owner,()=>q('select sokile_individual_retention(false)')));
+ const [dry]=await q('select sokile_individual_retention(true) result');assert.deepEqual(dry.result.orphan_paths,[]);
+ await db.close();
+});

@@ -20,3 +20,15 @@ test('retention deletes only eligible private paths and keeps existing photo mai
  const result=await (await handler(req({}))).json();assert.equal(result.professional_files_deleted,1);
  assert.deepEqual(removed,[['https://db.example/storage/v1/object/pro-verification-documents',{prefixes:[path]}]]);
 });
+test('individual evidence cleanup is isolated to its private bucket',async()=>{
+ const removed=[];const path='10000000-0000-4000-8000-000000000001/20000000-0000-4000-8000-000000000002.pdf';
+ const handler=createRetentionHandler({env,send:async(url,o)=>{
+  if(url.endsWith('sokile_individual_retention'))return response({dossiers:1,audit_rows:1,orphan_paths:[path,'../another-bucket/file.pdf']});
+  if(url.endsWith('sokile_pro_retention'))return response({dossiers:0,audit_rows:0,orphan_paths:[]});
+  if(url.endsWith('sokile_retention_media_pending'))return response([]);
+  if(o.method==='DELETE')removed.push([url,JSON.parse(o.body)]);
+  return response({});
+ }});
+ const result=await (await handler(req({}))).json();assert.equal(result.individual_files_deleted,1);
+ assert.deepEqual(removed,[['https://db.example/storage/v1/object/individual-verification-documents',{prefixes:[path]}]]);
+});

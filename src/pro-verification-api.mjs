@@ -1,4 +1,4 @@
-export function verificationApi(base,key) {
+export function verificationApi(base,key,bucket='pro-verification-documents') {
  const headers=token=>({apikey:key,Authorization:`Bearer ${token||key}`});
  async function request(path,token,options={}){const r=await fetch(`${base}/${path}`,{...options,headers:{...headers(token),...options.headers}});const data=await r.json().catch(()=>null);if(!r.ok)throw Error(data?.message||data?.error||'Le dossier n’a pas pu être enregistré. Réessayez.');return data;}
  return {
@@ -11,8 +11,8 @@ export function verificationApi(base,key) {
    const valid=file.type==='application/pdf'?String.fromCharCode(...bytes.slice(0,5))==='%PDF-':file.type==='image/jpeg'?bytes[0]===255&&bytes[1]===216&&bytes[2]===255:bytes[0]===137&&String.fromCharCode(...bytes.slice(1,4))==='PNG';
    if(!valid)throw Error('Le contenu du fichier ne correspond pas au format annoncé.');
    const ext={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png'}[file.type];const path=`${user.id}/${crypto.randomUUID()}.${ext}`;
-   await request(`storage/v1/object/pro-verification-documents/${path}`,user.token,{method:'POST',headers:{'Content-Type':file.type},body:file});return {path,name:file.name};
+   await request(`storage/v1/object/${bucket}/${path}`,user.token,{method:'POST',headers:{'Content-Type':file.type},body:file});return {path,name:file.name};
   },
-  async open(user,path){const r=await fetch(`${base}/storage/v1/object/authenticated/pro-verification-documents/${path}`,{headers:headers(user.token)});if(!r.ok)throw Error('Document inaccessible. Réessayez.');return URL.createObjectURL(await r.blob());}
+  async open(user,path){const r=await fetch(`${base}/storage/v1/object/authenticated/${bucket}/${path}`,{headers:headers(user.token)});if(!r.ok)throw Error('Document inaccessible. Réessayez.');return URL.createObjectURL(await r.blob());}
  };
 }
