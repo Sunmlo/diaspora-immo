@@ -59,7 +59,7 @@ export function ruleFor(country,activity){
  const professional=['notaire','geometre','architecte','juridique','financement'].includes(activity);
  return {country,activity,status:'review',version:REGULATION_VERSION,authority:professional?'Ordre, chambre professionnelle ou autorité de tutelle compétente':'Administration compétente pour l’activité et le pays',sources:[],statusLabel:'Examen du régime par Sokilé',
  summary:professional?'Sokilé doit vérifier le titre exact, l’inscription professionnelle et les autorisations applicables à votre mission avant validation. Déposez les pièces de base pour commencer le dossier.':'Déposez les pièces de base. Sokilé vérifie le régime applicable et vous indique les justificatifs complémentaires nécessaires avant validation. L’absence de liste définitive ne signifie pas une dispense d’autorisation.',
- ...reviews[`${country}:${activity}`],docs:[registration,representation]};
+ ...reviews[`${country}:${activity}`],docs:[registration,representation,supplement]};
 }
 export const RULES=COUNTRIES.flatMap(country=>Object.keys(ACTIVITIES).map(activity=>ruleFor(country,activity)));
 export function verificationValid(d,now=Date.now()) {return d?.status==='verified' && Date.parse(d.valid_until)>now;}
