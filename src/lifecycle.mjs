@@ -15,7 +15,7 @@ export const alertState = (a, now = Date.now()) => a.cancelled_at ? "Annulée" :
 export function alertSummary(f = {}) {
   return [f.transaction === "location" ? "Location" : f.transaction === "vente" ? "Vente" : "Achat et location",
     f.country && f.country !== "Tous" ? f.country : f.region && f.region !== "Tous" ? f.region : "Tous les pays",
-    f.natureLabel || (f.nature !== "Tous" ? f.nature : ""), f.search,
+    f.city, f.natureLabel || (f.nature !== "Tous" ? f.nature : ""), f.search,
     f.priceMin || f.priceMax ? `Budget : ${f.priceMin || 0} à ${f.priceMax || "sans limite"} €` : "",
     f.surfaceMin || f.surfaceMax ? `Surface : ${f.surfaceMin || 0} à ${f.surfaceMax || "sans limite"} m²` : "",
     f.rooms && f.rooms !== "Tous" ? `${f.rooms} pièces` : "", ...(f.equipements || []), f.verified ? "Annonces modérées" : "",

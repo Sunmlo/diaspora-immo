@@ -2,6 +2,7 @@ import {TrustCommitment} from './trust-commitment.jsx';
 import {DirectoryProof,DirectoryReview} from './directory-review.jsx';
 import {directoryError,directoryReviewError,needsTitleReview} from './directory-review.mjs';
 import {GiftPage,GiftBanner} from './gift.jsx';
+import {SearchRequestBanner,SearchRequestPage,ProfessionalSearchRequests} from './search-requests.jsx';
 import {giftApi,cleanGift} from './gift.mjs';
 import {IndividualPanel} from './individual-verification.jsx';
 import {individualApi} from './individual-verification.mjs';
@@ -1145,6 +1146,7 @@ const cheminGuide = (g) => `/guide/${g.id}`;
 
 function lireRoute() {
   if (typeof window === "undefined") return { nom: "accueil" };
+  if(window.location.pathname.replace(/\/$/,"")==="/recherche") return {nom:"recherche"};
   if(window.location.pathname.replace(/\/$/,"")==="/cadeau") return {nom:"cadeau"};
   if(window.location.pathname.replace(/\/$/,"")==="/verification-professionnels") return {nom:"verification"};
   if(window.location.pathname==="/programmes-neufs") return {nom:"programmes"};
@@ -3396,6 +3398,7 @@ button,input,select,textarea{font-size:inherit}
       {/* Keep fixed dialogs anchored to the viewport: a transformed ancestor traps them inside main. */}
       <main style={{flex:"1 0 auto",width:"100%",boxSizing:"border-box",maxWidth:"1200px",margin:"0 auto",padding:"0 20px 8px",opacity:animIn?1:0,transition:"opacity 0.2s ease"}}>
 
+        {route.nom==="recherche"&&<SearchRequestPage user={apercu?null:user} rpc={alertRpc} onLogin={()=>setShowLogin(true)} onSaved={()=>setAlertsRefresh(x=>x+1)}/>}
         {route.nom==="cadeau"&&<GiftPage user={apercu?null:user} api={giftsApi} onSignup={answers=>{setGiftSignup(answers);setShowLogin("signup")}} onFindPro={country=>openAnnuaire("Notaire",country)}/>}
         {route.nom==="verification"&&<VerificationPage/>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
@@ -3439,6 +3442,7 @@ button,input,select,textarea{font-size:inherit}
             {/* Hero Carrousel */}
             <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
             <TrustCommitment/>
+            <SearchRequestBanner/>
             <GiftBanner/>
 
             {adPreview==="reach"&&<AdPreviewSlot placement="banner"/>}
@@ -3690,6 +3694,8 @@ button,input,select,textarea{font-size:inherit}
                 <div style={{textAlign:"center",padding:"48px 20px",color:C.sub,gridColumn:"1/-1"}}>
                   <div style={{fontSize:"34px",marginBottom:"8px",opacity:0.4}}>○</div>
                   <p style={{fontFamily:F,fontSize:"15px"}}>Aucun bien ne correspond à votre recherche.</p>
+                  <a className="sr-button" href="/recherche">Décrire ma recherche</a>
+                  <p style={{fontFamily:F,fontSize:14}}>Avec votre accord, les professionnels vérifiés du pays pourront consulter vos critères.</p>
                   <button onClick={()=>vu?setShowAlert(true):setShowLogin(true)} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"12px",fontFamily:F}}>Créer une alerte</button>
                 </div>
               )}
@@ -3853,6 +3859,7 @@ button,input,select,textarea{font-size:inherit}
                 />:<button onClick={()=>{setPartnerType("particulier");setShowPartner(true);}} style={{width:"100%",marginBottom:16,background:C.terra,border:"none",color:C.white,borderRadius:8,padding:13,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:F}}>Publier une annonce</button>}
                 <div style={{display:"grid",gap:"7px"}}>
                     <MesAnnonces user={vu} refreshKey={myPropsRefresh} onEdit={p=>setEditingProp(p)}/>
+                    {programPublisher&&<ProfessionalSearchRequests user={vu} rpc={alertRpc} load={lire} refreshKey={myPropsRefresh} onListing={()=>{setPartnerType("pro");setShowPartner(true);}}/>}
                     <MesDemandesPro user={vu} showEmpty={programPublisher} refreshKey={proRefresh} onEditService={setEditingService} onEditPub={setEditingPub}/>
                     {programPublisher&&<ProgramManager api={programApi} user={vu} onNew={newProgram} onEdit={editProgram} refreshKey={programRefresh}/>}
                     <PersonalAccountTools professional={programPublisher}>
