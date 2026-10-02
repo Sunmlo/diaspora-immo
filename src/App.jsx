@@ -1,3 +1,4 @@
+import {TrustCommitment} from './trust-commitment.jsx';
 import {DirectoryProof,DirectoryReview} from './directory-review.jsx';
 import {directoryError,directoryReviewError,needsTitleReview} from './directory-review.mjs';
 import {GiftPage,GiftBanner} from './gift.jsx';
@@ -2696,7 +2697,7 @@ function HeroCarousel({ search, setSearch, onSearch }) {
         <h1 style={{margin:"0 0 10px",color:C.white,fontFamily:FT,fontSize:"clamp(28px,4.8vw,52px)",fontWeight:300,lineHeight:1.08,letterSpacing:"-0.03em",textShadow:"0 2px 10px rgba(0,0,0,0.38)"}}>
           Tout pour votre projet immobilier<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>en Afrique.</em>
         </h1>
-        <p style={{margin:"0 0 22px",color:"rgba(255,255,255,0.78)",fontSize:"14px",fontFamily:F}}>Biens, professionnels et guides pratiques pour avancer sur place ou à distance.</p>
+        <p style={{margin:"0 0 22px",color:"rgba(255,255,255,0.78)",fontSize:"14px",fontFamily:F}}>Des annonces et des fiches professionnelles examinées avant publication. Pour avancer sur place ou à distance.</p>
         <div className="sok-search" style={{background:C.light,borderRadius:"14px",boxShadow:"0 14px 40px rgba(0,0,0,0.34)",maxWidth:"760px",padding:"14px 14px 15px"}}>
           <div style={{fontSize:"13px",fontWeight:700,color:C.cacao,fontFamily:F,marginBottom:"9px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
           <div className="sok-search-row" style={{display:"flex",gap:"10px"}}>
@@ -3437,6 +3438,7 @@ button,input,select,textarea{font-size:inherit}
           <div>
             {/* Hero Carrousel */}
             <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
+            <TrustCommitment/>
             <GiftBanner/>
 
             {adPreview==="reach"&&<AdPreviewSlot placement="banner"/>}
@@ -3459,7 +3461,6 @@ button,input,select,textarea{font-size:inherit}
             </div>
             </>}
 
-            <aside className="pv-trust-banner"><div><strong>Des fiches examinées avant publication</strong><p>Contrôle documentaire et modération, avec une portée clairement expliquée.</p></div><a href="/verification-professionnels">Comprendre nos contrôles</a></aside>
             <DemoListings onPublish={()=>{setPartnerType(vu?.account_type==="pro"?"pro":"particulier");vu?setShowPartner(true):setShowLogin(true);}}/>
 
             <ProgramHome api={programApi} onOpen={openProgram} onAll={openPrograms}/>
@@ -3746,7 +3747,7 @@ button,input,select,textarea{font-size:inherit}
         {route.nom==="accueil"&&tab==="prestataires"&&(
           <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
-              <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels utiles sur place</div>
+              <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Un annuaire où la confiance se construit avant publication</div>
               <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Chaque fiche est examinée avant référencement. Ce contrôle ne certifie ni les compétences, ni la qualité des prestations.</div>
             </div>
             <div style={{padding:"16px"}}>
