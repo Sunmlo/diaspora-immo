@@ -32,21 +32,28 @@ export function AlertModal({user,filters,onClose,onCreated,rpc}) {
 
 export function MesAlertes({user,load,rpc,refreshKey}) {
   const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[busy,setBusy]=useState(null);
-  useEffect(()=>{let active=true;setLoading(true);setError("");load("search_alerts","select=id,filters,email,created_at,expires_at,cancelled_at&order=created_at.desc",user.token).then(r=>{if(!active)return;if(!r.ok)throw new Error("Impossible de charger vos alertes.");setItems(r.data||[]);}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[user.token,load,refreshKey]);
+  useEffect(()=>{let active=true;setLoading(true);setError("");load("search_alerts","select=id,filters,email,created_at,expires_at,cancelled_at,shared_with_pros&order=created_at.desc",user.token).then(r=>{if(!active)return;if(!r.ok)throw new Error("Impossible de charger vos alertes.");setItems(r.data||[]);}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[user.token,load,refreshKey]);
   const cancel=async id=>{
     if(busy)return;setBusy(id);setError("");
     try{const r=await rpc("sokile_cancel_alert",{p_id:id},user.token);if(!r.ok||r.data!==true)throw new Error("L’annulation n’a pas été enregistrée. Réessayez.");setItems(rows=>rows.map(a=>a.id===id?{...a,cancelled_at:new Date().toISOString()}:a));}
     catch(e){setError(e.message);}finally{setBusy(null);}
   };
-  return <section style={card} aria-label="Mes alertes"><h3 style={{marginTop:0}}>Mes alertes</h3>
+  const withdraw=async id=>{
+    if(busy)return;setBusy(id);setError("");
+    try{const r=await rpc("sokile_withdraw_search_sharing",{p_id:id},user.token);if(!r.ok||r.data!==true)throw new Error("Le retrait n’a pas été enregistré. Réessayez.");setItems(rows=>rows.map(a=>a.id===id?{...a,shared_with_pros:false}:a));}
+    catch(e){setError(e.message);}finally{setBusy(null);}
+  };
+  return <section style={card} aria-label="Mes alertes et recherches"><h3 style={{marginTop:0}}>Mes alertes et recherches</h3>
     {loading?<p role="status">Chargement…</p>:!error&&!items.length?<p>Vous n’avez pas encore d’alerte. Créez-en une depuis votre recherche de biens.</p>:null}
     <ErrorMessage message={error}/>
     <div style={{display:"grid",gap:12}}>{items.map(a=><article key={a.id} style={{borderTop:"1px solid #E8DFD0",paddingTop:12,overflowWrap:"anywhere"}}>
       <strong>{alertState(a)}</strong><p style={{fontSize:14,lineHeight:1.6}}>{alertSummary(a.filters)}</p>
       <p style={{fontSize:13}}>{a.email}<br/>{a.cancelled_at?`Annulée le ${date(a.cancelled_at)}`:`Expiration le ${date(a.expires_at)}`}</p>
-      {alertState(a)==="Active"&&<button disabled={Boolean(busy)} onClick={()=>cancel(a.id)} style={{...button,background:green}}>{busy===a.id?"Annulation…":"Annuler cette alerte"}</button>}
+      {alertState(a)==="Active"&&<p style={{fontSize:13}}>{a.shared_with_pros?"Critères partagés avec les professionnels vérifiés du pays. Vos coordonnées restent privées.":"Recherche privée : les professionnels ne peuvent pas consulter vos critères."}</p>}
+      {alertState(a)==="Active"&&a.shared_with_pros&&<button disabled={Boolean(busy)} onClick={()=>withdraw(a.id)} style={{...button,background:green,marginRight:8,marginBottom:8}}>Arrêter le partage, garder les alertes</button>}
+      {alertState(a)==="Active"&&<button disabled={Boolean(busy)} onClick={()=>cancel(a.id)} style={{...button,background:green}}>{busy===a.id?"Enregistrement…":"Annuler cette recherche et ses alertes"}</button>}
     </article>)}</div>
-    <p style={{fontSize:12,color:"#7A7264",lineHeight:1.6}}>Une annulation arrête les prochains envois. Un email déjà en cours d’envoi peut encore arriver.</p>
+    <p style={{fontSize:12,color:"#7A7264",lineHeight:1.6}}>Une annulation arrête le partage et les prochains envois. Un email déjà en cours d’envoi peut encore arriver.</p>
   </section>;
 }
 

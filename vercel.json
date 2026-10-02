@@ -40,6 +40,14 @@
     {
       "source": "/cadeau/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/recherche",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/recherche/",
+      "destination": "/index.html"
     }
   ]
 }
