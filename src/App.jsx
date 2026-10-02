@@ -1,9 +1,11 @@
+import {DirectoryProof,DirectoryReview} from './directory-review.jsx';
+import {directoryError,directoryReviewError,needsTitleReview} from './directory-review.mjs';
 import {GiftPage,GiftBanner} from './gift.jsx';
 import {giftApi,cleanGift} from './gift.mjs';
 import {IndividualPanel} from './individual-verification.jsx';
 import {individualApi} from './individual-verification.mjs';
 import "./brand.css";
-import {VerificationPage, VerificationPanel, VerificationWorkspace, DirectoryVerifications, VerificationAdmin, VerificationAdminHint, VerificationBadge} from './pro-verification.jsx';
+import {VerificationPage, VerificationPanel, VerificationWorkspace, VerificationAdmin, VerificationAdminHint, VerificationBadge} from './pro-verification.jsx';
 import {verificationApi} from './pro-verification-api.mjs';
 import {specialtyActivity} from './pro-regulations.mjs';
 import { BulkImport } from "./bulk-import.jsx";
@@ -1850,6 +1852,7 @@ function AdminPrestataires({ user }) {
   const [statut, setStatut] = useState("en_attente");
   const [ouverte, setOuverte] = useState(null);
   const [note, setNote] = useState("");
+  const [review,setReview]=useState({});
   const [enregistrement,setEnregistrement]=useState(false);
   const [erreurDecision,setErreurDecision]=useState("");
 
@@ -1863,26 +1866,27 @@ function AdminPrestataires({ user }) {
 
   const decider = async (p, nouveau) => {
     if(enregistrement)return;
-    const invalide=validateModerationResponse(nouveau,note);
+    const invalide=nouveau==="validee"?directoryReviewError(review,p.countries):validateModerationResponse(nouveau,note);
     if(invalide){setErreurDecision(invalide);return;}
     setErreurDecision("");setEnregistrement(true);
     const r = await ecrireAuth(`professionals?id=eq.${p.id}`, {
       status:nouveau,
+      ...(nouveau==="validee"?{directory_review:{identity:review.identity,content:review.content,title:review.title,notes:review.notes},directory_valid_until:review.until?review.until+"T23:59:59Z":null}:{}),
       active:nouveau==="validee",
       moderation_note:["validee","acceptee"].includes(nouveau)?null:note.trim()||null,
     }, user.token, "PATCH").catch(()=>({ok:false}));
     setEnregistrement(false);
-    if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez le dossier dans Vérifications pro, puis réessayez."); return; }
+    if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez les pièces et la note de contrôle ci-dessous, puis réessayez."); return; }
     setOuverte(null); setNote(""); charger();
   };
 
-  const libelles={en_attente:"À vérifier",validee:"Publiés",modifications_demandees:"À compléter",refusee:"Non retenus"};
+  const libelles={en_attente:"À vérifier",validee:"Validés / à renouveler",modifications_demandees:"À compléter",refusee:"Non retenus"};
 
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap",marginBottom:"12px"}}>
         <p style={{margin:0,fontSize:"14.5px",color:C.sub,fontFamily:F,maxWidth:"520px",lineHeight:1.6}}>
-          Vérifiez l'identité, l'immatriculation et les coordonnées avant toute publication dans l'annuaire.
+          Examinez la fiche et son justificatif ici. Recoupez les références lorsqu’un titre ou une habilitation sont revendiqués. Sinon, contrôlez simplement la cohérence de la fiche.
         </p>
         <button onClick={charger} style={{background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:20,padding:"9px 14px",fontSize:13.5,cursor:"pointer",fontFamily:F}}>Actualiser</button>
       </div>
@@ -1898,15 +1902,15 @@ function AdminPrestataires({ user }) {
       ) : (
         <div style={{display:"grid",gap:"10px"}}>
           {liste.map(p=>(
-            <button key={p.id} onClick={()=>{setOuverte(p);setNote(p.moderation_note||"");setErreurDecision("");}} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap",textAlign:"left",cursor:"pointer"}}>
+            <button key={p.id} onClick={()=>{setOuverte(p);setReview({...p.directory_review,until:p.directory_valid_until?.slice(0,10)||new Date(Date.now()+180*86400000).toISOString().slice(0,10)});setNote(p.moderation_note||"");setErreurDecision("");}} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap",textAlign:"left",cursor:"pointer"}}>
               <div style={{fontSize:"24px",flexShrink:0}}>🏛️</div>
               <div style={{flex:1,minWidth:200}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",marginBottom:"3px"}}>
                   <span style={{fontSize:"16px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.business_name}</span>
-                  {p.active&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Visible</span>}
+                  {p.active&&Date.parse(p.directory_valid_until)>Date.now()&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Visible</span>}
                 </div>
                 <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"3px"}}>{p.specialty}</div>
-                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.countries||[]).join(" · ")}{p.zones?` · ${p.zones}`:""}</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.countries||[]).join(" · ")}{p.zones?` · ${p.zones}`:""}</div>{p.directory_valid_until&&<div style={{fontSize:12,color:Date.parse(p.directory_valid_until)>Date.now()?C.sub:C.terra,fontFamily:F}}>Échéance : {dateCourte(p.directory_valid_until)}{Date.parse(p.directory_valid_until)<=Date.now()?' · Fiche masquée, à renouveler':''}</div>}
               </div>
               <span style={{fontSize:12.5,color:C.sub,fontFamily:F}}>{dateCourte(p.created_at)}</span>
             </button>
@@ -1917,7 +1921,7 @@ function AdminPrestataires({ user }) {
         <div style={{display:"grid",gap:9,marginBottom:15}}>
           {[["Spécialité",ouverte.specialty],["Pays",(ouverte.countries||[]).join(", ")],["Zones",ouverte.zones],["Email",ouverte.email],["Téléphone",ouverte.phone],["Site",ouverte.website],["Immatriculation / ordre",ouverte.verification_reference],["Tarifs",ouverte.pricing],["Présentation",ouverte.description]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
         </div>
-        <VerificationAdminHint country={(ouverte.countries||[]).join(", ")} activity={specialtyActivity(ouverte.specialty)}/>
+        <DirectoryReview key={ouverte.id} record={ouverte} user={user} api={proVerificationApi} value={review} onChange={setReview} disabled={enregistrement}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           <button disabled={enregistrement} onClick={()=>decider(ouverte,"validee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Valider et publier</button>
           <button disabled={enregistrement} onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander à compléter</button>
@@ -2505,13 +2509,14 @@ function SentMessage({ title, text, onClose }) {
 }
 
 function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
-  const [f, setF] = useState({name:existing?.business_name||user?.agency||user?.name||"",spec:existing?.specialty||"",pays:existing?.countries||[],email:existing?.email||user?.email||"",...splitPhone(existing?.phone||user?.phone,PHONE_CODES),site:existing?.website||"",zones:existing?.zones||"",tarifs:existing?.pricing||"",desc:existing?.description||"",reference:existing?.verification_reference||"",consent:false});
+  const [f, setF] = useState({name:existing?.business_name||user?.agency||user?.name||"",spec:existing?.specialty||"",pays:existing?.countries||[],email:existing?.email||user?.email||"",...splitPhone(existing?.phone||user?.phone,PHONE_CODES),site:existing?.website||"",zones:existing?.zones||"",tarifs:existing?.pricing||"",desc:existing?.description||"",reference:existing?.verification_reference||"",documents:existing?.directory_documents||{},consent:false});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [uploading,setUploading]=useState(false);
   const [erreur, setErreur] = useState("");
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const togglePays = n => set("pays", f.pays.includes(n)?f.pays.filter(x=>x!==n):[...f.pays,n]);
-  const ok = f.name && f.spec && f.email && f.pays.length>0 && f.consent;
+  const ok = !directoryError(f) && !!f.phone.trim() && !uploading;
   const submit = async () => {
     if (!ok || loading) return;
     const invalide=contactError(f.name,f.email,f.site);
@@ -2519,7 +2524,7 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
     if(f.phone.trim()&&!normalizePhone(f.phoneCode,f.phone)){setErreur("Indiquez un numéro de téléphone valide avec son indicatif.");return;}
     if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
     setErreur(""); setLoading(true);
-    const payload = {owner_id:user.id,business_name:f.name.trim(),specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email.trim(),phone:normalizePhone(f.phoneCode,f.phone)||null,website:websiteUrl(f.site)||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,consent_at:new Date().toISOString(),status:"en_attente",active:false,moderation_note:null};
+    const payload = {owner_id:user.id,business_name:f.name.trim(),specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email.trim(),phone:normalizePhone(f.phoneCode,f.phone)||null,website:websiteUrl(f.site)||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,directory_documents:f.documents,consent_at:new Date().toISOString(),status:"en_attente",active:false,moderation_note:null};
     const r = await (existing?modifier("professionals",existing.id,payload,user.token):ecrire("professionals",payload,user.token))
       .catch(e=>({ok:false,statut:0,motif:String(e)}));
     setLoading(false);
@@ -2528,12 +2533,12 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
     setSent(true); onSaved?.();
   };
   return (
-    <ModalShell title={existing?"Modifier ma fiche professionnelle":"Rejoindre l'annuaire"} subtitle="Votre fiche sera publiée après vérification" onClose={onClose}>
-      {sent ? <SentMessage title="Demande envoyée" text="Votre fiche sera examinée après validation des justificatifs de chaque pays. Suivez les réponses dans votre compte." onClose={onClose}/> : (<>
-        <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>La fiche n'est jamais publiée automatiquement. Sokilé vérifie le dossier professionnel pour chaque pays et l’activité déclarée avant de publier la fiche.</div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Nom ou société *</label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Spécialité *</label>
-          <select style={inp} value={f.spec} onChange={e=>set("spec",e.target.value)}>
+    <ModalShell title={existing?"Modifier ma fiche professionnelle":"Rejoindre l'annuaire"} subtitle="Une fiche, un justificatif, un examen avant publication" onClose={onClose}>
+      {sent ? <SentMessage title="Demande envoyée" text="Votre fiche et votre justificatif ont été transmis ensemble. Suivez la décision ou la demande de complément dans votre compte." onClose={onClose}/> : (<>
+        <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>Le référencement de base est gratuit. Présentez votre activité et ajoutez un justificatif : Sokilé examine la cohérence de votre fiche avant publication. Aucun dossier à répéter pour chaque pays de l’annuaire.</div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-name" style={lbl}>Nom professionnel ou raison sociale *</label><input id="directory-name" style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-specialty" style={lbl}>Spécialité *</label>
+          <select id="directory-specialty" style={inp} value={f.spec} onChange={e=>set("spec",e.target.value)}>
             <option value="">Choisir…</option>
             {SPECIALITES.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
@@ -2541,25 +2546,30 @@ function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
         <div style={{marginBottom:"10px"}}><label style={lbl}>Pays d'intervention *</label>
           <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
             {COUNTRIES_ANNONCES.map(c=>{const on=f.pays.includes(c.name);return(
-              <button key={c.name} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"13px",cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>);})}
+              <button key={c.name} aria-pressed={on} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"13px",cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>);})}
           </div>
         </div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Villes ou zones couvertes</label><input style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Ex : Dakar, Thiès, Mbour"/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Email *</label><input type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)} placeholder="contact@exemple.com"/></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Téléphone / WhatsApp</label>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-zones" style={lbl}>Villes ou zones couvertes</label><input id="directory-zones" style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Ex : Dakar, Thiès, Mbour"/></div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-email" style={lbl}>Email de suivi (privé) *</label><input id="directory-email" type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)} placeholder="contact@exemple.com"/></div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-phone" style={lbl}>Téléphone professionnel / WhatsApp (public) *</label>
           <div style={{display:"flex",gap:"6px"}}>
-            <select value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
+            <select aria-label="Indicatif du téléphone professionnel" value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
               {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
             </select>
-            <input type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)} placeholder="77 123 45 67"/>
+            <input id="directory-phone" type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)} placeholder="77 123 45 67"/>
           </div>
         </div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Site web</label><input style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
-        <DirectoryVerifications api={proVerificationApi} user={user} countries={f.pays} specialty={f.spec} businessName={f.name}/>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Référence complémentaire (facultative)</label><input style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="RCCM, IFU, numéro d'ordre…"/><div style={{fontSize:12.5,color:C.sub,fontFamily:F,marginTop:4}}>Les justificatifs professionnels se déposent dans les dossiers par pays ci-dessus.</div></div>
-        <div style={{marginBottom:"10px"}}><label style={lbl}>Tarifs indicatifs</label><input style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Ex : à partir de 150 000 FCFA"/></div>
-        <div style={{marginBottom:"14px"}}><label style={lbl}>Présentation</label><textarea rows={4} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Vos services, votre expérience, vos références…"/></div>
-        <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette activité et j'accepte que ces informations professionnelles soient vérifiées puis publiées dans l'annuaire.</span></label>
+        <div style={{marginBottom:"14px"}}><label htmlFor="directory-description" style={lbl}>Votre activité en quelques mots *</label><textarea id="directory-description" rows={3} maxLength={2000} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Décrivez les services que vous proposez et votre zone d’intervention."/></div>
+        {needsTitleReview(f.spec)&&<div style={{marginBottom:14}}><label htmlFor="directory-title" style={lbl}>Titre ou mission et référence professionnelle *</label><textarea id="directory-title" rows={2} maxLength={2000} style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="Ex. architecte, inscription à l’ordre n°… ; indiquez le pays et l’organisme ou le lien officiel."/><p style={{fontSize:13,color:C.sub,fontFamily:F}}>Précisez votre rôle exact. Pour plusieurs pays, indiquez les références correspondantes si elles diffèrent. Un complément pourra être demandé avant publication.</p></div>}
+        <DirectoryProof api={proVerificationApi} user={user} documents={f.documents} onChange={documents=>set("documents",documents)} disabled={loading} onBusy={setUploading}/>
+        <details className="directory-extra"><summary>Enrichir ma fiche — facultatif</summary>
+         <div style={{marginBottom:10}}><label htmlFor="directory-site" style={lbl}>Site web</label><input id="directory-site" style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
+         <div style={{marginBottom:10}}><label htmlFor="directory-pricing" style={lbl}>Tarifs indicatifs</label><input id="directory-pricing" style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Sur devis, ou vos tarifs habituels"/></div>
+         {!needsTitleReview(f.spec)&&<div style={{marginBottom:10}}><label htmlFor="directory-reference" style={lbl}>Référence professionnelle</label><input id="directory-reference" style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="Facultatif : référence ou lien vers un registre"/></div>}
+        </details>
+        <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette activité, l’exactitude de mes informations et la publication de ma fiche et de mon téléphone professionnel. Mon email de suivi et mes justificatifs restent privés.</span></label>
+        <p className="pv-small">Les champs marqués * et le justificatif sont nécessaires. Une photo lisible du justificatif suffit ; ne transmettez pas de données personnelles inutiles.</p>
+        {!ok&&!loading&&<p className="pv-small" role="status">{uploading?"Ajout du fichier en cours…":directoryError(f)||"Ajoutez votre téléphone professionnel."}</p>}
         <BandeauErreur texte={erreur} onRetry={submit}/>
         <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
       </>)}
@@ -2591,7 +2601,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
   const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
   return (
     <>
-      <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2>
+      <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2><p style={{fontFamily:F,fontSize:14,color:C.sub,lineHeight:1.6}}>Les fiches et justificatifs sont examinés avant référencement. Ce référencement n’est ni un agrément ni une garantie de qualité. <a href="/verification-professionnels" style={{color:C.terra}}>Voir la portée du contrôle</a>.</p>
       <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"8px",paddingBottom:"2px"}}>
         {["Tous",...SPECIALITES].map(s=><button key={s} onClick={()=>setSpec(s)} style={chip(spec===s)}>{s}</button>)}
       </div>
@@ -2601,7 +2611,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
       </select>
       {loading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des professionnels…</p>}
       {error&&<BandeauErreur texte="L’annuaire n’a pas pu être chargé. Réessayez dans quelques instants." onRetry={()=>setRetry(n=>n+1)}/>}
-      {!loading&&!error&&<div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>{verified.length?`${verified.length} prestataire(s) validé(s) par Sokilé.`:"Fiches d'exemple, en attendant les premiers prestataires validés."}</div>}
+      {!loading&&!error&&<div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>{verified.length?`${verified.length} professionnel(s) référencé(s).`:"Fiches d'exemple, en attendant les premiers prestataires validés."}</div>}
       {!loading&&!error&&list.length===0&&(
         <div style={{background:C.white,border:`1px dashed ${C.sand}`,borderRadius:"10px",padding:"16px",textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"8px"}}>
           Aucun prestataire pour ce choix. Vous exercez dans ce domaine ? Rejoignez l'annuaire ci-dessous.
@@ -2616,7 +2626,7 @@ function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
               <div style={{fontSize:"12px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
               <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
             </div>
-            <span style={{background:p.verified?C.successBg:"rgba(0,0,0,0.06)",color:p.verified?C.success:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>{p.verified?"Professionnel vérifié":"Exemple"}</span>
+            <span style={{background:p.verified?C.successBg:"rgba(0,0,0,0.06)",color:p.verified?C.success:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>{p.verified?"Professionnel référencé":"Exemple"}</span>
           </div>
           <div style={{fontSize:"13px",color:C.muted,fontFamily:F,lineHeight:1.4}}>{p.desc}</div>
         </div>
@@ -2910,11 +2920,12 @@ function MesDemandesPro({user,refreshKey,onEditService,onEditPub,showEmpty=false
       <h2 style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,margin:'0 0 9px'}}>{group.heading}</h2>
       {!rows.length&&<p style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:0}}>{group.empty}</p>}
       <div style={{display:'grid',gap:7}}>{rows.map(x=>{
-        const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};
+        const expiredDirectory=x.kind==='Annuaire'&&x.status==='validee'&&!(Date.parse(x.directory_valid_until)>Date.now());
+        const e=expiredDirectory?{label:'À renouveler — fiche masquée',color:C.terra,bg:C.cream}:ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};
         return <div key={x.id} style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}>
-          <div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>Réponse de Sokilé : {x.moderation_note}</div>}</div>
+          <div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.kind==='Annuaire'&&x.directory_valid_until&&<div style={{fontFamily:F,fontSize:12,color:C.sub}}>Échéance du contrôle : {dateCourte(x.directory_valid_until)}</div>}{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>Réponse de Sokilé : {x.moderation_note}</div>}</div>
           <span style={{alignSelf:'start',background:e.bg,color:e.color,borderRadius:20,padding:'3px 8px',fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span>
-          {['refusee','modifications_demandees','en_attente'].includes(x.status)&&<button onClick={()=>x.kind==='Annuaire'?onEditService(x):onEditPub(x)} style={{alignSelf:'start',border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:'7px 10px',fontFamily:F,cursor:'pointer'}}>Compléter ma demande</button>}
+          {(x.kind==='Annuaire'||['refusee','modifications_demandees','en_attente'].includes(x.status))&&<button onClick={()=>x.kind==='Annuaire'?onEditService(x):onEditPub(x)} style={{alignSelf:'start',border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:'7px 10px',fontFamily:F,cursor:'pointer'}}>{x.kind==='Annuaire'&&x.status==='validee'?'Modifier ou renouveler ma fiche':'Compléter ma demande'}</button>}
         </div>;
       })}</div>
     </section>;
@@ -3448,7 +3459,7 @@ button,input,select,textarea{font-size:inherit}
             </div>
             </>}
 
-            <aside className="pv-trust-banner"><div><strong>Des professionnels vérifiés avant publication</strong><p>Identité professionnelle, justificatifs et habilitations selon le pays et l’activité.</p></div><a href="/verification-professionnels">Découvrir nos contrôles et les pièces requises →</a></aside>
+            <aside className="pv-trust-banner"><div><strong>Des fiches examinées avant publication</strong><p>Contrôle documentaire et modération, avec une portée clairement expliquée.</p></div><a href="/verification-professionnels">Comprendre nos contrôles</a></aside>
             <DemoListings onPublish={()=>{setPartnerType(vu?.account_type==="pro"?"pro":"particulier");vu?setShowPartner(true):setShowLogin(true);}}/>
 
             <ProgramHome api={programApi} onOpen={openProgram} onAll={openPrograms}/>
@@ -3736,7 +3747,7 @@ button,input,select,textarea{font-size:inherit}
           <div>
             <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px 16px"}}>
               <div style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.white,marginBottom:"6px"}}>Des professionnels utiles sur place</div>
-              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Les professionnels publiés disposent d’un dossier vérifié pour leur activité et les pays indiqués.</div>
+              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.75)",fontFamily:F,lineHeight:1.6,maxWidth:"620px"}}>Trouvez un notaire, un géomètre, un architecte ou un professionnel du bâtiment dans le pays de votre projet, puis contactez-le directement. Chaque fiche est examinée avant référencement. Ce contrôle ne certifie ni les compétences, ni la qualité des prestations.</div>
             </div>
             <div style={{padding:"16px"}}>
               {adPreview==="spotlight"&&<AdPreviewSlot placement="spotlight"/>}

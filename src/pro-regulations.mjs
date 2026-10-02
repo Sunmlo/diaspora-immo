@@ -70,4 +70,4 @@ export function dossierError(d,rule,now=new Date()) {
  for(const need of rule.docs){const item=d.documents?.[need.code];if(need.required===false&&!item?.path)continue;if(!item?.path||!item.reference?.trim()||!item.issuer?.trim())return `Complétez : ${need.label} (fichier, référence et organisme émetteur).`;if(!item.no_expiry&&!item.expires_on)return `Précisez la validité : ${need.label}.`;if(item.expires_on&&item.expires_on<now.toISOString().slice(0,10))return `Le document « ${need.label} » est expiré.`;}
  return '';
 }
-export const STATE_LABELS={en_attente:'En cours de vérification',complement:'Pièces à compléter',verified:'Professionnel vérifié',suspended:'Vérification suspendue'};
+export const STATE_LABELS={en_attente:'En cours de vérification',complement:'Pièces à compléter',verified:'Documents examinés',suspended:'Vérification suspendue'};
