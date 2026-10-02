@@ -1880,7 +1880,7 @@ function AdminPrestataires({ user }) {
     setOuverte(null); setNote(""); charger();
   };
 
-  const libelles={en_attente:"À vérifier",validee:"Publiés",modifications_demandees:"À compléter",refusee:"Non retenus"};
+  const libelles={en_attente:"À vérifier",validee:"Validés / à renouveler",modifications_demandees:"À compléter",refusee:"Non retenus"};
 
   return (
     <div>
@@ -1910,7 +1910,7 @@ function AdminPrestataires({ user }) {
                   {p.active&&Date.parse(p.directory_valid_until)>Date.now()&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Visible</span>}
                 </div>
                 <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"3px"}}>{p.specialty}</div>
-                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.countries||[]).join(" · ")}{p.zones?` · ${p.zones}`:""}</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.countries||[]).join(" · ")}{p.zones?` · ${p.zones}`:""}</div>{p.directory_valid_until&&<div style={{fontSize:12,color:Date.parse(p.directory_valid_until)>Date.now()?C.sub:C.terra,fontFamily:F}}>Échéance : {dateCourte(p.directory_valid_until)}{Date.parse(p.directory_valid_until)<=Date.now()?' · Fiche masquée, à renouveler':''}</div>}
               </div>
               <span style={{fontSize:12.5,color:C.sub,fontFamily:F}}>{dateCourte(p.created_at)}</span>
             </button>
@@ -2920,11 +2920,12 @@ function MesDemandesPro({user,refreshKey,onEditService,onEditPub,showEmpty=false
       <h2 style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,margin:'0 0 9px'}}>{group.heading}</h2>
       {!rows.length&&<p style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:0}}>{group.empty}</p>}
       <div style={{display:'grid',gap:7}}>{rows.map(x=>{
-        const e=ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};
+        const expiredDirectory=x.kind==='Annuaire'&&x.status==='validee'&&!(Date.parse(x.directory_valid_until)>Date.now());
+        const e=expiredDirectory?{label:'À renouveler — fiche masquée',color:C.terra,bg:C.cream}:ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};
         return <div key={x.id} style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}>
-          <div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>Réponse de Sokilé : {x.moderation_note}</div>}</div>
+          <div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.kind==='Annuaire'&&x.directory_valid_until&&<div style={{fontFamily:F,fontSize:12,color:C.sub}}>Échéance du contrôle : {dateCourte(x.directory_valid_until)}</div>}{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>Réponse de Sokilé : {x.moderation_note}</div>}</div>
           <span style={{alignSelf:'start',background:e.bg,color:e.color,borderRadius:20,padding:'3px 8px',fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span>
-          {['refusee','modifications_demandees','en_attente'].includes(x.status)&&<button onClick={()=>x.kind==='Annuaire'?onEditService(x):onEditPub(x)} style={{alignSelf:'start',border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:'7px 10px',fontFamily:F,cursor:'pointer'}}>Compléter ma demande</button>}
+          {(x.kind==='Annuaire'||['refusee','modifications_demandees','en_attente'].includes(x.status))&&<button onClick={()=>x.kind==='Annuaire'?onEditService(x):onEditPub(x)} style={{alignSelf:'start',border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:'7px 10px',fontFamily:F,cursor:'pointer'}}>{x.kind==='Annuaire'&&x.status==='validee'?'Modifier ou renouveler ma fiche':'Compléter ma demande'}</button>}
         </div>;
       })}</div>
     </section>;
