@@ -1652,7 +1652,1744 @@ function AdminPublicites({ user }) {
       <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:14,padding:34,textAlign:"center",color:C.sub,fontFamily:F}}>Aucune demande dans cette catégorie.</div>:
       <div style={{display:"grid",gap:10}}>{liste.map(d=><button key={d.id} onClick={()=>{setOuverte(d);setNote(d.moderation_note||"");setErreurDecision("");}} style={{textAlign:"left",background:C.white,border:`1px solid ${C.sand}`,borderRadius:12,padding:"15px 17px",cursor:"pointer",fontFamily:F}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong style={{fontSize:16,color:C.dark}}>{d.company||d.contact_name}</strong><span style={{fontSize:12.5,color:C.sub}}>{dateCourte(d.created_at)}</span></div>
-        <div style={{fontSize:13.5,color:C.terra,fontWeight:700,marginTop:4}}>{d.format}{d.objective?` · …37021 tokens truncated… style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.45)",borderRadius:"8px",padding:"9px 13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
+        <div style={{fontSize:13.5,color:C.terra,fontWeight:700,marginTop:4}}>{d.format}{d.objective?` · ${d.objective}`:""}</div>
+        <div style={{fontSize:13.5,color:C.sub,marginTop:5}}>{(d.target_countries||[]).join(" · ")||"Tous pays"}{d.budget?` · Budget ${d.budget}`:""}{d.desired_period?` · ${d.desired_period}`:""}</div>
+      </button>)}</div>}
+    {ouverte&&<ModalShell title={ouverte.company||ouverte.contact_name} subtitle="Demande de publicité" onClose={()=>setOuverte(null)}>
+      <div style={{display:"grid",gap:9,marginBottom:15}}>
+        {[["Contact",ouverte.contact_name],["Email",ouverte.email],["Téléphone",ouverte.phone],["Format",ouverte.format],["Objectif",ouverte.objective],["Pays",(ouverte.target_countries||[]).join(", ")],["Budget",ouverte.budget],["Période",ouverte.desired_period],["Destination",ouverte.destination_url],["Message",ouverte.message]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <button disabled={enregistrement} onClick={()=>decider(ouverte,"en_cours")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Mettre en discussion</button>
+        <button disabled={enregistrement} onClick={()=>decider(ouverte,"acceptee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Accepter</button>
+        <button disabled={enregistrement} onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.forest,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander des précisions</button>
+      </div>
+      <ReponseModeration key={ouverte.id} table="advertising_requests" dossier={ouverte} value={note} onChange={v=>{setNote(v);setErreurDecision("");}} onRefuse={()=>decider(ouverte,"refusee")} busy={enregistrement} error={erreurDecision}/>
+    </ModalShell>}
+  </div>;
+}
+
+// ── Modération des annonces ──
+function AdminModeration({ user }) {
+  const [liste, setListe] = useState([]);
+  const [statut, setStatut] = useState("en_attente");
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+  const [ouvert, setOuvert] = useState(null);
+  const [motif, setMotif] = useState("");
+  const [enregistrement,setEnregistrement]=useState(false);
+  const [erreurDecision,setErreurDecision]=useState("");
+
+  const charger = () => {
+    setChargement(true); setErreur("");
+    lireAuth(`properties?${statut==="expiree"?`status=eq.validee&expires_at=lte.${new Date().toISOString()}`:statut==="validee"?`status=eq.validee&expires_at=gt.${new Date().toISOString()}`:`status=eq.${statut}`}&select=*&order=created_at.desc&limit=100`, user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée par le serveur. Vérifiez que vous êtes connectée avec "+EMAIL_REDACTION+"."); })
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, [statut]);
+
+  const decider = async (p, nouveau, motifRejet) => {
+    if(enregistrement)return;
+    const invalide=validateModerationResponse(nouveau,motifRejet);
+    if(invalide){setErreurDecision(invalide);return;}
+    setErreurDecision("");setEnregistrement(true);
+    const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, motif_rejet:motifRejet?.trim()||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
+      .catch(e=>({ok:false,statut:0}));
+    setEnregistrement(false);
+    if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez le dossier dans Vérifications pro, puis réessayez."); setErreur("La décision n'a pas pu être enregistrée."); return; }
+    setOuvert(null); setMotif(""); charger();
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {[["en_attente","En attente"],["validee","Publiées"],["expiree","Expirées"],["rejetee","À revoir"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setStatut(k)} style={{background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:"20px",padding:"9px 16px",fontSize:"14px",fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>
+        ))}
+        <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"20px",padding:"9px 14px",fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Actualiser</button>
+      </div>
+      <BandeauErreur texte={erreur}/>
+      {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
+       : liste.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>
+          {statut==="en_attente"?"Aucune annonce en attente. Tout est traité.":"Aucune annonce dans cette catégorie."}
+        </div>
+      ) : (
+        <div style={{display:"grid",gap:"12px"}}>
+          {liste.map(p=>(
+            <div key={p.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",display:"flex",flexWrap:"wrap"}}>
+              <div style={{width:150,minHeight:120,flexShrink:0,backgroundColor:C.forest,backgroundImage:p.photos?.[0]?`url('${p.photos[0]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center"}}/>
+              <div style={{flex:1,minWidth:240,padding:"15px 17px"}}>
+                <div style={{fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"4px"}}>
+                  {libelleTransaction(p)} · {libelleNature(p)} · {p.city}, {p.country} · {dateCourte(p.created_at)}
+                </div>
+                <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"5px"}}>{p.title}</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""} · {p.photos?.length||0} photo(s)</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>
+                  {p.user_name} · {p.user_email} · {p.user_phone}
+                </div>
+                {p.expires_at&&<p style={{fontFamily:F,fontSize:13,color:C.sub}}>{isExpired(p)?"Expirée le":"Expiration le"} {dateCourte(p.expires_at)}</p>}
+                <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+                  <button onClick={()=>{setOuvert(p);setMotif(p.motif_rejet||"");setErreurDecision("");}} style={{background:"transparent",border:`1px solid ${C.forest}`,color:C.forest,borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Examiner</button>
+                  {statut!=="validee"&&statut!=="expiree"&&<button disabled={enregistrement} onClick={()=>decider(p,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Publier · {publicationMonths(p)===6?"6 mois":"1 an"}</button>}
+                  {statut!=="rejetee"&&<button onClick={()=>{setOuvert(p);setMotif("");setErreurDecision("");}} style={{background:"transparent",border:"1px solid #C0392B",color:"#C0392B",borderRadius:"8px",padding:"8px 14px",fontSize:"13.5px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Retourner avec un message…</button>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {ouvert&&(
+        <ModalShell title={ouvert.title} subtitle={`${libelleTransaction(ouvert)} · ${libelleNature(ouvert)}`} onClose={()=>setOuvert(null)}>
+          {ouvert.photos?.length>0&&(
+            <div style={{display:"flex",gap:"8px",overflowX:"auto",marginBottom:"14px"}}>
+              {ouvert.photos.map((u,i)=><div key={i} style={{width:110,height:82,flexShrink:0,borderRadius:"8px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center"}}/>)}
+            </div>
+          )}
+          <div style={{fontSize:"14.5px",color:C.dark,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-line",marginBottom:"14px"}}>{ouvert.description}</div>
+          {ouvert.advertiser_type!=="pro"&&<IndividualPanel key={ouvert.id} api={individualVerificationApi} user={user} property={ouvert} admin/>}
+          <p style={{fontFamily:F,fontSize:14,background:C.cream,padding:12,borderRadius:8}}><strong>Autorisation déclarée :</strong> {ouvert.details?.publication_authorized===true?"Attestation confirmée par l’annonceur":"Non renseignée (annonce antérieure ou à compléter)"}. Cette déclaration ne prouve pas la propriété du bien.</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"8px",marginBottom:"16px"}}>
+            {[...caracteristiques(ouvert),...[{k:"quartier",l:"Quartier",v:ouvert.neighborhood},...CHAMPS_SECTEUR.map(c=>({...c,v:ouvert.details?.[c.k]}))].filter(c=>c.v!==undefined&&c.v!==null&&String(c.v).trim()).map(c=>[c.l,String(c.v)])].map(([l,v])=>(
+              <div key={l} style={{background:C.cream,borderRadius:"8px",padding:"9px 11px"}}>
+                <div style={{fontSize:"11px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.06em"}}>{l}</div>
+                <div style={{fontSize:"14.5px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gap:"9px"}}>
+            <p style={{fontFamily:F,fontSize:14,lineHeight:1.6,background:C.cream,padding:12,borderRadius:8}}>{ouvert.status==="validee"?`Expiration : ${dateCourte(ouvert.expires_at)}. ${isExpired(ouvert)?"Le propriétaire doit confirmer la disponibilité et soumettre à nouveau son annonce.":""}`:`Durée de publication : ${publicationMonths(ouvert)===6?"6 mois":"1 an"} à partir de votre validation. Si vous validez aujourd’hui : jusqu’au ${dateCourte(addCalendarMonths(new Date(),publicationMonths(ouvert)))}.`}</p>
+          <button disabled={enregistrement||ouvert.status==="validee"} onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
+          </div>
+          <ReponseModeration key={ouvert.id} table="properties" dossier={ouvert} value={motif} onChange={v=>{setMotif(v);setErreurDecision("");}} onRefuse={()=>decider(ouvert,"rejetee",motif)} busy={enregistrement} error={erreurDecision}/>
+        </ModalShell>
+      )}
+    </div>
+  );
+}
+
+
+// ── Les demandes reçues ──
+const NATURES_DEMANDE = {
+  prestataire:         {label:"Candidature prestataire", couleur:"#2D6A4F"},
+  publicite:           {label:"Demande de publicité",    couleur:"#C9A84C"},
+  alerte:              {label:"Alerte email",            couleur:"#8F8676"},
+  signalement:         {label:"Signalement",             couleur:"#A93226"},
+  telechargement:      {label:"Téléchargement",          couleur:"#B85C3A"},
+  annonce_en_attente:  {label:"Dépôt d'annonce",         couleur:"#1A3C2E"},
+};
+
+function AdminDemandes({ user }) {
+  const [liste, setListe] = useState([]);
+  const [filtre, setFiltre] = useState("nouvelles");
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+
+  const charger = () => {
+    setChargement(true); setErreur("");
+    const f = filtre==="nouvelles" ? "&traite=is.false" : filtre==="traitees" ? "&traite=is.true" : "";
+    lireAuth(`leads?select=*${f}&order=created_at.desc&limit=200`, user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Lecture refusée par le serveur."); })
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, [filtre]);
+
+  const marquer = async (d, traite) => {
+    const r = await ecrireAuth(`leads?id=eq.${d.id}`, {traite, traite_le: traite?new Date().toISOString():null}, user.token, "PATCH")
+      .catch(()=>({ok:false}));
+    if (r.ok) charger(); else setErreur("La modification a été refusée par le serveur.");
+  };
+
+  const parType = liste.reduce((acc,d)=>{ const k=d.status||"autre"; (acc[k]=acc[k]||[]).push(d); return acc; }, {});
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {[["nouvelles","À traiter"],["traitees","Traitées"],["toutes","Toutes"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setFiltre(k)} style={{background:filtre===k?C.terra:C.white,color:filtre===k?C.white:C.dark,border:`1px solid ${filtre===k?C.terra:C.sand}`,borderRadius:"20px",padding:"9px 16px",fontSize:"14px",fontWeight:filtre===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>
+        ))}
+        <button onClick={charger} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"20px",padding:"9px 14px",fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Actualiser</button>
+      </div>
+      <BandeauErreur texte={erreur}/>
+      {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
+       : liste.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>Rien à afficher ici.</div>
+      ) : Object.entries(parType).map(([type,items])=>{
+        const n = NATURES_DEMANDE[type] || {label:type, couleur:C.sub};
+        return (
+          <div key={type} style={{marginBottom:"22px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"10px"}}>
+              <span style={{width:9,height:9,borderRadius:"50%",background:n.couleur,flexShrink:0}}/>
+              <span style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.08em"}}>{n.label}</span>
+              <span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>({items.length})</span>
+            </div>
+            <div style={{display:"grid",gap:"9px"}}>
+              {items.map(d=>(
+                <div key={d.id} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"11px",padding:"13px 15px",opacity:d.traite?0.6:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",gap:"12px",flexWrap:"wrap",marginBottom:"6px"}}>
+                    <div style={{fontSize:"15px",fontWeight:700,color:C.dark,fontFamily:F}}>{d.name||"—"}</div>
+                    <div style={{fontSize:"12.5px",color:C.sub,fontFamily:F}}>{dateCourte(d.created_at)}</div>
+                  </div>
+                  <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"6px"}}>
+                    {d.email&&<a href={`mailto:${d.email}`} style={{color:C.terra}}>{d.email}</a>}{d.phone?` · ${d.phone}`:""}
+                  </div>
+                  <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6,marginBottom:"9px",whiteSpace:"pre-line"}}>{d.message}</div>
+                  <button onClick={()=>marquer(d, !d.traite)} style={{background:"transparent",border:`1px solid ${d.traite?C.sand:C.forest}`,color:d.traite?C.sub:C.forest,borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>
+                    {d.traite?"Remettre à traiter":"Marquer comme traitée"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Annuaire des prestataires ──
+function AdminPrestataires({ user }) {
+  const [liste, setListe] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+  const [statut, setStatut] = useState("en_attente");
+  const [ouverte, setOuverte] = useState(null);
+  const [note, setNote] = useState("");
+  const [review,setReview]=useState({});
+  const [enregistrement,setEnregistrement]=useState(false);
+  const [erreurDecision,setErreurDecision]=useState("");
+
+  const charger = () => {
+    setChargement(true); setErreur("");
+    lireAuth(`professionals?status=eq.${statut}&select=*&order=created_at.desc&limit=100`, user.token)
+      .then(r=>{ if(r.ok) setListe(r.data||[]); else setErreur("Les candidatures annuaire ne sont pas accessibles. Le script Supabase v34 doit être exécuté."); })
+      .finally(()=>setChargement(false));
+  };
+  useEffect(charger, [statut]);
+
+  const decider = async (p, nouveau) => {
+    if(enregistrement)return;
+    const invalide=nouveau==="validee"?directoryReviewError(review,p.countries):validateModerationResponse(nouveau,note);
+    if(invalide){setErreurDecision(invalide);return;}
+    setErreurDecision("");setEnregistrement(true);
+    const r = await ecrireAuth(`professionals?id=eq.${p.id}`, {
+      status:nouveau,
+      ...(nouveau==="validee"?{directory_review:{identity:review.identity,content:review.content,title:review.title,notes:review.notes},directory_valid_until:review.until?review.until+"T23:59:59Z":null}:{}),
+      active:nouveau==="validee",
+      moderation_note:["validee","acceptee"].includes(nouveau)?null:note.trim()||null,
+    }, user.token, "PATCH").catch(()=>({ok:false}));
+    setEnregistrement(false);
+    if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez les pièces et la note de contrôle ci-dessous, puis réessayez."); return; }
+    setOuverte(null); setNote(""); charger();
+  };
+
+  const libelles={en_attente:"À vérifier",validee:"Validés / à renouveler",modifications_demandees:"À compléter",refusee:"Non retenus"};
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap",marginBottom:"12px"}}>
+        <p style={{margin:0,fontSize:"14.5px",color:C.sub,fontFamily:F,maxWidth:"520px",lineHeight:1.6}}>
+          Examinez la fiche et son justificatif ici. Recoupez les références lorsqu’un titre ou une habilitation sont revendiqués. Sinon, contrôlez simplement la cohérence de la fiche.
+        </p>
+        <button onClick={charger} style={{background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:20,padding:"9px 14px",fontSize:13.5,cursor:"pointer",fontFamily:F}}>Actualiser</button>
+      </div>
+      <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:6,marginBottom:16}}>
+        {Object.entries(libelles).map(([k,l])=><button key={k} onClick={()=>setStatut(k)} style={{flexShrink:0,background:statut===k?C.terra:C.white,color:statut===k?C.white:C.dark,border:`1px solid ${statut===k?C.terra:C.sand}`,borderRadius:20,padding:"9px 15px",fontSize:14,fontWeight:statut===k?700:500,cursor:"pointer",fontFamily:F}}>{l}</button>)}
+      </div>
+      <BandeauErreur texte={erreur}/>
+      {chargement ? <p style={{color:C.sub,fontFamily:F}}>Chargement…</p>
+       : liste.length===0 ? (
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"34px",textAlign:"center",color:C.sub,fontFamily:F,fontSize:"15px"}}>
+          Aucune candidature dans cette catégorie.
+        </div>
+      ) : (
+        <div style={{display:"grid",gap:"10px"}}>
+          {liste.map(p=>(
+            <button key={p.id} onClick={()=>{setOuverte(p);setReview({...p.directory_review,until:p.directory_valid_until?.slice(0,10)||new Date(Date.now()+180*86400000).toISOString().slice(0,10)});setNote(p.moderation_note||"");setErreurDecision("");}} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px 16px",display:"flex",gap:"13px",alignItems:"flex-start",flexWrap:"wrap",textAlign:"left",cursor:"pointer"}}>
+              <div style={{fontSize:"24px",flexShrink:0}}>🏛️</div>
+              <div style={{flex:1,minWidth:200}}>
+                <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",marginBottom:"3px"}}>
+                  <span style={{fontSize:"16px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.business_name}</span>
+                  {p.active&&Date.parse(p.directory_valid_until)>Date.now()&&<span style={{background:C.successBg,color:C.success,fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"12px",fontFamily:F}}>Visible</span>}
+                </div>
+                <div style={{fontSize:"13.5px",color:C.terra,fontFamily:F,marginBottom:"3px"}}>{p.specialty}</div>
+                <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{(p.countries||[]).join(" · ")}{p.zones?` · ${p.zones}`:""}</div>{p.directory_valid_until&&<div style={{fontSize:12,color:Date.parse(p.directory_valid_until)>Date.now()?C.sub:C.terra,fontFamily:F}}>Échéance : {dateCourte(p.directory_valid_until)}{Date.parse(p.directory_valid_until)<=Date.now()?' · Fiche masquée, à renouveler':''}</div>}
+              </div>
+              <span style={{fontSize:12.5,color:C.sub,fontFamily:F}}>{dateCourte(p.created_at)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {ouverte&&<ModalShell title={ouverte.business_name} subtitle="Candidature à l'annuaire" onClose={()=>setOuverte(null)}>
+        <div style={{display:"grid",gap:9,marginBottom:15}}>
+          {[["Spécialité",ouverte.specialty],["Pays",(ouverte.countries||[]).join(", ")],["Zones",ouverte.zones],["Email",ouverte.email],["Téléphone",ouverte.phone],["Site",ouverte.website],["Immatriculation / ordre",ouverte.verification_reference],["Tarifs",ouverte.pricing],["Présentation",ouverte.description]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:11,color:C.sub,textTransform:"uppercase",letterSpacing:".06em",fontFamily:F}}>{l}</div><div style={{fontSize:14.5,color:C.dark,fontFamily:F,whiteSpace:"pre-line",wordBreak:"break-word"}}>{v}</div></div>)}
+        </div>
+        <DirectoryReview key={ouverte.id} record={ouverte} user={user} api={proVerificationApi} value={review} onChange={setReview} disabled={enregistrement}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <button disabled={enregistrement} onClick={()=>decider(ouverte,"validee")} style={{background:C.success,color:C.white,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Valider et publier</button>
+          <button disabled={enregistrement} onClick={()=>decider(ouverte,"modifications_demandees")} style={{background:C.gold,color:C.forestDark,border:0,borderRadius:9,padding:12,fontWeight:700,cursor:"pointer",fontFamily:F}}>Demander à compléter</button>
+        </div>
+        <ReponseModeration key={ouverte.id} table="professionals" dossier={ouverte} value={note} onChange={v=>{setNote(v);setErreurDecision("");}} onRefuse={()=>decider(ouverte,"refusee")} busy={enregistrement} error={erreurDecision}/>
+      </ModalShell>}
+    </div>
+  );
+}
+
+// ── Les chiffres ──
+function AdminChiffres({ user }) {
+  const [s, setS] = useState(null);
+  const [erreur, setErreur] = useState("");
+  useEffect(()=>{
+    appelerFonction("statistiques_sokile", user.token)
+      .then(d=>{ if(d) setS(d); else setErreur("Les statistiques n'ont pas pu être calculées. Le script admin.sql a-t-il été exécuté ?"); });
+  }, []);
+  if (erreur) return <BandeauErreur texte={erreur}/>;
+  if (!s) return <p style={{color:C.sub,fontFamily:F}}>Calcul en cours…</p>;
+
+  const tuiles = [
+    ["Annonces publiées", s.annonces_publiees, C.forest],
+    ["En attente de modération", s.annonces_attente, s.annonces_attente>0?C.terra:C.forest],
+    ["Déposées cette semaine", s.annonces_semaine, C.forest],
+    ["Demandes à traiter", s.demandes_nouvelles, s.demandes_nouvelles>0?C.terra:C.forest],
+    ["Signalements en attente", s.signalements, s.signalements>0?"#A93226":C.forest],
+    ["Téléchargements", s.telechargements, C.forest],
+    ["Prestataires", s.prestataires, C.forest],
+    ["Articles publiés", s.articles, C.forest],
+  ];
+  const maxPays = Math.max(1, ...(s.par_pays||[]).map(x=>x.n));
+
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"11px",marginBottom:"24px"}}>
+        {tuiles.map(([l,v,c])=>(
+          <div key={l} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"16px"}}>
+            <div style={{fontSize:"30px",fontWeight:700,color:c,fontFamily:F,lineHeight:1.1}}>{v ?? 0}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"4px",lineHeight:1.4}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      {(s.par_pays||[]).length>0&&(
+        <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"18px"}}>
+          <div style={{fontSize:"13px",fontWeight:700,color:C.dark,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"14px"}}>Annonces par pays</div>
+          {s.par_pays.map(x=>(
+            <div key={x.pays} style={{marginBottom:"10px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:"14px",fontFamily:F,color:C.dark,marginBottom:"4px"}}>
+                <span>{x.pays}</span><span style={{fontWeight:700}}>{x.n}</span>
+              </div>
+              <div style={{height:7,background:C.cream,borderRadius:"4px",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.round(x.n/maxPays*100)}%`,background:C.forest,borderRadius:"4px"}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Aperçu des autres vues ──
+function AdminApercu({ apercu, onApercu }) {
+  const choix = [
+    ["", "Vue administratrice", "Ce que vous voyez normalement : l'onglet Administration et tous vos droits."],
+    ["particulier", "Vue particulier", "Ce que voit une personne connectée avec un compte particulier : dépôt d'annonce en mode particulier, pas d'espace pro."],
+    ["pro", "Vue professionnel", "Ce que voit une agence : l'espace pro, le dépôt en mode professionnel avec le nom d'agence."],
+    ["visiteur", "Vue visiteur", "Ce que voit quelqu'un qui n'est pas connecté : tout est consultable, rien n'est déposable."],
+  ];
+  return (
+    <div>
+      <p style={{margin:"0 0 18px",fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65,maxWidth:"620px"}}>
+        Naviguez sur le site comme le voient vos utilisateurs, sans vous déconnecter. Un bandeau vous rappellera que vous êtes en aperçu, et vous pourrez revenir d'un clic.
+      </p>
+      <div style={{display:"grid",gap:"10px"}}>
+        {choix.map(([v,titre,desc])=>(
+          <button key={v||"admin"} onClick={()=>onApercu(v)} style={{textAlign:"left",background:apercu===v?C.forest:C.white,color:apercu===v?C.white:C.dark,border:`1px solid ${apercu===v?C.forest:C.sand}`,borderRadius:"12px",padding:"16px 18px",cursor:"pointer",fontFamily:F}}>
+            <div style={{fontSize:"16px",fontWeight:700,marginBottom:"4px"}}>{titre}{apercu===v?" · en cours":""}</div>
+            <div style={{fontSize:"13.5px",opacity:0.75,lineHeight:1.55}}>{desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── SIGNALER UNE ANNONCE ─────────────────────────
+// Obligation d'hébergeur : permettre à chacun de signaler un contenu illicite.
+const MOTIFS_SIGNALEMENT = [
+  "Le bien n'existe pas / annonce fictive",
+  "Prix manifestement trompeur",
+  "Photos qui ne correspondent pas au bien",
+  "Demande d'argent avant toute visite",
+  "Coordonnées injoignables",
+  "Contenu choquant ou illégal",
+  "Autre",
+];
+
+function SignalerModal({ p, onClose }) {
+  const [motif, setMotif] = useState("");
+  const [detail, setDetail] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  const envoyer = async () => {
+    if (!motif) return;
+    setErreur(""); setLoading(true);
+    const idBrut = String(p.id).replace(/^db-/, "");
+    // trace principale, toujours enregistrée
+    const r = await ecrire("leads", {
+      property_id: idBrut, name: "Signalement", email: email || CONTACT_MAIL, status: "signalement",
+      message: `SIGNALEMENT | Annonce #${idBrut} — ${p.title} (${p.city}, ${p.country}) | Motif : ${motif} | ${detail}`,
+    }).catch(e=>({ok:false,statut:0,motif:String(e)}));
+    // table dédiée si elle existe, sans bloquer l'utilisateur
+    ecrire("reports", { property_id: idBrut, reason: motif, details: detail || null, status: "pending" }).catch(()=>{});
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    setSent(true);
+  };
+
+  return (
+    <ModalShell title="Signaler cette annonce" subtitle={p.title} color="#A93226" onClose={onClose}>
+      {sent ? (
+        <SentMessage title="Signalement transmis"
+          text="Merci. Nous examinons cette annonce et la retirons si elle enfreint nos règles. Vous pouvez fermer cette fenêtre." onClose={onClose}/>
+      ) : (<>
+        <p style={{margin:"0 0 14px",fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6}}>
+          Signalez une annonce qui vous paraît frauduleuse, trompeuse ou illégale. Chaque signalement est examiné.
+        </p>
+        <div style={{marginBottom:"12px"}}>
+          <label style={lbl}>Motif *</label>
+          <select style={inp} value={motif} onChange={e=>setMotif(e.target.value)}>
+            <option value="">Choisir…</option>
+            {MOTIFS_SIGNALEMENT.map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:"12px"}}>
+          <label style={lbl}>Précisions</label>
+          <textarea style={{...inp,minHeight:"84px",resize:"vertical"}} value={detail} onChange={e=>setDetail(e.target.value)} placeholder="Ce que vous avez constaté…"/>
+        </div>
+        <div style={{marginBottom:"14px"}}>
+          <label style={lbl}>Votre email (facultatif)</label>
+          <input type="email" style={inp} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Pour que nous puissions vous répondre"/>
+        </div>
+        <BandeauErreur texte={erreur} onRetry={envoyer}/>
+        <button onClick={envoyer} disabled={!motif||loading} style={{width:"100%",background:motif?"#A93226":"#ccc",color:C.white,border:"none",borderRadius:"9px",padding:"14px",fontWeight:700,fontSize:"15px",cursor:motif?"pointer":"default",fontFamily:F}}>
+          {loading?"Envoi…":"Envoyer le signalement"}
+        </button>
+      </>)}
+    </ModalShell>
+  );
+}
+
+// ─── CONTACT DU VENDEUR ───────────────────────────
+// Sokilé n'a pas de téléphone : seul le vendeur en fournit un au dépôt.
+function telPropre(brut) {
+  return normalizePhone("", brut) || "";
+}
+function lienWhatsApp(p) {
+  const n = telPropre(p.user_phone).replace(/^\+/, "");
+  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}).`;
+  return n ? `https://wa.me/${n}?text=${encodeURIComponent(txt)}` : null;
+}
+function lienAppel(p) {
+  const n = telPropre(p.user_phone);
+  return n ? `tel:${n}` : null;
+}
+function lienMailSokile(p) {
+  const sujet = `Demande de contact — annonce ${p.title} (${p.city})`;
+  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nMerci,\n`;
+  return `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+}
+
+// ─── PROPERTY CARD ────────────────────────────────
+function PropertyCard({ p, onClick, compact, onSave, saved }) {
+  const [hov, setHov] = useState(false);
+  const photo = p.photos?.[0];
+  const shareWA = (e) => {
+    e && e.stopPropagation();
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
+  };
+  if (compact) return (
+    <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"all 0.2s",display:"flex"}}>
+      <div style={{width:72,flexShrink:0,background:p.bg}}/>
+      <div style={{padding:"10px 12px",flex:1,minWidth:0}}>
+        <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
+        <div style={{fontSize:"14px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
+        <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+      </div>
+    </div>
+  );
+  return (
+    <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{background:C.white,borderRadius:"14px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,boxShadow:hov?"0 8px 24px rgba(26,60,46,0.13)":"0 1px 4px rgba(26,60,46,0.05)",transform:hov?"translateY(-3px)":"none",transition:"all 0.22s ease"}}>
+      <div className="sok-card-img" style={{backgroundColor:C.forest,backgroundImage:photo?`url('${photo}')`:`radial-gradient(circle at 80% 18%,rgba(201,168,76,.28),transparent 24%),linear-gradient(145deg,${C.forestMid},${C.forestDark})`,backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
+        {!photo&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",color:"rgba(255,255,255,.78)",fontFamily:F}}>
+          <span style={{display:"flex",transform:"scale(1.55)",opacity:.72}}>{Icon.home}</span>
+          <span style={{fontSize:"12px",fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Photos à venir</span>
+        </div>}
+        {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
+        {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
+        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</div>}
+        {p.professional_verified&&<div style={{position:"absolute",bottom:8,left:8}} onClick={e=>e.stopPropagation()}><VerificationBadge valid/></div>}
+        <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
+          <span style={{background:transactionDe(p)==="location"?C.forest:C.terra,color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 9px",borderRadius:"4px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{transactionDe(p)==="location"?"À louer":"À vendre"}</span>
+          <span style={{background:"rgba(255,255,255,0.92)",color:C.dark,fontSize:"11px",fontWeight:600,padding:"3px 9px",borderRadius:"4px",fontFamily:F}}>{libelleNature(p)}</span>
+          <div style={{marginLeft:"auto",display:"flex",gap:"5px"}}>
+            <span onClick={e=>{e.stopPropagation();onSave&&onSave(p);}} style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"15px"}}>{saved?"❤️":"🤍"}</span>
+            <span style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={shareWA}>{Icon.wa}</span>
+          </div>
+        </div>
+      </div>
+      <div style={{padding:"16px 16px 18px"}}>
+        <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"5px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={15}/>{p.country}</div>
+        {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
+        <div style={{fontSize:"19px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"9px",lineHeight:1.28}}>{p.title}</div>
+        <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"center"}}>
+          {resumeBien(p).map((x,i)=>(
+            <span key={i} style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              {i>0&&<span style={{fontSize:"12px",color:C.sand}}>|</span>}
+              <span style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{x}</span>
+            </span>
+          ))}
+        </div>
+        <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"11px"}}>
+          <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PROPERTY MODAL ───────────────────────────────
+function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
+  const [img, setImg] = useState(0);
+  const [signaler, setSignaler] = useState(false);
+  useEffect(()=>{ setImg(0); }, [p?.id]);
+  if (!p) return null;
+  const shareWA = () => {
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
+  };
+  return (
+    <>
+    {signaler&&<SignalerModal p={p} onClose={()=>setSignaler(false)}/>}
+    <div style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
+      <div style={{background:C.white,borderRadius:"16px",maxWidth:"500px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{height:260,background:p.bg,backgroundImage:p.photos?.[img]?`url('${p.photos[img]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center",borderRadius:"16px 16px 0 0",position:"relative",display:"flex",alignItems:"flex-end",padding:"14px"}}>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 30%,rgba(0,0,0,0.6) 100%)",borderRadius:"16px 16px 0 0"}}/>
+          {p.photos?.length>1&&(<>
+            <button onClick={e=>{e.stopPropagation();setImg(i=>(i-1+p.photos.length)%p.photos.length);}} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"17px",zIndex:2}}>‹</button>
+            <button onClick={e=>{e.stopPropagation();setImg(i=>(i+1)%p.photos.length);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"17px",zIndex:2}}>›</button>
+            <div style={{position:"absolute",bottom:12,right:14,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",fontFamily:F,zIndex:2}}>{img+1}/{p.photos.length}</div>
+          </>)}
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
+          <div style={{position:"relative",zIndex:1}}>
+            <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
+            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}<VerificationBadge valid={p.professional_verified}/>
+          </div>
+        </div>
+        {p.photos?.length>1&&(
+          <div style={{display:"flex",gap:"7px",overflowX:"auto",padding:"10px 18px 0"}}>
+            {p.photos.map((u,i)=>(
+              <div key={i} onClick={()=>setImg(i)} style={{width:66,height:50,flexShrink:0,borderRadius:"7px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center",cursor:"pointer",border:`2px solid ${i===img?C.terra:"transparent"}`,opacity:i===img?1:0.65}}/>
+            ))}
+          </div>
+        )}
+        <div style={{padding:"18px"}}>
+          {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"13px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
+          <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark}}>{p.title}</h2>
+          <p style={{margin:"0 0 12px",color:C.sub,fontSize:"13px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
+          <p style={{margin:"0 0 14px",color:C.dark,fontSize:"14px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
+            {caracteristiques(p).map(([l,v])=>(
+              <div key={l} style={{background:C.cream,borderRadius:"7px",padding:"9px"}}>
+                <div style={{fontSize:"12px",color:C.sub,marginBottom:"2px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {p.features?.length>0&&<div style={{marginBottom:"14px"}}>
+            <div style={{fontSize:"12px",fontWeight:700,color:C.dark,marginBottom:"7px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Équipements</div>
+            <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+              {p.features.map(f=><span key={f} style={{background:C.successBg,color:C.success,fontSize:"12px",padding:"3px 9px",borderRadius:"3px",fontWeight:600,fontFamily:F}}>✓ {f}</span>)}
+            </div>
+          </div>}
+          <div style={{background:C.cream,borderRadius:"8px",padding:"12px",marginBottom:"14px",borderLeft:`3px solid ${C.terra}`}}>
+            <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</div>
+          </div>
+          <div style={{background:C.cream,borderRadius:"8px",padding:"10px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"10px"}}>
+            <div style={{width:34,height:34,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:700,fontSize:"14px",fontFamily:F}}>
+              {p.agent_name?.split(" ").map(w=>w[0]).join("").slice(0,2)}
+            </div>
+            <div>
+              <div style={{fontSize:"14px",fontWeight:700,color:C.dark,fontFamily:F}}>{p.agent_name}</div>
+              <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.advertiser_type==="pro"?"Professionnel":p.advertiser_type==="particulier"?"Particulier":"Agent certifié Sokilé"}</div>
+            </div>
+          </div>
+          {/* Mise en relation avec l'annonceur */}
+          {(() => {
+            const wa = lienWhatsApp(p), tel = lienAppel(p);
+            if (p.demo) return (
+              <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"14px",marginBottom:"10px",textAlign:"center"}}>
+                <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.55}}>Annonce de démonstration : il n'y a pas d'annonceur à contacter.</div>
+              </div>
+            );
+            if (wa || tel) return (
+              <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px",marginBottom:"10px"}}>
+                <div style={{fontSize:"12px",fontWeight:700,color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"10px"}}>Contacter l'annonceur{p.user_name?` · ${p.user_name}`:""}</div>
+                <div style={{display:"grid",gridTemplateColumns:wa&&tel?"1fr 1fr":"1fr",gap:"8px"}}>
+                  {wa&&<a href={wa} target="_blank" rel="noopener noreferrer" style={{background:"#25D366",color:C.white,borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14px",fontFamily:F,textDecoration:"none",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:"7px"}}>{Icon.wa}WhatsApp</a>}
+                  {tel&&<a href={tel} style={{background:C.terra,color:C.white,borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14px",fontFamily:F,textDecoration:"none",textAlign:"center"}}>Appeler</a>}
+                </div>
+                <a href={lienMailSokile(p)} style={{display:"block",textAlign:"center",marginTop:"9px",fontSize:"13px",color:C.forest,fontFamily:F,fontWeight:600}}>Passer par Sokilé</a>
+              </div>
+            );
+            return (
+              <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"14px",marginBottom:"10px",textAlign:"center"}}>
+                <div style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55,marginBottom:"10px"}}>L'annonceur n'a pas laissé de numéro. Écrivez-nous et nous transmettons votre demande.</div>
+                <a href={lienMailSokile(p)} style={{display:"inline-block",background:C.forest,color:C.white,borderRadius:"9px",padding:"12px 22px",fontWeight:700,fontSize:"14px",fontFamily:F,textDecoration:"none"}}>Écrire à Sokilé</a>
+              </div>
+            );
+          })()}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+            <button onClick={()=>onSaveFromModal&&onSaveFromModal(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Sauvegarder</button>
+            <button onClick={shareWA} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F}}>Partager</button>
+          </div>
+          {onBudget&&!p.demo&&transactionDe(p)==="vente"&&<button onClick={()=>onBudget(p)} style={{width:"100%",marginTop:10,background:C.forest,color:C.white,border:0,borderRadius:9,padding:14,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:F}}>Calculer mon budget pour ce bien →</button>}
+          {onVerify&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"7px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
+          {!p.demo&&(
+            <div style={{marginTop:"14px",paddingTop:"13px",borderTop:`1px solid ${C.sand}`}}>
+              <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"9px",padding:"11px 13px",marginBottom:"10px"}}>
+                <div style={{fontSize:"13px",color:"#6D4C1B",fontFamily:F,lineHeight:1.55}}>
+                  <strong>Prudence.</strong> Sokilé met en relation mais n'intervient pas dans la transaction. Ne versez jamais d'argent avant d'avoir visité le bien ou fait vérifier le titre foncier.
+                </div>
+              </div>
+              <button onClick={()=>setSignaler(true)} style={{width:"100%",background:"transparent",color:"#A93226",border:"none",padding:"8px",fontWeight:600,fontSize:"13.5px",cursor:"pointer",fontFamily:F,textDecoration:"underline"}}>Signaler cette annonce</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+    </>
+  );
+}
+
+
+function ListingConditions({p}) {
+  const rental=transactionDe(p)==="location";
+  const fields=rental?CHAMPS_LOCATION:CHAMPS_VENTE;
+  const rows=fields.filter(c=>p.details?.[c.k]!==undefined&&p.details?.[c.k]!==null&&String(p.details[c.k]).trim()!=="");
+  return <section className="sok-listing-section"><h2>{rental?"Conditions de location":"Conditions de vente"}</h2>
+    {rows.length?<dl>{rows.map(c=><div key={c.k}><dt>{c.l}</dt><dd>{p.details[c.k]}</dd></div>)}</dl>:<p>Les conditions détaillées sont à préciser avec l’annonceur.</p>}
+    {!rental&&p.details?.documents_vente&&<small>Documents déclarés par le vendeur. Leur validité reste à vérifier auprès d’un professionnel compétent.</small>}
+  </section>;
+}
+
+// ─── PAGE D'UNE ANNONCE ───────────────────────────
+function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires, onBudget }) {
+  const [img, setImg] = useState(0);
+  const [gallery, setGallery] = useState(false);
+  const galleryRef=useRef(null);
+  const [signaler, setSignaler] = useState(false);
+  const [copie, setCopie] = useState(false);
+
+  useEffect(()=>{ setImg(0); setGallery(false); window.scrollTo(0,0); }, [p?.id]);
+  useEffect(()=>{
+    if (!p) return;
+    document.title = `${p.title} — ${p.city}, ${p.country} | Sokilé`;
+    return () => { document.title = "Sokilé — L'immobilier en Afrique"; };
+  }, [p]);
+
+  useEffect(()=>{
+    if(!gallery) return;
+    const previous=document.activeElement;
+    galleryRef.current?.showModal();
+    const listener=e=>{if(e.key==="Escape")setGallery(false);};
+    document.addEventListener("keydown",listener);
+    return ()=>{document.removeEventListener("keydown",listener);galleryRef.current?.close();previous?.focus?.();};
+  },[gallery]);
+  if (!p) return null;
+  const photos = p.photos?.length ? p.photos : [];
+  const wa = lienWhatsApp(p), tel = lienAppel(p);
+
+  const partager = async () => {
+    const url = urlAnnonce(p);
+    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}`;
+    if (navigator.share) { try { await navigator.share({title:p.title, text:texte, url}); return; } catch(e) {} }
+    try { await navigator.clipboard.writeText(url); setCopie(true); setTimeout(()=>setCopie(false), 2500); }
+    catch(e) { window.open(`https://wa.me/?text=${encodeURIComponent(texte+"\n"+url)}`,"_blank"); }
+  };
+
+  return (
+    <div className="sok-listing-page" style={{paddingBottom:"10px"}}>
+      {signaler&&<SignalerModal p={p} onClose={()=>setSignaler(false)}/>}
+
+      {gallery&&<dialog ref={galleryRef} className="sok-gallery" aria-label="Photos du bien" onCancel={()=>setGallery(false)}>
+        <button autoFocus onClick={()=>setGallery(false)} aria-label="Fermer la galerie">Fermer ✕</button>
+        <img src={photos[img]} alt={`${p.title} — photo ${img+1}`}/>
+        <div><button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} aria-label="Photo précédente">←</button><span>{img+1} / {photos.length}</span><button onClick={()=>setImg(i=>(i+1)%photos.length)} aria-label="Photo suivante">→</button></div>
+      </dialog>}
+      {/* Fil d'ariane */}
+      <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"16px 0 12px",flexWrap:"wrap"}}>
+        <button onClick={onRetour} style={{background:"transparent",border:"none",color:C.terra,fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,padding:0}}>← Retour aux annonces</button>
+        <span style={{color:C.sand}}>·</span>
+        <span style={{fontSize:"13.5px",color:C.sub,fontFamily:F}}><Flag name={p.country} size={15}/>{p.country} · {p.city}</span>
+      </div>
+
+      <div className="sok-annonce">
+        {/* Colonne principale */}
+        <div style={{minWidth:0}}>
+          {/* Galerie */}
+          <div className="sok-annonce-photo" style={{position:"relative",borderRadius:"14px",overflow:"hidden",backgroundColor:C.forest,backgroundImage:photos[img]?`url('${photos[img]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center"}}>
+            {photos.length>0&&<button className="sok-open-gallery" onClick={()=>setGallery(true)}>Voir les {photos.length} photo{photos.length>1?"s":""}</button>}
+            {!photos.length&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.5)",fontFamily:F,fontSize:"15px"}}>Pas de photo</div>}
+            <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
+              <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
+              {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}
+              {p.verified&&<span style={{background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}<VerificationBadge valid={p.professional_verified}/>
+            </div>
+            {photos.length>1&&(<>
+              <button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>‹</button>
+              <button onClick={()=>setImg(i=>(i+1)%photos.length)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>›</button>
+              <div style={{position:"absolute",bottom:12,right:14,background:"rgba(0,0,0,0.62)",color:C.white,fontSize:"13px",fontWeight:600,padding:"4px 12px",borderRadius:"20px",fontFamily:F}}>{img+1} / {photos.length}</div>
+            </>)}
+          </div>
+          {photos.length>1&&(
+            <div style={{display:"flex",gap:"8px",overflowX:"auto",marginTop:"10px",paddingBottom:"4px"}}>
+              {photos.map((u,i)=>(
+                <div key={i} onClick={()=>setImg(i)} style={{width:88,height:66,flexShrink:0,borderRadius:"9px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center",cursor:"pointer",border:`2px solid ${i===img?C.terra:"transparent"}`,opacity:i===img?1:0.62}}/>
+              ))}
+            </div>
+          )}
+
+          {/* Titre et prix */}
+          <h1 style={{margin:"20px 0 6px",fontFamily:FT,fontSize:"clamp(24px,3.4vw,34px)",fontWeight:500,color:C.dark,lineHeight:1.22}}>{p.title}</h1>
+          <p style={{margin:"0 0 14px",color:C.sub,fontSize:"15px",fontFamily:F}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</p>
+          <div style={{display:"flex",alignItems:"baseline",gap:"12px",flexWrap:"wrap",marginBottom:"18px"}}>
+            <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</span>
+            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</span>
+          </div>
+
+          {/* Caractéristiques */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:"9px",marginBottom:"20px"}}>
+            {caracteristiques(p).filter(([l])=>![...CHAMPS_LOCATION,...CHAMPS_VENTE].some(c=>c.l.replace(/\s*\([^)]*\)\s*$/, "")===l)).map(([l,v])=>(
+              <div key={l} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"13px"}}>
+                <div style={{fontSize:"11.5px",color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"3px"}}>{l}</div>
+                <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F}}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          <ListingConditions p={p}/>
+          <section className="sok-listing-section"><h2>Le quartier</h2><p>{[p.neighborhood,p.city,p.country].filter(Boolean).join(" · ")}</p>
+          {CHAMPS_SECTEUR.filter(c=>p.details?.[c.k]).map(c=><p key={c.k}><strong>{c.l} : </strong>{p.details[c.k]}</p>)}
+          <small>Adresse exacte à demander à l’annonceur.</small></section>
+          {p.description&&(<>
+            <h2 style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark,margin:"0 0 9px"}}>Description</h2>
+            <p style={{margin:"0 0 20px",fontSize:"16px",lineHeight:1.72,color:C.dark,fontFamily:F,whiteSpace:"pre-line"}}>{p.description}</p>
+          </>)}
+
+          {p.features?.length>0&&(<>
+            <h2 style={{fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark,margin:"0 0 9px"}}>Équipements</h2>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginBottom:"20px"}}>
+              {p.features.map(f=><span key={f} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"8px 15px",fontSize:"14px",color:C.dark,fontFamily:F}}>{f}</span>)}
+            </div>
+          </>)}
+
+          {!p.demo&&(
+            <div style={{background:"#FFF8E1",border:"1px solid #FFE082",borderRadius:"11px",padding:"14px 16px",marginBottom:"14px"}}>
+              <div style={{fontSize:"14px",color:"#6D4C1B",fontFamily:F,lineHeight:1.6}}>
+                <strong>Prudence.</strong> Sokilé met en relation mais n'intervient pas dans la transaction. Ne versez jamais d'argent avant d'avoir visité le bien ou fait vérifier le titre foncier par un professionnel.
+              </div>
+            </div>
+          )}
+          {!p.demo&&<button onClick={()=>setSignaler(true)} style={{background:"transparent",color:"#A93226",border:"none",padding:"6px 0",fontWeight:600,fontSize:"13.5px",cursor:"pointer",fontFamily:F,textDecoration:"underline"}}>Signaler cette annonce</button>}
+        </div>
+
+        {/* Colonne de contact */}
+        <aside className="sok-annonce-aside">
+          <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",padding:"18px",boxShadow:"0 4px 18px rgba(26,60,46,0.07)"}}>
+            {p.demo ? (
+              <div style={{fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6,textAlign:"center"}}>Annonce de démonstration : il n'y a pas d'annonceur à contacter.</div>
+            ) : (<>
+              <div style={{fontSize:"11.5px",fontWeight:700,color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:"4px"}}>Contacter l'annonceur</div>
+              <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"14px"}}>{p.agency_name||p.user_name||"Particulier"}</div>
+              {(wa||tel) ? (<>
+                {wa&&<a href={wa} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",background:"#25D366",color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none",marginBottom:"8px"}}>{Icon.wa}WhatsApp</a>}
+                {tel&&<a href={tel} style={{display:"block",textAlign:"center",background:C.terra,color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none",marginBottom:"8px"}}>Appeler</a>}
+                <a href={lienMailSokile(p)} style={{display:"block",textAlign:"center",fontSize:"13.5px",color:C.forest,fontFamily:F,fontWeight:600,padding:"6px"}}>Passer par Sokilé</a>
+              </>) : (<>
+                <p style={{margin:"0 0 12px",fontSize:"14px",color:C.sub,fontFamily:F,lineHeight:1.6}}>L'annonceur n'a pas laissé de numéro. Écrivez-nous, nous transmettons votre demande.</p>
+                <a href={lienMailSokile(p)} style={{display:"block",textAlign:"center",background:C.forest,color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none"}}>Écrire à Sokilé</a>
+              </>)}
+            </>)}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginTop:"14px",paddingTop:"14px",borderTop:`1px solid ${C.sand}`}}>
+              <button onClick={()=>onSave&&onSave(p)} style={{background:"transparent",color:C.terra,border:`1px solid ${C.terra}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>{saved?"Enregistré":"Enregistrer"}</button>
+              <button onClick={partager} style={{background:"transparent",color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>{copie?"Lien copié !":"Partager"}</button>
+            </div>
+            {onBudget&&!p.demo&&transactionDe(p)==="vente"&&<button onClick={()=>onBudget(p)} style={{width:"100%",marginTop:10,background:C.forest,color:C.white,border:0,borderRadius:9,padding:14,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:F}}>Calculer mon budget pour ce bien →</button>}
+            {onVerify&&!p.demo&&<button onClick={()=>onVerify(p)} style={{width:"100%",marginTop:"8px",background:C.cream,color:C.forest,border:`1px solid ${C.forest}`,borderRadius:"9px",padding:"11px",fontWeight:700,fontSize:"13.5px",cursor:"pointer",fontFamily:F}}>Faire vérifier ce bien</button>}
+          </div>
+        </aside>
+      </div>
+
+      {!p.demo&&!gallery&&<div className="sok-listing-contact"><strong>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</strong>{tel&&<a href={tel}>Appeler</a>}{wa&&<a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>}{!tel&&!wa&&<a href={lienMailSokile(p)}>Contacter</a>}</div>}
+      {/* Biens similaires */}
+      {similaires?.length>0&&(
+        <div style={{marginTop:"34px"}}>
+          <h2 style={{fontFamily:FT,fontSize:"22px",fontWeight:500,color:C.dark,margin:"0 0 14px"}}>Autres biens en {p.country}</h2>
+          <div className="sok-grid">
+            {similaires.map(s=><PropertyCard key={s.id} p={s} onClick={onVoir} onSave={onSave} saved={false}/>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ComingSoon({ title, desc }) {
+  return (
+    <div style={{background:C.forest,borderRadius:"12px",padding:"36px 24px",textAlign:"center",margin:"16px 0"}}>
+      <h2 style={{margin:"0 0 8px",color:C.white,fontFamily:FT,fontSize:"23px"}}>{title}</h2>
+      <p style={{color:"rgba(255,255,255,0.6)",fontSize:"15px",margin:"0 0 16px",fontFamily:F}}>{desc}</p>
+      <div style={{display:"inline-block",border:`1px solid ${C.gold}`,borderRadius:"20px",padding:"6px 18px"}}>
+        <span style={{color:C.gold,fontSize:"14px",fontWeight:700,fontFamily:F}}>En cours de développement</span>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+// ─── PRESTATAIRES : ANNUAIRE + FORMULAIRES ────────
+const SPECIALITES = ["Agence immobilière","Courtier immobilier","Promoteur immobilier","Géomètre","Notaire","Architecte","BTP / Construction","Vérification terrain","Juridique","Financement","Déménagement"];
+
+// Fiches d'exemple (remplacées par les vrais prestataires une fois validés)
+const PRESTATAIRES_DEMO = [
+  {id:1,emoji:"📐",name:"Cabinet Diallo & Associés",specs:["Géomètre","Vérification terrain"],pays:["Sénégal","Côte d'Ivoire"],desc:"Vérification de titres fonciers, bornage et levés topographiques avant achat.",zones:"Dakar, Thiès, Mbour, Abidjan",tarifs:"Vérification de titre à partir de 150 000 FCFA"},
+  {id:2,emoji:"⚖️",name:"Me Koné, notaire",specs:["Notaire","Juridique"],pays:["Côte d'Ivoire"],desc:"Actes de vente, successions et donations immobilières. Rendez-vous à distance pour la diaspora.",zones:"Abidjan et environs",tarifs:"Selon barème notarial"},
+  {id:3,emoji:"🏛️",name:"Archi Dakar Studio",specs:["Architecte","BTP / Construction"],pays:["Sénégal"],desc:"Conception de plans et suivi de chantier avec compte rendu photo hebdomadaire.",zones:"Tout le Sénégal",tarifs:"Plans à partir de 800 000 FCFA"},
+  {id:4,emoji:"🚚",name:"Transit Sahel Déménagement",specs:["Déménagement"],pays:["Mali","Burkina Faso","Niger"],desc:"Déménagement et transport de mobilier entre l'Europe et l'Afrique de l'Ouest.",zones:"Bamako, Ouagadougou, Niamey",tarifs:"Sur devis"},
+];
+
+const lbl = {fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"};
+const inp = {width:"100%",border:`1px solid ${C.sand}`,borderRadius:"8px",padding:"10px 14px",fontSize:"15px",outline:"none",color:C.dark,boxSizing:"border-box",fontFamily:F,background:C.white};
+
+function sendLead(payload) {
+  return fetch(`${SUPABASE_URL}/rest/v1/leads`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify(payload)});
+}
+
+function ModalShell({ title, subtitle, color, onClose, children }) {
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
+      <div style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:color||C.forest,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
+          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
+          <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{title}</h2>
+          {subtitle&&<p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"13px",fontFamily:F}}>{subtitle}</p>}
+        </div>
+        <div style={{padding:"20px"}}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function SentMessage({ title, text, onClose }) {
+  return (
+    <div style={{textAlign:"center",padding:"16px 0"}}>
+      <div style={{fontSize:"42px",marginBottom:"10px"}}>✅</div>
+      <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>{title}</h3>
+      <p style={{color:C.sub,fontSize:"14px",fontFamily:F,lineHeight:1.5}}>{text}</p>
+      <button onClick={onClose} style={{marginTop:"14px",background:C.forest,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
+    </div>
+  );
+}
+
+function ServiceFormModal({ onClose, user, existing=null, onSaved }) {
+  const [f, setF] = useState({name:existing?.business_name||user?.agency||user?.name||"",spec:existing?.specialty||"",pays:existing?.countries||[],email:existing?.email||user?.email||"",...splitPhone(existing?.phone||user?.phone,PHONE_CODES),site:existing?.website||"",zones:existing?.zones||"",tarifs:existing?.pricing||"",desc:existing?.description||"",reference:existing?.verification_reference||"",documents:existing?.directory_documents||{},consent:false});
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [uploading,setUploading]=useState(false);
+  const [erreur, setErreur] = useState("");
+  const set = (k,v) => setF(p=>({...p,[k]:v}));
+  const togglePays = n => set("pays", f.pays.includes(n)?f.pays.filter(x=>x!==n):[...f.pays,n]);
+  const ok = !directoryError(f) && !!f.phone.trim() && !uploading;
+  const submit = async () => {
+    if (!ok || loading) return;
+    const invalide=contactError(f.name,f.email,f.site);
+    if(invalide){setErreur(invalide);return;}
+    if(f.phone.trim()&&!normalizePhone(f.phoneCode,f.phone)){setErreur("Indiquez un numéro de téléphone valide avec son indicatif.");return;}
+    if(!user?.id||!user?.token){setErreur("Reconnectez-vous avant d’envoyer votre demande.");return;}
+    setErreur(""); setLoading(true);
+    const payload = {owner_id:user.id,business_name:f.name.trim(),specialty:f.spec,countries:f.pays,zones:f.zones,email:f.email.trim(),phone:normalizePhone(f.phoneCode,f.phone)||null,website:websiteUrl(f.site)||null,pricing:f.tarifs||null,description:f.desc||null,verification_reference:f.reference||null,directory_documents:f.documents,consent_at:new Date().toISOString(),status:"en_attente",active:false,moderation_note:null};
+    const r = await (existing?modifier("professionals",existing.id,payload,user.token):ecrire("professionals",payload,user.token))
+      .catch(e=>({ok:false,statut:0,motif:String(e)}));
+    setLoading(false);
+    if (!r.ok) { setErreur(messageErreur(r)); return; }
+    window.sokileAnalytics?.event(existing ? "professional_update" : "professional_submit");
+    setSent(true); onSaved?.();
+  };
+  return (
+    <ModalShell title={existing?"Modifier ma fiche professionnelle":"Rejoindre l'annuaire"} subtitle="Une fiche, un justificatif, un examen avant publication" onClose={onClose}>
+      {sent ? <SentMessage title="Demande envoyée" text="Votre fiche et votre justificatif ont été transmis ensemble. Suivez la décision ou la demande de complément dans votre compte." onClose={onClose}/> : (<>
+        <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:10,padding:"11px 13px",marginBottom:13,fontSize:13.5,color:C.sub,fontFamily:F,lineHeight:1.55}}>Le référencement de base est gratuit. Présentez votre activité et ajoutez un justificatif : Sokilé examine la cohérence de votre fiche avant publication. Aucun dossier à répéter pour chaque pays de l’annuaire.</div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-name" style={lbl}>Nom professionnel ou raison sociale *</label><input id="directory-name" style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ex : Cabinet Diallo"/></div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-specialty" style={lbl}>Spécialité *</label>
+          <select id="directory-specialty" style={inp} value={f.spec} onChange={e=>set("spec",e.target.value)}>
+            <option value="">Choisir…</option>
+            {SPECIALITES.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:"10px"}}><label style={lbl}>Pays d'intervention *</label>
+          <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+            {COUNTRIES_ANNONCES.map(c=>{const on=f.pays.includes(c.name);return(
+              <button key={c.name} aria-pressed={on} type="button" onClick={()=>togglePays(c.name)} style={{background:on?C.forest:C.cream,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"4px 10px",fontSize:"13px",cursor:"pointer",fontFamily:F}}><Flag flag={c.flag} size={14}/>{c.name}</button>);})}
+          </div>
+        </div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-zones" style={lbl}>Villes ou zones couvertes</label><input id="directory-zones" style={inp} value={f.zones} onChange={e=>set("zones",e.target.value)} placeholder="Ex : Dakar, Thiès, Mbour"/></div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-email" style={lbl}>Email de suivi (privé) *</label><input id="directory-email" type="email" style={inp} value={f.email} onChange={e=>set("email",e.target.value)} placeholder="contact@exemple.com"/></div>
+        <div style={{marginBottom:"10px"}}><label htmlFor="directory-phone" style={lbl}>Téléphone professionnel / WhatsApp (public) *</label>
+          <div style={{display:"flex",gap:"6px"}}>
+            <select aria-label="Indicatif du téléphone professionnel" value={f.phoneCode} onChange={e=>set("phoneCode",e.target.value)} style={{...inp,width:"110px",flexShrink:0}}>
+              {PHONE_CODES.map((p,i)=><option key={i} value={p.code}>{noFlag(p.label)}</option>)}
+            </select>
+            <input id="directory-phone" type="tel" style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)} placeholder="77 123 45 67"/>
+          </div>
+        </div>
+        <div style={{marginBottom:"14px"}}><label htmlFor="directory-description" style={lbl}>Votre activité en quelques mots *</label><textarea id="directory-description" rows={3} maxLength={2000} style={{...inp,resize:"vertical"}} value={f.desc} onChange={e=>set("desc",e.target.value)} placeholder="Décrivez les services que vous proposez et votre zone d’intervention."/></div>
+        {needsTitleReview(f.spec)&&<div style={{marginBottom:14}}><label htmlFor="directory-title" style={lbl}>Titre ou mission et référence professionnelle *</label><textarea id="directory-title" rows={2} maxLength={2000} style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="Ex. architecte, inscription à l’ordre n°… ; indiquez le pays et l’organisme ou le lien officiel."/><p style={{fontSize:13,color:C.sub,fontFamily:F}}>Précisez votre rôle exact. Pour plusieurs pays, indiquez les références correspondantes si elles diffèrent. Un complément pourra être demandé avant publication.</p></div>}
+        <DirectoryProof api={proVerificationApi} user={user} documents={f.documents} onChange={documents=>set("documents",documents)} disabled={loading} onBusy={setUploading}/>
+        <details className="directory-extra"><summary>Enrichir ma fiche — facultatif</summary>
+         <div style={{marginBottom:10}}><label htmlFor="directory-site" style={lbl}>Site web</label><input id="directory-site" style={inp} value={f.site} onChange={e=>set("site",e.target.value)} placeholder="www.exemple.com"/></div>
+         <div style={{marginBottom:10}}><label htmlFor="directory-pricing" style={lbl}>Tarifs indicatifs</label><input id="directory-pricing" style={inp} value={f.tarifs} onChange={e=>set("tarifs",e.target.value)} placeholder="Sur devis, ou vos tarifs habituels"/></div>
+         {!needsTitleReview(f.spec)&&<div style={{marginBottom:10}}><label htmlFor="directory-reference" style={lbl}>Référence professionnelle</label><input id="directory-reference" style={inp} value={f.reference} onChange={e=>set("reference",e.target.value)} placeholder="Facultatif : référence ou lien vers un registre"/></div>}
+        </details>
+        <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,cursor:"pointer",fontFamily:F,color:C.dark,fontSize:13.5,lineHeight:1.45}}><input type="checkbox" checked={f.consent} onChange={e=>set("consent",e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:C.forest,flexShrink:0}}/><span>Je confirme être autorisé à représenter cette activité, l’exactitude de mes informations et la publication de ma fiche et de mon téléphone professionnel. Mon email de suivi et mes justificatifs restent privés.</span></label>
+        <p className="pv-small">Les champs marqués * et le justificatif sont nécessaires. Une photo lisible du justificatif suffit ; ne transmettez pas de données personnelles inutiles.</p>
+        {!ok&&!loading&&<p className="pv-small" role="status">{uploading?"Ajout du fichier en cours…":directoryError(f)||"Ajoutez votre téléphone professionnel."}</p>}
+        <BandeauErreur texte={erreur} onRetry={submit}/>
+        <button onClick={submit} disabled={!ok||loading} style={{width:"100%",background:ok?C.forest:"#ccc",color:C.white,border:"none",borderRadius:"8px",padding:"13px",fontWeight:700,fontSize:"16px",cursor:ok?"pointer":"default",fontFamily:F}}>{loading?"Envoi en cours…":"Envoyer ma demande"}</button>
+      </>)}
+    </ModalShell>
+  );
+}
+
+function PubFormModal({ onClose }) {
+  return <ModalShell title="Publicité et mise en lumière" subtitle="Les formules de visibilité Sokilé" onClose={onClose}><PaidOffers/></ModalShell>;
+}
+
+function Annuaire({ initialSpec="Tous", initialPays="Tous" }) {
+  const [spec, setSpec] = useState(initialSpec);
+  const [pays, setPays] = useState(initialPays);
+  const [sel, setSel] = useState(null);
+  const [verified,setVerified] = useState([]);
+  const [loading,setLoading] = useState(true), [error,setError] = useState(false), [retry,setRetry] = useState(0);
+  useEffect(()=>{
+    let active=true;setLoading(true);setError(false);
+    lire("public_professionals","select=*&order=id.desc").then(r=>{
+      if(!active)return;
+      if(!r.ok||!Array.isArray(r.data))throw new Error("Annuaire indisponible");
+      setVerified(r.data.map(p=>({id:`pro-${p.id}`,name:p.business_name,specs:[p.specialty],pays:p.countries||[],zones:p.zones,phone:p.phone,site:p.website,tarifs:p.pricing,desc:p.description||"Professionnel référencé sur Sokilé.",emoji:"✓",verified:p.professional_verified===true})));
+    }).catch(()=>{if(active)setError(true);}).finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[retry]);
+  const source = loading||error ? [] : verified.length ? verified : PRESTATAIRES_DEMO;
+  const list = source.filter(p=>(spec==="Tous"||p.specs.includes(spec))&&(pays==="Tous"||p.pays.includes(pays)));
+  const chip = on => ({background:on?C.forest:C.white,color:on?C.white:C.dark,border:`1px solid ${on?C.forest:C.sand}`,borderRadius:"20px",padding:"5px 12px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap",flexShrink:0});
+  return (
+    <>
+      <h2 style={{fontFamily:FT,fontSize:"18px",fontWeight:500,color:C.dark,margin:"0 0 10px"}}>Annuaire prestataires</h2><p style={{fontFamily:F,fontSize:14,color:C.sub,lineHeight:1.6}}>Les fiches et justificatifs sont examinés avant référencement. Ce référencement n’est ni un agrément ni une garantie de qualité. <a href="/verification-professionnels" style={{color:C.terra}}>Voir la portée du contrôle</a>.</p>
+      <div style={{display:"flex",gap:"6px",overflowX:"auto",marginBottom:"8px",paddingBottom:"2px"}}>
+        {["Tous",...SPECIALITES].map(s=><button key={s} onClick={()=>setSpec(s)} style={chip(spec===s)}>{s}</button>)}
+      </div>
+      <select value={pays} onChange={e=>setPays(e.target.value)} style={{...inp,marginBottom:"12px",fontSize:"14px",padding:"8px 12px"}}>
+        <option value="Tous">Tous les pays</option>
+        {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
+      </select>
+      {loading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des professionnels…</p>}
+      {error&&<BandeauErreur texte="L’annuaire n’a pas pu être chargé. Réessayez dans quelques instants." onRetry={()=>setRetry(n=>n+1)}/>}
+      {!loading&&!error&&<div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>{verified.length?`${verified.length} professionnel(s) référencé(s).`:"Fiches d'exemple, en attendant les premiers prestataires validés."}</div>}
+      {!loading&&!error&&list.length===0&&(
+        <div style={{background:C.white,border:`1px dashed ${C.sand}`,borderRadius:"10px",padding:"16px",textAlign:"center",fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"8px"}}>
+          Aucun prestataire pour ce choix. Vous exercez dans ce domaine ? Rejoignez l'annuaire ci-dessous.
+        </div>
+      )}
+      {list.map(p=>(
+        <div key={p.id} onClick={()=>setSel(p)} style={{background:C.white,borderRadius:"10px",border:`1px solid ${C.sand}`,padding:"12px",marginBottom:"8px",cursor:"pointer"}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:"10px",marginBottom:"6px"}}>
+            <div style={{width:42,height:42,borderRadius:"8px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",flexShrink:0}}>{p.emoji}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:FT,fontSize:"15px",fontWeight:500,color:C.dark}}>{p.name}</div>
+              <div style={{fontSize:"12px",color:C.terra,fontWeight:700,fontFamily:F}}>{p.specs.join(", ")}</div>
+              <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.pays.map(n=><span key={n} style={{marginRight:"8px",whiteSpace:"nowrap"}}><Flag name={n} size={14}/>{n}</span>)}</div>
+            </div>
+            <span style={{background:p.verified?C.successBg:"rgba(0,0,0,0.06)",color:p.verified?C.success:C.sub,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,flexShrink:0}}>{p.verified?"Professionnel référencé":"Exemple"}</span>
+          </div>
+          <div style={{fontSize:"13px",color:C.muted,fontFamily:F,lineHeight:1.4}}>{p.desc}</div>
+        </div>
+      ))}
+      {sel&&(
+        <ModalShell title={sel.name} subtitle={sel.specs.join(", ")} onClose={()=>setSel(null)}>
+          <div style={{fontSize:"15px",color:C.dark,fontFamily:F,lineHeight:1.6,marginBottom:"14px"}}>{sel.desc}</div>
+          {[["Pays",sel.pays.map(n=><span key={n} style={{marginRight:"10px",whiteSpace:"nowrap"}}><Flag name={n}/>{n}</span>)],["Zones couvertes",sel.zones],["Tarifs",sel.tarifs]].map(([k,v])=>(
+            <div key={k} style={{marginBottom:"10px"}}>
+              <div style={{fontSize:"13px",fontWeight:700,color:C.sub,fontFamily:F}}>{k}</div>
+              <div style={{fontSize:"15px",color:C.dark,fontFamily:F}}>{v}</div>
+            </div>
+          ))}
+          {sel.verified?<div style={{display:"grid",gap:8}}>{sel.phone&&<a href={`tel:${sel.phone}`} style={{background:C.forest,color:C.white,borderRadius:8,padding:11,textAlign:"center",fontFamily:F,fontWeight:700,textDecoration:"none"}}>Appeler {sel.phone}</a>}{sel.site&&<a href={/^https?:/.test(sel.site)?sel.site:`https://${sel.site}`} target="_blank" rel="noreferrer" style={{background:C.gold,color:C.forestDark,borderRadius:8,padding:11,textAlign:"center",fontFamily:F,fontWeight:700,textDecoration:"none"}}>Visiter le site</a>}</div>:<div style={{background:C.cream,borderRadius:"8px",padding:"12px",fontSize:"13px",color:C.sub,fontFamily:F,lineHeight:1.5}}>Fiche de démonstration non revendiquée : les coordonnées ne sont volontairement pas affichées.</div>}
+        </ModalShell>
+      )}
+    </>
+  );
+}
+
+// ─── HERO CARROUSEL ───────────────────────────────
+const SLIDES = [
+  {url:"https://nhyejaubfxjmmuvetayw.supabase.co/storage/v1/object/public/photos-verified/prix-construction-maison-senegal-HUB-CEPHAS.webp",label:"🏡 Villa moderne, Dakar"},
+  {url:"https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&q=80",label:"🏠 Immobilier Afrique"},
+  {url:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80",label:"🏘️ Résidence moderne"},
+];
+
+function HeroCarousel({ search, setSearch, onSearch }) {
+  const [current, setCurrent] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setCurrent(c => (c + 1) % SLIDES.length);
+        setFade(true);
+      }, 500);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="sok-hero sok-bleed" style={{position:"relative",overflow:"hidden"}}>
+      {/* Image de fond */}
+      <div style={{
+        position:"absolute",inset:0,
+        backgroundImage:`url('${SLIDES[current].url}')`,
+        backgroundSize:"cover",backgroundPosition:"center",
+        opacity:fade?1:0,
+        transition:"opacity 0.5s ease",
+      }}/>
+      {/* Overlay */}
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(120deg,rgba(16,39,31,0.92) 0%,rgba(23,56,44,0.78) 55%,rgba(200,102,66,0.42) 100%)"}}/>
+      {/* Ligne dorée bas */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"3px",background:`linear-gradient(90deg,transparent,${C.gold} 30%,${C.gold} 70%,transparent)`,zIndex:2}}/>
+      {/* Label pays */}
+      {/* Dots */}
+      <div style={{position:"absolute",bottom:16,right:"max(18px, calc(50vw - 590px))",display:"flex",gap:"6px",zIndex:2}}>
+        {SLIDES.map((_,i)=>(
+          <button key={i} onClick={()=>{setCurrent(i);setFade(true);}} style={{width:i===current?18:6,height:6,borderRadius:i===current?"3px":"50%",background:i===current?C.gold:"rgba(255,255,255,0.4)",border:"none",cursor:"pointer",transition:"all 0.3s",padding:0}}/>
+        ))}
+      </div>
+      {/* Contenu */}
+      <div className="sok-hero-in" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",justifyContent:"flex-end",zIndex:1}}>
+        <div style={{fontSize:"11px",fontWeight:700,color:"#E0C680",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"10px",fontFamily:F}}>Immobilier · Afrique francophone</div>
+        <h1 style={{margin:"0 0 10px",color:C.white,fontFamily:FT,fontSize:"clamp(28px,4.8vw,52px)",fontWeight:300,lineHeight:1.08,letterSpacing:"-0.03em",textShadow:"0 2px 10px rgba(0,0,0,0.38)"}}>
+          Tout pour votre projet immobilier<br/><em style={{color:C.gold,fontStyle:"italic",fontWeight:300}}>en Afrique.</em>
+        </h1>
+        <p style={{margin:"0 0 22px",color:"rgba(255,255,255,0.78)",fontSize:"14px",fontFamily:F}}>Des annonces et des fiches professionnelles examinées avant publication. Pour avancer sur place ou à distance.</p>
+        <div className="sok-search" style={{background:C.light,borderRadius:"14px",boxShadow:"0 14px 40px rgba(0,0,0,0.34)",maxWidth:"760px",padding:"14px 14px 15px"}}>
+          <div style={{fontSize:"13px",fontWeight:700,color:C.cacao,fontFamily:F,marginBottom:"9px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
+          <div className="sok-search-row" style={{display:"flex",gap:"10px"}}>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:"10px",background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"0 15px",minWidth:0}}>
+              <span style={{color:C.terra,flexShrink:0,display:"flex"}}>{Icon.search}</span>
+              <input type="text" placeholder="Dakar, Abidjan, Sénégal..." value={search} onChange={e=>setSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSearch()} style={{flex:1,border:"none",outline:"none",fontSize:"17px",fontWeight:500,color:C.dark,background:"transparent",fontFamily:F,padding:"16px 0",minWidth:0}}/>
+            </div>
+            <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",borderRadius:"10px",padding:"0 30px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap",display:"flex",alignItems:"center",justifyContent:"center",gap:"9px",boxShadow:"0 5px 16px rgba(200,102,66,0.32)",minHeight:"58px"}}>
+              <span style={{display:"flex"}}>{Icon.searchSm}</span>Rechercher
+            </button>
+          </div>
+          <div className="sok-search-tags" style={{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap",alignItems:"center"}}>
+            <span style={{fontSize:"12.5px",color:C.sub,fontFamily:F}}>Populaire :</span>
+            {["Dakar","Abidjan","Douala","Terrain"].map(v=>(
+              <button key={v} onClick={()=>{setSearch(v);onSearch();}} style={{background:"transparent",border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 13px",fontSize:"12.5px",fontWeight:600,color:C.forest,cursor:"pointer",fontFamily:F}}>{v}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────
+
+
+// ─── ENCART PUBLICITAIRE ──────────────────────────
+function AdSlot({ onClick, style, className }) {
+  return (
+    <div className={className} style={{borderRadius:"14px",border:`2px solid ${C.gold}`,background:`linear-gradient(145deg,${C.light},${C.cream})`,padding:"21px 18px",textAlign:"center",boxShadow:"0 10px 26px rgba(58,41,35,0.09)",...style}}>
+      <div style={{fontSize:"10.5px",fontWeight:700,color:C.gold,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:F,marginBottom:"7px"}}>Publicité · Partenaire</div>
+      <div style={{fontFamily:FT,fontSize:"20px",fontWeight:500,color:C.cacao,marginBottom:"6px"}}>Présentez votre marque sur Sokilé</div>
+      <div style={{fontSize:"14px",color:C.sub,fontFamily:F,marginBottom:"14px",lineHeight:1.55}}>Adressez-vous aux personnes qui recherchent activement un bien immobilier en Afrique.</div>
+      <button onClick={onClick} style={{border:"none",cursor:"pointer",background:C.gold,color:C.cacao,borderRadius:"9px",padding:"11px 22px",fontSize:"14px",fontWeight:700,fontFamily:F}}>Découvrir les formats</button>
+    </div>
+  );
+}
+
+// ─── CARTES ET LECTURE DES GUIDES ─────────────────
+function GuideCard({ guide, onOpen }) {
+  return (
+    <article onClick={()=>onOpen(guide)} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",cursor:"pointer",boxShadow:"0 8px 24px rgba(28,26,23,0.06)",display:"flex",flexDirection:"column",minHeight:"220px"}}>
+      <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"20px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"12px"}}>
+        <div style={{fontSize:"31px",lineHeight:1}}>{guide.icon}</div>
+        <span style={{background:"rgba(201,168,76,0.14)",border:"1px solid rgba(201,168,76,0.34)",color:C.gold,borderRadius:"20px",padding:"4px 10px",fontSize:"10.5px",fontWeight:700,fontFamily:F}}>{guide.category}</span>
+      </div>
+      <div style={{padding:"17px",display:"flex",flexDirection:"column",flex:1}}>
+        <div style={{fontSize:"11px",color:C.terra,fontWeight:700,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:"7px"}}>{guide.country}</div>
+        <h3 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,lineHeight:1.3,margin:"0 0 8px"}}>{guide.title}</h3>
+        <p style={{fontSize:"13.5px",color:C.sub,fontFamily:F,lineHeight:1.55,margin:"0 0 15px",flex:1}}>{guide.excerpt}</p>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px",paddingTop:"12px",borderTop:`1px solid ${C.sand}`}}>
+          <span style={{fontSize:"11.5px",color:C.sub,fontFamily:F}}>{guideReadingTime(guide)} de lecture</span>
+          <span style={{fontSize:"12.5px",color:C.terra,fontWeight:700,fontFamily:F}}>Lire le guide →</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function GuidePage({ guide, onBack, onFindPro }) {
+  if (!guide) return <div style={{padding:"60px 20px",textAlign:"center",fontFamily:F}}>Guide introuvable. <button onClick={onBack}>Retour</button></div>;
+  return <article>
+    <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"34px 20px",borderBottom:`3px solid ${C.gold}`}}>
+      <button onClick={onBack} style={{background:"none",border:0,color:"rgba(255,255,255,.75)",cursor:"pointer",fontFamily:F,padding:0,marginBottom:18}}>← Tous les guides</button>
+      <div style={{fontSize:12,color:C.gold,fontWeight:700,fontFamily:F,textTransform:"uppercase",letterSpacing:".12em",marginBottom:10}}>{guide.category} · {guide.country}</div>
+      <h1 style={{fontFamily:FT,fontSize:"clamp(30px,6vw,48px)",fontWeight:400,color:C.white,lineHeight:1.12,maxWidth:820,margin:"0 0 14px"}}>{guide.title}</h1>
+      <p style={{color:"rgba(255,255,255,.76)",fontSize:16,fontFamily:F,lineHeight:1.7,maxWidth:760,margin:"0 0 12px"}}>{guide.excerpt}</p>
+      <div style={{color:"rgba(255,255,255,.55)",fontSize:13,fontFamily:F}}>{guideReadingTime(guide)} de lecture · Mis à jour le {guide.updatedAt}</div>
+    </div>
+    <div style={{maxWidth:800,margin:"0 auto",padding:"30px 20px 10px"}}>
+      <p style={{fontFamily:F,fontSize:17,color:C.muted,lineHeight:1.85,margin:"0 0 30px",fontWeight:500}}>{guide.intro}</p>
+      {guide.sections.map((section,i)=><section key={section.title} style={{marginBottom:30}}>
+        <div style={{display:"flex",gap:13,alignItems:"flex-start"}}><span style={{width:31,height:31,borderRadius:"50%",background:C.gold,color:C.forestDark,display:"inline-flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontFamily:F,flexShrink:0}}>{i+1}</span><div>
+          <h2 style={{fontFamily:FT,fontSize:24,fontWeight:500,color:C.dark,margin:"0 0 9px"}}>{section.title}</h2>
+          <p style={{fontFamily:F,fontSize:15.5,color:C.muted,lineHeight:1.82,margin:0}}>{section.text}</p>
+          {section.bullets?.length>0&&<ul style={{fontFamily:F,color:C.muted,lineHeight:1.75,paddingLeft:20}}>{section.bullets.map(x=><li key={x}>{x}</li>)}</ul>}
+        </div></div>
+      </section>)}
+      {guide.checklist?.length>0&&<section style={{background:C.white,border:`1px solid ${C.sand}`,borderLeft:`5px solid ${C.gold}`,borderRadius:12,padding:20,margin:"6px 0 22px"}}><h2 style={{fontFamily:FT,color:C.dark,margin:"0 0 12px"}}>Checklist à conserver</h2>{guide.checklist.map(x=><div key={x} style={{fontFamily:F,color:C.muted,margin:"8px 0"}}>✓ {x}</div>)}</section>}
+      <div style={{background:C.cream,border:`1px solid ${C.sand}`,borderRadius:12,padding:16,fontSize:13,color:C.sub,fontFamily:F,lineHeight:1.65}}>Information générale : les règles et documents diffèrent selon le pays et le dossier. Faites confirmer les étapes par un professionnel compétent et indépendant.</div>
+      <button onClick={onFindPro} style={{width:"100%",marginTop:16,background:C.forest,color:C.white,border:0,borderRadius:9,padding:14,fontWeight:700,cursor:"pointer",fontFamily:F}}>Trouver un prestataire</button>
+    </div>
+  </article>;
+}
+
+function GuideModal({ guide, onClose, onFindPro }) {
+  if (!guide) return null;
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(13,32,25,0.78)",zIndex:250,display:"flex",alignItems:"center",justifyContent:"center",padding:"18px"}}>
+      <article onClick={e=>e.stopPropagation()} style={{width:"min(720px,100%)",maxHeight:"90vh",overflowY:"auto",background:C.cream,borderRadius:"16px",boxShadow:"0 24px 70px rgba(0,0,0,0.35)"}}>
+        <div style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,padding:"24px",position:"relative"}}>
+          <button onClick={onClose} aria-label="Fermer" style={{position:"absolute",top:"14px",right:"14px",width:"34px",height:"34px",borderRadius:"50%",border:"1px solid rgba(255,255,255,0.25)",background:"rgba(255,255,255,0.08)",color:C.white,fontSize:"20px",cursor:"pointer"}}>×</button>
+          <div style={{fontSize:"11px",color:C.gold,fontWeight:700,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"10px"}}>{guide.category} · {guide.country}</div>
+          <h2 style={{fontFamily:FT,fontSize:"clamp(25px,5vw,38px)",fontWeight:400,color:C.white,lineHeight:1.15,margin:"0 42px 10px 0"}}>{guide.title}</h2>
+          <p style={{color:"rgba(255,255,255,0.68)",fontSize:"14px",fontFamily:F,lineHeight:1.6,margin:0}}>{guide.excerpt}</p>
+        </div>
+        <div style={{padding:"24px"}}>
+          {guide.sections.map((section,i)=>(
+            <section key={section.title} style={{display:"grid",gridTemplateColumns:"34px minmax(0,1fr)",gap:"12px",marginBottom:"22px"}}>
+              <div style={{width:"30px",height:"30px",borderRadius:"50%",background:C.gold,color:C.forestDark,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:"13px",fontFamily:F}}>{i+1}</div>
+              <div>
+                <h3 style={{fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,margin:"1px 0 6px"}}>{section.title}</h3>
+                <p style={{fontFamily:F,fontSize:"14px",color:C.muted,lineHeight:1.7,margin:0}}>{section.text}</p>
+              </div>
+            </section>
+          ))}
+          <div style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"12px",padding:"15px",fontSize:"12.5px",color:C.sub,fontFamily:F,lineHeight:1.6,marginTop:"4px"}}>
+            Ce guide fournit des informations générales. Les démarches et documents peuvent varier selon le pays et la situation du bien : faites confirmer votre dossier par un professionnel compétent.
+          </div>
+          <button onClick={()=>{onClose();onFindPro();}} style={{width:"100%",marginTop:"16px",background:C.forest,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Trouver un prestataire</button>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function BrandLogo({footer=false}) {
+  return <span className={`sok-brand${footer?' sok-brand-footer':''}`} role="img" aria-label="Sokilé"><span className="sok-brand-mark"/><span className="sok-brand-word"/></span>;
+}
+
+// ─── PIED DE PAGE ─────────────────────────────────
+function SiteFooter({ onNav, onPub }) {
+  const link = {color:"rgba(255,255,255,0.72)",fontSize:"14px",fontFamily:F,textDecoration:"none",cursor:"pointer",background:"none",border:"none",padding:0,textAlign:"left",lineHeight:1.9,display:"block"};
+  return (
+    <footer style={{background:`linear-gradient(145deg,${C.cacao},#251A16)`,borderTop:`3px solid ${C.gold}`,marginTop:"32px",padding:"34px 20px calc(96px + env(safe-area-inset-bottom))"}}>
+      <div style={{maxWidth:"1200px",margin:"0 auto",display:"flex",flexWrap:"wrap",gap:"30px 48px"}}>
+        <div style={{flex:"1 1 220px",minWidth:0}}>
+          <BrandLogo footer/>
+          <div style={{fontSize:"14px",color:"rgba(255,255,255,0.6)",fontFamily:F,marginTop:"10px",lineHeight:1.65,maxWidth:"320px"}}>
+            Le réflexe immobilier en Afrique francophone.
+          </div>
+        </div>
+        <div style={{flex:"0 1 150px"}}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Naviguer</div>
+          <a href="/about.html" style={link}>Qui sommes-nous</a>
+          <button onClick={()=>onNav("biens")} style={link}>Voir les annonces</button>
+          <button onClick={()=>onNav("prestataires")} style={link}>Trouver un prestataire</button>
+          <button onClick={()=>onNav("guides")} style={link}>Consulter les guides</button>
+          <button onClick={onPub} style={link}>Publier un bien</button>
+        </div>
+        <div style={{flex:"0 1 165px"}}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Informations</div>
+          <a href="/mentions%20legales.html" style={link}>Mentions légales</a>
+          <a href="/verification-professionnels" style={link}>Vérifications professionnelles</a>
+          <a href="/confidentialites.html" style={link}>Confidentialité</a>
+          <a href="/cgu.html" style={link}>Conditions d&apos;utilisation</a>
+        </div>
+        <div style={{flex:"0 1 200px"}}>
+          <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Nous contacter</div>
+          <a href={`mailto:${CONTACT_MAIL}`} style={{...link,color:"#E8A07E",fontWeight:600,wordBreak:"break-word"}}>{CONTACT_MAIL}</a>
+          <a href="https://www.sokile.com" style={link}>www.sokile.com</a>
+          <p style={{fontSize:"14px",lineHeight:1.6,color:"rgba(255,255,255,0.85)",fontFamily:F,margin:"14px 0 8px"}}>Un problème technique ou une suggestion pour améliorer Sokilé ? Faites-nous-en part par email.</p>
+          <a href={`mailto:${CONTACT_MAIL}?subject=Retour%20sur%20Sokil%C3%A9`} style={{...link,color:"#E8A07E",fontWeight:600,textDecoration:"underline"}}>Signaler un problème ou proposer une amélioration</a>
+        </div>
+      </div>
+      <SocialLinks/>
+      <div style={{maxWidth:"1200px",margin:"26px auto 0",paddingTop:"18px",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",flexWrap:"wrap",gap:"8px 18px",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>© 2026 Sokilé — Tous droits réservés</div>
+        <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Sokilé met en relation et n&apos;intervient pas dans les transactions</div>
+      </div>
+      <button type="button" data-sokile-cookies className="sokile-cookie-link" style={{color:"rgba(255,255,255,.8)"}}>Gérer les cookies</button>
+    </footer>
+  );
+}
+
+const ETATS_DOSSIER = {
+  en_cours:{label:"En discussion",color:"#8A6116",bg:"#FFF4D6"},
+  acceptee:{label:"Acceptée",color:C.success,bg:C.successBg},
+  expiree:{label:"Expirée",color:"#934C13",bg:"#FFF0E4"},
+  en_attente:{label:"En attente de validation",color:"#8A6116",bg:"#FFF4D6"},
+  validee:{label:"Publiée",color:C.success,bg:C.successBg},
+  publiee:{label:"Publiée",color:C.success,bg:C.successBg},
+  refusee:{label:"Suite à donner",color:"#9B2C2C",bg:"#FDE8E8"},
+  rejetee:{label:"Suite à donner",color:"#9B2C2C",bg:"#FDE8E8"},
+  modifications_demandees:{label:"Modifications demandées",color:"#934C13",bg:"#FFF0E4"},
+};
+
+function MesAnnonces({ user, refreshKey, onEdit }) {
+  const [evidenceProperty,setEvidenceProperty]=useState(null);
+  const [rows,setRows]=useState([]), [loading,setLoading]=useState(true), [error,setError]=useState("");
+  useEffect(()=>{
+    let actif=true; setLoading(true); setError("");
+    lire("properties",`select=*&owner_id=eq.${user.id}&order=created_at.desc,id.desc`,user.token).then(r=>{if(!actif)return;if(r.ok)setRows(r.data||[]);else setError(messageErreur(r));setLoading(false);}).catch(()=>{if(actif){setError("Impossible de charger vos annonces.");setLoading(false);}});
+    return ()=>{actif=false};
+  },[user.token,refreshKey]);
+  return <section style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}>
+    <div style={{fontSize:15,fontWeight:700,color:C.dark,fontFamily:F,marginBottom:10}}>Mes annonces <span style={{color:C.sub,fontWeight:400}}>({rows.length})</span></div>
+    {loading&&<div style={{fontFamily:F,color:C.sub,fontSize:13}}>Chargement…</div>}
+    {error&&<BandeauErreur texte={error}/>} 
+    {!loading&&!error&&rows.length===0&&<div style={{fontFamily:F,color:C.sub,fontSize:13,lineHeight:1.5}}>Vous n'avez pas encore déposé d'annonce.</div>}
+    {evidenceProperty&&<ModalShell title="Justificatifs privés" subtitle={evidenceProperty.title} onClose={()=>setEvidenceProperty(null)}><IndividualPanel key={evidenceProperty.id} api={individualVerificationApi} user={user} property={evidenceProperty}/></ModalShell>}
+    <div style={{display:"grid",gap:9}}>{rows.map(p=>{const etat=ETATS_DOSSIER[isExpired(p)?"expiree":p.status]||ETATS_DOSSIER.en_attente;return <div key={p.id} style={{border:`1px solid ${C.sand}`,borderRadius:9,padding:10,display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
+      <div style={{width:58,height:48,borderRadius:7,background:C.cream,overflow:"hidden",flexShrink:0}}>{p.photos?.[0]&&<img src={p.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontFamily:F,fontSize:14,fontWeight:700,color:C.dark,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.title}</div><span style={{display:"inline-block",marginTop:4,background:etat.bg,color:etat.color,fontSize:11,fontWeight:700,borderRadius:20,padding:"3px 8px",fontFamily:F}}>{etat.label}</span>{p.expires_at&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5}}>{isExpired(p)?"Retirée de la recherche le":"Expiration le"} {dateCourte(p.expires_at)}</div>}{(p.moderation_note||p.motif_rejet)&&<div style={{fontFamily:F,fontSize:12,color:C.sub,marginTop:5,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>Réponse de Sokilé : {p.moderation_note||p.motif_rejet}</div>}</div>
+      {p.advertiser_type!=="pro"&&<button type="button" onClick={()=>setEvidenceProperty(p)} style={{border:`1px solid ${C.forest}`,borderRadius:7,padding:8,cursor:"pointer"}}>Justificatifs privés</button>}
+      <button onClick={()=>onEdit(p)} style={{border:`1px solid ${C.terra}`,background:C.white,color:C.terra,borderRadius:7,padding:"7px 10px",fontWeight:700,cursor:"pointer",fontFamily:F}}>{isExpired(p)?"Renouveler":"Modifier"}</button>
+    </div>})}</div>
+    <p style={{fontFamily:F,fontSize:12,color:C.sub,lineHeight:1.5,margin:"10px 0 0"}}>Toute modification ou demande de renouvellement repasse en validation. Après validation : 6 mois pour une location, 1 an pour une vente.</p>
+  </section>;
+}
+
+function MesDemandesPro({user,refreshKey,onEditService,onEditPub,showEmpty=false}) {
+  const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[retry,setRetry]=useState(0);
+  useEffect(()=>{
+    let active=true;setLoading(true);setError('');setItems([]);
+    Promise.all([lire("professionals",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token),lire("advertising_requests",`select=*&owner_id=eq.${user.id}&order=created_at.desc`,user.token)]).then(([a,b])=>{
+      if(!active)return;
+      if(!a.ok||!b.ok)throw Error('Impossible de charger vos demandes professionnelles.');
+      setItems([...(a.data||[]).map(x=>({...x,kind:"Annuaire",title:x.business_name})),...(b.data||[]).map(x=>({...x,kind:"Publicité",title:x.company||x.format}))]);
+    }).catch(()=>{if(active)setError('Impossible de charger vos demandes professionnelles.');}).finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[user.id,user.token,refreshKey,retry]);
+  if(loading)return showEmpty?<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement de vos demandes professionnelles…</p>:null;
+  if(error)return <div><BandeauErreur texte={error}/><button onClick={()=>setRetry(x=>x+1)}>Réessayer</button></div>;
+  return <>{[
+    {kind:'Annuaire',heading:'Ma présence dans l’annuaire',empty:'Aucune fiche pour le moment. Utilisez « Rejoindre l’annuaire » pour présenter votre activité.'},
+    {kind:'Publicité',heading:'Mes demandes publicitaires',empty:'Les tarifs sont consultables via « Publicité et mise en lumière ». Les services payants ne sont pas encore ouverts.'},
+  ].map(group=>{
+    const rows=items.filter(x=>x.kind===group.kind);
+    if(!showEmpty&&!rows.length)return null;
+    return <section key={group.kind} style={{background:C.white,borderRadius:10,padding:14,border:`1px solid ${C.sand}`}}>
+      <h2 style={{fontFamily:F,fontSize:15,fontWeight:700,color:C.dark,margin:'0 0 9px'}}>{group.heading}</h2>
+      {!rows.length&&<p style={{fontFamily:F,fontSize:13,color:C.sub,lineHeight:1.6,margin:0}}>{group.empty}</p>}
+      <div style={{display:'grid',gap:7}}>{rows.map(x=>{
+        const expiredDirectory=x.kind==='Annuaire'&&x.status==='validee'&&!(Date.parse(x.directory_valid_until)>Date.now());
+        const e=expiredDirectory?{label:'À renouveler — fiche masquée',color:C.terra,bg:C.cream}:ETATS_DOSSIER[x.status]||{label:x.status,color:C.sub,bg:C.cream};
+        return <div key={x.id} style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:10,borderTop:`1px solid ${C.sand}`,paddingTop:8}}>
+          <div><div style={{fontFamily:F,fontSize:14,color:C.dark}}>{x.title}</div>{x.kind==='Annuaire'&&x.directory_valid_until&&<div style={{fontFamily:F,fontSize:12,color:C.sub}}>Échéance du contrôle : {dateCourte(x.directory_valid_until)}</div>}{x.moderation_note&&<div style={{fontFamily:F,fontSize:12,color:C.sub,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>Réponse de Sokilé : {x.moderation_note}</div>}</div>
+          <span style={{alignSelf:'start',background:e.bg,color:e.color,borderRadius:20,padding:'3px 8px',fontFamily:F,fontSize:11,fontWeight:700}}>{e.label}</span>
+          {(x.kind==='Annuaire'||['refusee','modifications_demandees','en_attente'].includes(x.status))&&<button onClick={()=>x.kind==='Annuaire'?onEditService(x):onEditPub(x)} style={{alignSelf:'start',border:`1px solid ${C.terra}`,borderRadius:7,background:C.white,color:C.terra,padding:'7px 10px',fontFamily:F,cursor:'pointer'}}>{x.kind==='Annuaire'&&x.status==='validee'?'Modifier ou renouveler ma fiche':'Compléter ma demande'}</button>}
+        </div>;
+      })}</div>
+    </section>;
+  })}</>;
+}
+
+export default function App() {
+  const token=new URLSearchParams(window.location.search).get("annuler_alerte");
+  return token!==null?<CancelAlertPage token={token} rpc={alertRpc}/>:<SokileApp/>;
+}
+
+function SokileApp() {
+  const [adPreview] = useState(()=>previewOffer(window.location.search));
+  const [tab, setTab] = useState(() => {
+    if(window.location.pathname.startsWith("/programme"))return "biens";
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    return ["accueil","biens","prestataires","guides","pro","compte"].includes(requested) ? requested : "accueil";
+  });
+  const [user, setUser] = useState(() => lireLocal(CLE_SESSION, null));
+  const [selectedProp, setSelectedProp] = useState(null);
+  const [route, setRoute] = useState(lireRoute);
+  const [sousOnglet, setSousOnglet] = useState("guides");
+  useEffect(() => {
+    const name = route.nom !== "accueil" ? route.nom : tab === "guides" ? sousOnglet : tab;
+    window.sokileAnalytics?.page(name, route.id);
+  }, [tab, sousOnglet, route.nom, route.id]);
+  const [simulation, setSimulation] = useState(initialSimulation);
+  const [signupCallback] = useState(()=>window.location.hash);
+  useEffect(()=>{
+    const hash=new URLSearchParams(signupCallback.slice(1));
+    if(hash.get("type")!=="signup"||!hash.get("access_token")||!hash.get("refresh_token"))return;
+    let active=true;
+    const access=hash.get("access_token"),refresh=hash.get("refresh_token"),expires=Number(hash.get("expires_in"))||3600;
+    window.history.replaceState({},"",window.location.pathname+window.location.search);
+    fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${access}`}}).then(async res=>{
+      if(!res.ok)throw new Error();const confirmed=await res.json();
+      const session=userSessionFromAuth({user:confirmed,access_token:access,refresh_token:refresh,expires_in:expires});
+      if(active&&session){setUser(session);if(cleanGift(session.gift_project)){window.history.replaceState({},"","/cadeau");setRoute({nom:"cadeau"});}}
+    }).catch(()=>{if(active)setShowLogin(true)});
+    return()=>{active=false};
+  },[]);
+
+  // Aperçu : "" = vue administratrice, sinon "particulier" | "pro" | "visiteur"
+  const [apercu, setApercu] = useState("");
+  const [filterCountry, setFilterCountry] = useState("Tous");
+  const [filterTransaction, setFilterTransaction] = useState("tous");
+  const [filterNature, setFilterNature] = useState("Tous");
+  const [filterPriceMin, setFilterPriceMin] = useState("");
+  const [filterPriceMax, setFilterPriceMax] = useState("");
+  const [filterSurfaceMin, setFilterSurfaceMin] = useState("");
+  const [filterSurfaceMax, setFilterSurfaceMax] = useState("");
+  const [filterRooms, setFilterRooms] = useState("Tous");
+  const [filterEquipements, setFilterEquipements] = useState([]);
+  const [filterRegion, setFilterRegion] = useState("Tous");
+  const [sortBy, setSortBy] = useState("recent");
+  const [search, setSearch] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
+  const [showPartner, setShowPartner] = useState(false);
+  const [showBulkImport,setShowBulkImport]=useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [giftSignup,setGiftSignup]=useState(null);
+  const [showLogin, setShowLogin] = useState(() => Boolean(authCallbackState(window.location.hash)));
+  const [partnerType, setPartnerType] = useState(null);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [savedProps, setSavedProps] = useState(() => lireLocal(CLE_FAVORIS, []));
+  const [animIn, setAnimIn] = useState(true);
+  const [showPub, setShowPub] = useState(false);
+  const [dbProps, setDbProps] = useState([]);
+  const [propsLoading,setPropsLoading]=useState(true),[propsError,setPropsError]=useState(false);
+  const [clock,setClock]=useState(Date.now());
+  const [directProp,setDirectProp]=useState(null),[directLoading,setDirectLoading]=useState(false),[directError,setDirectError]=useState(false);
+  const [alertsRefresh,setAlertsRefresh]=useState(0);
+  const [programEditor,setProgramEditor]=useState(null),[programRefresh,setProgramRefresh]=useState(0);
+  useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),30000);return()=>clearInterval(timer);},[]);
+  const [editingProp,setEditingProp] = useState(null);
+  const [myPropsRefresh,setMyPropsRefresh] = useState(0);
+  const [editingService,setEditingService]=useState(null),[editingPub,setEditingPub]=useState(null),[proRefresh,setProRefresh]=useState(0);
+  const [annFilter, setAnnFilter] = useState({spec:"Tous",pays:"Tous"});
+  const openAnnuaire = (spec="Tous",pays="Tous") => { setAnnFilter({spec,pays}); setSelectedProp(null); switchTab("prestataires"); };
+  useEffect(()=>{if(showServiceForm&&!user){setShowServiceForm(false);setShowLogin(true)}},[showServiceForm,user]);
+
+  // Keep open tabs authenticated, including after phone sleep or network recovery.
+  useEffect(()=>{
+    if (!user) return;
+    if (!user.refresh_token) { setUser(null); return; }
+    return watchSession({session:user, refresh:refreshSession, events:window, page:document,
+      onResult:(requestedToken,data)=>setUser(current=>applySessionRefresh(current,requestedToken,data))});
+  }, [user?.refresh_token,user?.expires_at]);
+  useEffect(()=>{
+    const sync = event => {
+      if (event.key !== CLE_SESSION) return;
+      try { setUser(event.newValue ? JSON.parse(event.newValue) : null); } catch { /* Ignore corrupt storage. */ }
+    };
+    window.addEventListener('storage',sync);
+    return()=>window.removeEventListener('storage',sync);
+  },[]);
+
+  // La base retire les annonces expirées, l'interface suit aussi l'échéance si elle reste ouverte.
+  const mapProperty = r => ({...r,id:`db-${r.id}`,price_eur:r.price_eur||0,price:r.price||0,features:r.tags||[],tags:r.tags||[],photos:Array.isArray(r.photos)?r.photos:[],bg:`linear-gradient(135deg,${C.forestMid},${C.forest})`,verified:Boolean(r.verified),agent_name:r.agency_name||r.agent_name||r.user_name||"Particulier"});
+  useEffect(()=>{
+    let active=true;
+    readAllProperties(lire,()=>active).then(rows=>{if(active)setDbProps(rows.map(mapProperty));}).catch(()=>{if(active)setPropsError(true);}).finally(()=>{if(active)setPropsLoading(false);});
+    return()=>{active=false;};
+  },[]);
+  useEffect(()=>{
+    let active=true;setDirectProp(null);setDirectError(false);
+    if(route.nom!=="annonce"){setDirectLoading(false);return;}
+    const id=route.id.replace(/^db-/,"");
+    if(!/^\d+$/.test(id)){setDirectLoading(false);return;}
+    setDirectLoading(true);
+    lire("public_properties",`select=*&id=eq.${id}&limit=1`).then(r=>{if(!active)return;if(!r.ok)throw new Error();setDirectProp(r.data?.[0]?mapProperty(r.data[0]):null);}).catch(()=>{if(active)setDirectError(true);}).finally(()=>{if(active)setDirectLoading(false);});
+    return()=>{active=false;};
+  },[route.nom,route.id]);
+  const ALL_PROPS = dbProps.filter(p=>p.expires_at&&new Date(p.expires_at).getTime()>clock);
+  const comptesPays = ALL_PROPS.reduce((acc,p)=>{acc[p.country]=(acc[p.country]||0)+1;return acc;},{});
+
+  // Pendant un aperçu, le reste du site voit un utilisateur transformé.
+  // La vraie session reste intacte : seules les vues changent.
+  const vu = !apercu ? user
+    : apercu === "visiteur" ? null
+    : {...user, email:`apercu-${apercu}@sokile.com`, account_type:apercu, agency:apercu==="pro"?(user?.agency||"Votre agence"):""};
+
+  const programPublisher = canManagePrograms(vu, EMAIL_REDACTION);
+
+  // Le bouton Retour du navigateur ramène à la liste
+  useEffect(()=>{
+    const onPop = () => setRoute(lireRoute());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Ouvrir une annonce : nouvelle adresse, nouvelle entrée dans l'historique
+  const ouvrirAnnonce = (p) => {
+    if (!p) return;
+    window.history.pushState({}, "", cheminAnnonce(p));
+    setRoute({ nom:"annonce", id: idPublic(p) });
+    window.scrollTo(0,0);
+  };
+  const quitterAnnonce = () => {
+    window.history.pushState({}, "", "/");
+    setRoute({ nom:"accueil" });
+  };
+  const ouvrirGuide = (g) => { window.history.pushState({},"",cheminGuide(g)); setRoute({nom:"guide",id:g.id}); window.scrollTo(0,0); };
+  const quitterGuide = () => { window.history.pushState({},"","/"); setRoute({nom:"accueil"}); setTab("guides"); window.scrollTo(0,0); };
+
+  // On garde session et favoris d'une visite à l'autre
+  useEffect(()=>{ user ? ecrireLocal(CLE_SESSION, user) : effacerLocal(CLE_SESSION); }, [user]);
+  useEffect(()=>{ ecrireLocal(CLE_FAVORIS, savedProps); }, [savedProps]);
+
+  // Les natures réellement présentes dans les annonces affichables, groupées par famille.
+  const naturesDispo = FAMILLES.map(fam => [fam, Object.entries(NATURES).filter(([,n])=>n.famille===fam)]);
+  const rooms = ["Tous","1+","2+","3+","4+","5+"];
+  const sorts = [{id:"recent",label:"Plus récent"},{id:"price_asc",label:"Prix ↑"},{id:"price_desc",label:"Prix ↓"},{id:"surface_asc",label:"Surface ↑"},{id:"surface_desc",label:"Surface ↓"}];
+
+  // Ce qui est actif est rappelé sous la barre, et se retire d'un clic.
+  const rappels = [
+    filterTransaction!=="tous" && {cle:"tr",   texte:filterTransaction==="vente"?"À vendre":"À louer", retirer:()=>setFilterTransaction("tous")},
+    filterRegion!=="Tous"      && {cle:"reg",  texte:filterRegion,  retirer:()=>setFilterRegion("Tous")},
+    filterCountry!=="Tous"     && {cle:"pays", texte:filterCountry, retirer:()=>setFilterCountry("Tous")},
+    filterNature!=="Tous"      && {cle:"nat",  texte:NATURES[filterNature]?.label||filterNature, retirer:()=>setFilterNature("Tous")},
+    (filterPriceMin||filterPriceMax) && {cle:"prix", texte:`${filterPriceMin?fmtEUR(+filterPriceMin):"0 €"} – ${filterPriceMax?fmtEUR(+filterPriceMax):"sans limite"}`, retirer:()=>{setFilterPriceMin("");setFilterPriceMax("");}},
+    (filterSurfaceMin||filterSurfaceMax) && {cle:"surf", texte:`${filterSurfaceMin||0} – ${filterSurfaceMax||"…"} m²`, retirer:()=>{setFilterSurfaceMin("");setFilterSurfaceMax("");}},
+    filterRooms!=="Tous"       && {cle:"pieces", texte:`${filterRooms} pièces`, retirer:()=>setFilterRooms("Tous")},
+    ...filterEquipements.map(eq=>({cle:"eq-"+eq, texte:eq, retirer:()=>toggleEquipement(eq)})),
+  ].filter(Boolean);
+
+  const toggleEquipement = eq => setFilterEquipements(prev=>prev.includes(eq)?prev.filter(e=>e!==eq):[...prev,eq]);
+  const resetFilters = () => { setFilterCountry("Tous"); setFilterTransaction("tous"); setFilterNature("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setSortBy("recent"); setSearch(""); };
+
+  const activeFiltersCount = [filterCountry!=="Tous",filterTransaction!=="tous",filterNature!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0].filter(Boolean).length;
+  const filteredCountries = filterRegion==="Tous"?COUNTRIES_ANNONCES:COUNTRIES_ANNONCES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
+  const paysActifs = filteredCountries.filter(c=>comptesPays[c.name]>0);
+
+  let filtered = ALL_PROPS.filter(p=>{
+    const mc=filterCountry==="Tous"||p.country===filterCountry;
+    const mr=filterRegion==="Tous"||filteredCountries.map(c=>c.name).includes(p.country);
+    const mt=filterNature==="Tous"||natureDe(p)===filterNature;
+    const mtr=filterTransaction==="tous"||transactionDe(p)===filterTransaction;
+    const q=sansAccent(search);
+    const ms=!q||[p.title,p.city,p.country,p.neighborhood,p.description,p.agency_name,libelleNature(p),libelleTransaction(p),...(p.tags||[])].some(s=>sansAccent(s).includes(q));
+    const mpMin=!filterPriceMin||p.price_eur>=parseInt(filterPriceMin);
+    const mpMax=!filterPriceMax||p.price_eur<=parseInt(filterPriceMax);
+    const msMin=!filterSurfaceMin||(p.surface&&p.surface>=parseInt(filterSurfaceMin));
+    const msMax=!filterSurfaceMax||(p.surface&&p.surface<=parseInt(filterSurfaceMax));
+    const mrm=filterRooms==="Tous"||(p.rooms&&p.rooms>=parseInt(filterRooms));
+    const meq=filterEquipements.length===0||filterEquipements.every(eq=>p.features?.includes(eq));
+    return mc&&mr&&mt&&mtr&&ms&&mpMin&&mpMax&&msMin&&msMax&&mrm&&meq;
+  });
+  // "Plus récent" : les vraies annonces d'abord, puis par date de dépôt
+  const quand = (x) => x.created_at ? new Date(x.created_at).getTime() : 0;
+  const estReelle = (x) => !x.demo;
+  filtered=[...filtered].sort((a,b)=>{
+    if (sortBy==="price_asc")    return (a.price_eur||0)-(b.price_eur||0);
+    if (sortBy==="price_desc")   return (b.price_eur||0)-(a.price_eur||0);
+    if (sortBy==="surface_asc")  return (a.surface||0)-(b.surface||0);
+    if (sortBy==="surface_desc") return (b.surface||0)-(a.surface||0);
+    if (estReelle(a)!==estReelle(b)) return estReelle(a) ? -1 : 1;
+    return quand(b)-quand(a);
+  });
+
+  const switchTab = t=>{
+    if (typeof window!=="undefined" && window.location.pathname!=="/") {
+      window.history.pushState({}, "", "/");
+      setRoute({nom:"accueil"});
+    }
+    setAnimIn(false); setTimeout(()=>{setTab(t);setAnimIn(true);},150);
+  };
+  const openBudget = p => {
+    setSimulation(simulationFromListing(p));
+    setSelectedProp(null); setSousOnglet("outils"); switchTab("guides");
+    window.scrollTo(0,0);
+  };
+  const openProgram=id=>{window.history.pushState({},"",`/programme/${id}`);setRoute({nom:"programme",id});setTab("biens");window.scrollTo(0,0);};
+  const openPrograms=()=>{window.history.pushState({},"","/programmes-neufs");setRoute({nom:"programmes"});setTab("biens");window.scrollTo(0,0);};
+  const newProgram=()=>{if(programPublisher)setProgramEditor({});};
+  const editProgram=p=>{if(programPublisher)setProgramEditor(p);};
+  const handleSave = (p) => {
+    if (!user) { setShowLogin(true); return; }
+    setSavedProps(prev => prev.find(s=>s.id===p.id) ? prev.filter(s=>s.id!==p.id) : [...prev, p]);
+  };
+
+  // Bandeau complet : toutes les rubriques historiques restent visibles.
+  const NAV = [
+    {id:"accueil",label:"Accueil",icon:Icon.home},
+    {id:"biens",label:"Biens",icon:Icon.search},
+    {id:"prestataires",label:"Prestataires",icon:Icon.group},
+    {id:"guides",label:"Conseils",icon:Icon.book},
+    {id:"pro",label:"Espace pro",icon:Icon.briefcase},
+    {id:"compte",label:"Compte",icon:Icon.person},
+  ];
+  // L'onglet d'administration n'apparaît que pour le compte de gestion,
+  // et disparaît pendant un aperçu — c'est tout l'intérêt de l'aperçu.
+  if (estAdmin(user) && !apercu) NAV.push({id:"admin",label:"Gestion",icon:Icon.briefcase});
+
+  // Cinq entrées seulement sur mobile pour conserver des libellés lisibles.
+  const MOBILE_NAV = NAV.filter(n=>n.id!=="pro");
+
+  const inputBase = {border:`1px solid ${C.sand}`,borderRadius:"9px",padding:"11px 13px",fontSize:"15px",outline:"none",color:C.dark,fontFamily:F};
+  const chipBase = (active) => ({background:active?C.forest:C.white,color:active?C.white:C.dark,border:`1px solid ${active?C.forest:C.sand}`,borderRadius:"22px",padding:"9px 16px",fontSize:"14px",fontWeight:active?700:500,cursor:"pointer",fontFamily:F,transition:"all 0.15s"});
+
+  return (
+    <div style={{minHeight:"100vh",background:C.cream,fontFamily:F,overflowX:"hidden",display:"flex",flexDirection:"column"}}>
+      <style>{`
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{margin:0;line-height:1.55}
+button,input,select,textarea{font-size:inherit}
+
+.sok-newsbar{width:100%;border:0;background:#10271F;color:#fff;min-height:42px;
+  padding:8px max(16px,calc(50vw - 590px));display:flex;align-items:center;gap:12px;
+  cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;border-bottom:1px solid rgba(201,168,76,.32)}
+.sok-newsbar-label{display:flex;align-items:center;gap:7px;color:#E0C680;font-size:12px;
+  font-weight:800;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.sok-newsbar-label i{width:7px;height:7px;border-radius:50%;background:#E8A07E;box-shadow:0 0 0 5px rgba(232,160,126,.12)}
+.sok-newsbar-story{min-width:0;flex:1;display:flex;gap:9px;align-items:center;font-size:13.5px;
+  animation:sokNewsIn .35s ease-out;white-space:nowrap;overflow:hidden}
+.sok-newsbar-story b{color:#E8A07E;flex-shrink:0}.sok-newsbar-story span{overflow:hidden;text-overflow:ellipsis}
+.sok-newsbar-date{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap}.sok-newsbar-arrow{color:#E0C680;font-size:18px}
+@keyframes sokNewsIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.sok-home-actions{display:grid;grid-template-columns:1fr;gap:14px;margin:0 0 26px}
+.sok-home-explore{display:grid;grid-template-columns:1fr;gap:14px;margin:0 0 28px}
+.sok-home-lower{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:18px}
+
+/* le carrousel prend toute la largeur de l'écran */
+.sok-bleed{width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}
+.sok-hero{height:400px}
+.sok-hero-in{padding:20px 20px 24px}
+
+/* la grille d'annonces */
+.sok-grid{display:grid;grid-template-columns:1fr;gap:16px}
+.sok-guide-grid{display:grid;grid-template-columns:1fr;gap:16px}
+
+/* la barre de recherche */
+.sok-search-row{flex-direction:column}
+@media(min-width:560px){.sok-search-row{flex-direction:row}}
+@media(max-width:520px){.sok-search-tags{display:none!important}}
+@media(max-width:520px){.sok-search{padding:14px 13px 15px!important}}
+.sok-card-img{height:200px}
+
+
+/* ─── L'ESPACE DE RECHERCHE ───────────────────────────────
+   Une barre unique, des filtres qui ne s'imposent que si on les
+   demande, et des rappels de ce qui est actif. Tout tient sur une
+   ligne dès qu'il y a la place. */
+.sok-recherche{position:sticky;top:78px;z-index:40;background:#F5F0E8;
+  padding:12px 0 10px;margin:0 -2px 4px;transition:box-shadow .25s}
+.sok-rech-haut{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+
+/* Acheter / Louer / Tout */
+.sok-segment{display:inline-flex;background:#FFFFFF;border:1px solid #E8DFD0;
+  border-radius:12px;padding:3px;gap:2px;flex-shrink:0}
+.sok-segment button{border:none;background:transparent;color:#1C1A17;
+  border-radius:9px;padding:9px 17px;font-size:14.5px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;
+  transition:background .18s,color .18s}
+.sok-segment button:hover{background:#F5F0E8}
+.sok-segment button.on{background:#1A3C2E;color:#fff}
+.sok-segment button.on:hover{background:#1A3C2E}
+.sok-neuf-short{display:none}
+
+/* le champ de recherche */
+.sok-rech-champ{flex:1 1 240px;display:flex;align-items:center;gap:9px;
+  background:#fff;border:1px solid #E8DFD0;border-radius:12px;padding:0 14px;
+  transition:border-color .18s,box-shadow .18s}
+.sok-rech-champ:focus-within{border-color:#1A3C2E;box-shadow:0 0 0 3px rgba(26,60,46,.10)}
+.sok-rech-champ .loupe{font-size:19px;color:#8F8676;line-height:1}
+.sok-rech-champ input{flex:1;min-width:0;border:none;outline:none;background:transparent;
+  padding:13px 0;font-size:15.5px;color:#1C1A17;font-family:'DM Sans',sans-serif}
+.sok-rech-champ .vider{border:none;background:#F5F0E8;color:#7A7264;border-radius:50%;
+  width:22px;height:22px;font-size:15px;line-height:1;cursor:pointer;flex-shrink:0}
+
+/* le bouton Filtres */
+.sok-rech-filtres{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;
+  background:#fff;border:1px solid #E8DFD0;border-radius:12px;padding:0 17px;
+  font-size:14.5px;font-weight:600;color:#1C1A17;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:border-color .18s,background .18s}
+.sok-rech-filtres:hover{border-color:#1A3C2E}
+.sok-rech-filtres.on{background:#1A3C2E;border-color:#1A3C2E;color:#fff}
+.sok-rech-filtres b{background:#B85C3A;color:#fff;border-radius:11px;
+  min-width:20px;height:20px;display:inline-flex;align-items:center;
+  justify-content:center;font-size:12px;padding:0 5px}
+
+/* la bande des pays */
+.sok-pays{display:flex;gap:7px;overflow-x:auto;padding:11px 2px 3px;
+  scrollbar-width:none;-ms-overflow-style:none}
+.sok-pays::-webkit-scrollbar{display:none}
+.sok-pays button{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;
+  background:#fff;border:1px solid #E8DFD0;color:#1C1A17;border-radius:22px;
+  padding:7px 14px;font-size:13.5px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .16s}
+.sok-pays button:hover{border-color:#B85C3A}
+.sok-pays button.on{background:#B85C3A;border-color:#B85C3A;color:#fff;font-weight:700}
+.sok-pays button small{font-size:10.5px;min-width:18px;height:18px;padding:0 5px;border-radius:10px;
+  display:inline-flex;align-items:center;justify-content:center;background:#F5F0E8;color:#7A7264;font-weight:700}
+.sok-pays button.on small{background:rgba(255,255,255,.2);color:#fff}
+
+/* les rappels de filtres actifs */
+.sok-actifs{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:10px 0 0}
+.sok-actifs .pastille{display:inline-flex;align-items:center;gap:7px;background:#fff;
+  border:1px solid #E8DFD0;border-radius:20px;padding:5px 7px 5px 13px;font-size:13px;
+  color:#1C1A17;font-family:'DM Sans',sans-serif;animation:sokPop .18s ease-out}
+.sok-actifs .pastille button{border:none;background:#F5F0E8;color:#7A7264;
+  border-radius:50%;width:19px;height:19px;font-size:13px;line-height:1;cursor:pointer}
+.sok-actifs .pastille button:hover{background:#B85C3A;color:#fff}
+.sok-actifs .tout{border:none;background:transparent;color:#B85C3A;font-size:13px;
+  font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline}
+@keyframes sokPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+
+/* le panneau des filtres */
+.sok-panneau{background:#fff;border:1px solid #E8DFD0;border-radius:14px;
+  padding:18px;margin-top:12px;animation:sokOuvre .22s ease-out}
+@keyframes sokOuvre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sok-panneau h4{margin:0 0 9px;font-size:12px;font-weight:700;color:#8F8676;
+  text-transform:uppercase;letter-spacing:.08em;font-family:'DM Sans',sans-serif}
+.sok-panneau .bloc{margin-bottom:18px}
+.sok-panneau .bloc:last-child{margin-bottom:0}
+.sok-fam{margin-bottom:12px}
+.sok-fam > span{display:block;font-size:12.5px;color:#7A7264;margin-bottom:6px;
+  font-family:'DM Sans',sans-serif}
+.sok-nat{display:flex;gap:7px;flex-wrap:wrap}
+.sok-nat button{display:inline-flex;align-items:center;gap:6px;background:#fff;
+  border:1px solid #E8DFD0;color:#1C1A17;border-radius:10px;padding:8px 13px;
+  font-size:13.5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .16s}
+.sok-nat button:hover{border-color:#1A3C2E}
+.sok-nat button.on{background:#1A3C2E;border-color:#1A3C2E;color:#fff;font-weight:600}
+
+/* la ligne résultats + tri */
+.sok-compte{display:flex;justify-content:space-between;align-items:center;
+  gap:12px;margin:18px 0 13px;flex-wrap:wrap}
+.sok-compte .n{font-size:15px;color:#1C1A17;font-family:'DM Sans',sans-serif;margin:0}
+.sok-compte .n b{font-weight:700}
+.sok-tri{display:flex;align-items:center;gap:7px}
+.sok-tri label{font-size:13px;color:#8F8676;font-family:'DM Sans',sans-serif}
+.sok-tri select{border:1px solid #E8DFD0;background:#fff;border-radius:9px;
+  padding:7px 10px;font-size:13.5px;color:#1C1A17;font-family:'DM Sans',sans-serif;
+  font-weight:600;cursor:pointer;outline:none}
+.sok-tri select:focus{border-color:#1A3C2E}
+
+@media(max-width:560px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{font-size:16px!important;min-width:0}
+
+  .sok-newsbar{gap:8px;padding:8px 13px}.sok-newsbar-date{display:none}.sok-newsbar-label{font-size:10.5px}
+  .sok-recherche{top:70px}
+  .sok-segment{width:100%}
+  .sok-segment button{flex:1;padding:9px 6px;text-align:center}
+  .sok-neuf-long{display:none}.sok-neuf-short{display:inline}
+  .sok-rech-filtres{flex:1;justify-content:center;padding:11px 17px}
+}
+
+/* la colonne publicitaire, sur ordinateur seulement */
+.sok-aside{display:none}
+
+/* la page d'une annonce */
+.sok-annonce{display:block}
+.sok-annonce-photo{height:260px}
+.sok-annonce-aside{margin-top:20px}
+
+@media(min-width:600px){
+  .sok-annonce-photo{height:380px}
+  .sok-grid{grid-template-columns:1fr 1fr}
+  .sok-guide-grid{grid-template-columns:1fr 1fr}
+  .sok-hero{height:420px}
+  .sok-hero-in{padding:24px 28px 30px}
+  .sok-card-img{height:210px}
+}
+@media(min-width:900px){
+  .sok-hero{height:520px}
+  .sok-hero-in{padding:28px max(28px, calc(50vw - 590px)) 44px}
+  .desktop-nav{display:flex!important}
+  .sok-bottomnav{display:none!important}
+  .sok-grid{grid-template-columns:1fr 1fr 1fr}
+  .sok-guide-grid{grid-template-columns:1fr 1fr 1fr}
+  .sok-home-actions{grid-template-columns:1.25fr .75fr}
+  .sok-home-explore{grid-template-columns:1.35fr .65fr .65fr}
+  .sok-home-lower{grid-template-columns:1.45fr .55fr;align-items:stretch}
+  footer{padding-bottom:44px!important}
+}
+@media(min-width:1024px){
+  .sok-annonce{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
+  .sok-annonce-photo{height:460px}
+  .sok-annonce-aside{margin-top:0;position:sticky;top:100px}
+  .sok-biens{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start}
+  .sok-aside{display:block;position:sticky;top:100px}
+  .sok-ad-inline{display:none}
+  .sok-card-img{height:230px}
+  .sok-biens .sok-grid{grid-template-columns:1fr 1fr}
+}
+`}</style>
+      <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+      {/* HEADER */}
+      <header style={{background:`linear-gradient(135deg,${C.forest},${C.forestDark})`,position:"sticky",top:0,zIndex:100,boxShadow:"0 4px 18px rgba(16,39,31,0.28)",borderBottom:`2px solid ${C.gold}`}}>
+        <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 14px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:"78px",gap:"8px",boxSizing:"border-box"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <div>
+              <button aria-label="Sokilé — accueil" onClick={()=>switchTab("accueil")} style={{display:"block",background:"transparent",border:0,padding:0,cursor:"pointer"}}><BrandLogo/></button>
+              <div style={{fontSize:"11.5px",color:"rgba(255,255,255,0.62)",fontFamily:F,marginTop:"5px",letterSpacing:"0.02em",whiteSpace:"nowrap"}}>L'immobilier en Afrique</div>
+            </div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+            {/* Nav desktop uniquement */}
+            <nav className="desktop-nav" style={{display:"none",gap:"3px",marginRight:"10px"}}>
+              {NAV.map(n=>(
+                <button key={n.id} onClick={()=>switchTab(n.id)} style={{background:tab===n.id?"rgba(255,255,255,0.13)":"transparent",border:"none",color:tab===n.id?C.white:"rgba(255,255,255,0.68)",padding:"9px 14px",borderRadius:"8px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:"7px",fontFamily:F,fontSize:"14px",fontWeight:tab===n.id?700:500,whiteSpace:"nowrap"}}>
+                  <span style={{display:"flex",color:tab===n.id?C.gold:"rgba(255,255,255,0.5)"}}>{n.icon}</span>{n.label}
+                </button>
+              ))}
+            </nav>
+            <a href="/about.html" style={{background:C.gold,color:C.forestDark,border:`1px solid ${C.gold}`,fontSize:"13px",fontWeight:700,fontFamily:F,textDecoration:"none",whiteSpace:"nowrap",padding:"9px 12px",borderRadius:"8px",boxShadow:"0 3px 10px rgba(0,0,0,0.15)"}}>Qui sommes-nous</a>
+
+            {vu?(
+              <div onClick={()=>switchTab("compte")} style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.10)",borderRadius:"20px",padding:"4px 10px 4px 4px",cursor:"pointer"}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:C.terra,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:C.white,fontFamily:F,flexShrink:0}}>
+                  {vu.name?.slice(0,2).toUpperCase()}
+                </div>
+                <span style={{fontSize:"13px",color:C.white,fontWeight:600,fontFamily:F,maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{vu.name}</span>
+              </div>
+            ):(
+              <button onClick={()=>setShowLogin(true)} style={{background:"transparent",color:C.white,border:"1px solid rgba(255,255,255,0.45)",borderRadius:"8px",padding:"9px 13px",fontWeight:700,fontSize:"13px",cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>Connexion</button>
             )}
           </div>
         </div>
