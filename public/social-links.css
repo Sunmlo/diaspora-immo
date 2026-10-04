@@ -1,0 +1,12 @@
+.sok-social{max-width:1200px;margin:28px auto 0;padding:24px 0 0;border-top:1px solid rgba(255,255,255,.14);font-family:'DM Sans',sans-serif;text-align:left;min-width:0;width:100%;box-sizing:border-box}
+.sok-social h2{margin:0 0 8px;color:#c9a84c;font-size:19px;line-height:1.3;font-weight:600}
+.sok-social p{margin:0 0 16px;color:rgba(255,255,255,.8);font-size:14px;line-height:1.6}
+.sok-social-links{position:static;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:10px;padding:0;min-height:0;background:none;border:0;box-shadow:none;backdrop-filter:none;z-index:auto}
+.sok-social-links a{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 14px;margin:0;box-sizing:border-box;border:1px solid rgba(201,168,76,.4);border-radius:8px;color:#fff;font-size:14px;font-weight:500;line-height:1.4;text-decoration:none;background:rgba(255,255,255,.04);transition:background .15s,border-color .15s}
+.sok-social-links a:hover{background:rgba(201,168,76,.15);border-color:#c9a84c}
+.sok-social-links a:focus-visible{outline:2px solid #f5f0e8;outline-offset:3px}
+.sok-social-links svg{flex:none;color:#c9a84c}
+.sok-social-arrow{margin-left:6px;color:#c9a84c}
+footer.sok-footer-social{flex-wrap:wrap;gap:20px}
+footer.sok-footer-social>.sok-social{flex:1 0 100%;margin:0 0 8px;padding:0 0 24px;border-top:0;border-bottom:1px solid rgba(255,255,255,.14)}
+@media(max-width:480px){.sok-social-links a{flex:1 1 calc(50% - 5px)}.sok-social-arrow{margin-left:auto}}
