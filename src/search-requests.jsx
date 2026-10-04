@@ -5,7 +5,17 @@ const blank={country:'',city:'',transaction:'location',nature:'appartement',budg
 function draft(){try{return {...blank,...JSON.parse(sessionStorage.getItem(REQUEST_DRAFT)||'{}')}}catch{return blank}}
 const errorText=r=>r?.motif||'Impossible de terminer cette action. Réessayez.';
 const date=v=>new Date(v).toLocaleDateString('fr-FR');
-export function SearchRequestBanner(){return <aside className="sr-banner"><div><span>Votre projet immobilier</span><h2>Vous ne trouvez pas encore votre bien ?</h2><p>Décrivez votre recherche. Avec votre accord, les professionnels vérifiés du pays pourront vous proposer leurs annonces.</p></div><a className="sr-button" href="/recherche">Décrire ma recherche</a></aside>}
+export function SearchRequestBanner(){
+ return <aside className="sr-banner" aria-labelledby="sr-launch-title">
+  <div>
+   <span className="sr-launch-badge">La plateforme est ouverte</span>
+   <h2 id="sr-launch-title">Sokilé se lance. Votre recherche compte.</h2>
+   <p>Le site est opérationnel, mais les annonces sont encore peu nombreuses. Nous développons progressivement notre réseau d’agences et de propriétaires.</p>
+   <p>Vous ne trouvez pas encore votre bien ? Décrivez votre recherche pour nous aider à mieux connaître vos besoins. Avec votre accord, les professionnels vérifiés du pays pourront vous proposer leurs annonces.</p>
+  </div>
+  <a className="sr-button" href="/recherche">Décrire ma recherche</a>
+ </aside>;
+}
 export function SearchRequestPage({user,rpc,onLogin,onSaved}){
  const [form,setForm]=useState(draft),[share,setShare]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(null);const lock=useRef(false),identity=useRef(user?.id);identity.current=user?.id;
  const change=(k,v)=>{const next={...form,[k]:v};setForm(next);setError('');try{sessionStorage.setItem(REQUEST_DRAFT,JSON.stringify(next))}catch{}};
