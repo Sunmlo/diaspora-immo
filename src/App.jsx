@@ -1,4 +1,5 @@
 import {TrustCommitment} from './trust-commitment.jsx';
+import {SocialLinks} from './social-links.jsx';
 import {DirectoryProof,DirectoryReview} from './directory-review.jsx';
 import {directoryError,directoryReviewError,needsTitleReview} from './directory-review.mjs';
 import {GiftPage,GiftBanner} from './gift.jsx';
@@ -2855,6 +2856,7 @@ function SiteFooter({ onNav, onPub }) {
           <a href={`mailto:${CONTACT_MAIL}?subject=Retour%20sur%20Sokil%C3%A9`} style={{...link,color:"#E8A07E",fontWeight:600,textDecoration:"underline"}}>Signaler un problème ou proposer une amélioration</a>
         </div>
       </div>
+      <SocialLinks/>
       <div style={{maxWidth:"1200px",margin:"26px auto 0",paddingTop:"18px",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",flexWrap:"wrap",gap:"8px 18px",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>© 2026 Sokilé — Tous droits réservés</div>
         <div style={{fontSize:"13px",color:"rgba(255,255,255,0.45)",fontFamily:F}}>Sokilé met en relation et n&apos;intervient pas dans les transactions</div>
