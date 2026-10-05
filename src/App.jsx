@@ -2836,6 +2836,9 @@ function SiteFooter({ onNav, onPub }) {
         <div style={{flex:"0 1 150px"}}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Naviguer</div>
           <a href="/about.html" style={link}>Qui sommes-nous</a>
+          <a href="/professionnels/cameroun.html" style={link}>Agences au Cameroun</a>
+          <a href="/professionnels/senegal.html" style={link}>Agences au Sénégal</a>
+          <a href="/professionnels/cote-divoire.html" style={link}>Agences en Côte d’Ivoire</a>
           <button onClick={()=>onNav("biens")} style={link}>Voir les annonces</button>
           <button onClick={()=>onNav("prestataires")} style={link}>Trouver un prestataire</button>
           <button onClick={()=>onNav("guides")} style={link}>Consulter les guides</button>

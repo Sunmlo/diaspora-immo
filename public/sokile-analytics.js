@@ -5,7 +5,7 @@
   const ID = 'G-ES3GX7T680', KEY = 'sokile.analytics-consent.v1';
   const TTL = 180 * 86400000;
   const live = ['www.sokile.com', 'sokile.com'].includes(w.location.hostname);
-  const pages = new Set(['accueil','biens','prestataires','guides','pro','compte','annonce','guide','programme','programmes','outils','docs','actu','about','cgu','confidentialite','mentions']);
+  const pages = new Set(['accueil','biens','prestataires','guides','pro','compte','annonce','guide','programme','programmes','outils','docs','actu','about','cgu','confidentialite','mentions','professionnels-cameroun','professionnels-senegal','professionnels-cote-divoire']);
   const events = new Set(['login','signup_request','listing_submit','listing_update','professional_submit','professional_update','document_request','contact_click']);
   let choice = null, started = false, current = null, currentKey = null, last = null, banner, returnFocus;
   function read() {
@@ -33,7 +33,8 @@
   function context() {
     let ref = '';
     try { ref = new URL(d.referrer).origin; } catch (_) {}
-    return {page_location:'https://www.sokile.com/'+(current === 'accueil' ? '' : current || ''), page_title:'Sokilé — '+(current || 'accueil'), page_referrer:ref};
+    const seoPaths = {'professionnels-cameroun':'professionnels/cameroun.html','professionnels-senegal':'professionnels/senegal.html','professionnels-cote-divoire':'professionnels/cote-divoire.html'};
+    return {page_location:'https://www.sokile.com/'+(seoPaths[current] || (current === 'accueil' ? '' : current || '')), page_title:'Sokilé — '+(current || 'accueil'), page_referrer:ref};
   }
   function start() {
     if (!live || !granted()) return;
