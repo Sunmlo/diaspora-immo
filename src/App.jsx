@@ -282,7 +282,7 @@ const Icon = {
 
 
 // ─── PHOTOS D'ANNONCE ─────────────────────────────
-const MAX_PHOTOS = 10;
+const MAX_PHOTOS = 20;
 
 // ─── MÉMOIRE DU NAVIGATEUR ────────────────────────
 // Le site oubliait tout au rechargement : session et favoris sont désormais conservés.
