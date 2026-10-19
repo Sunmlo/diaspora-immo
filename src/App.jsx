@@ -1350,8 +1350,8 @@ function BandeauActualites({ onOpen }) {
 
   const article=articles[index];
   return (
-    <button className="sok-newsbar" onClick={onOpen} aria-label="Voir les actualités immobilières">
-      <span className="sok-newsbar-label"><i/>Le fil Sokilé</span>
+    <button className="sok-newsbar" onClick={onOpen} aria-label="Découvrir le Journal Sokilé">
+      <span className="sok-newsbar-label"><i/>Le Journal Sokilé</span>
       <span className="sok-newsbar-story" key={article?.id||"intro"}>
         {article ? <><b>{article.pays||"Afrique"}</b><span>{article.titre}</span></> : <span>Actualité immobilière, foncier et investissement en Afrique francophone</span>}
       </span>
@@ -1366,6 +1366,39 @@ function Actualite({ user }) {
   const [chargement, setChargement] = useState(true);
   const [lecture, setLecture] = useState(null);
   const [edition, setEdition] = useState(null);   // null | {} | article
+  const [erreurLecture, setErreurLecture] = useState("");
+
+  // Les liens partagés ouvrent le bon article, y compris hors de la liste récente.
+  useEffect(()=>{
+    let actif = true;
+    const ouvrirLien = async () => {
+      const id = new URLSearchParams(window.location.search).get("article");
+      setErreurLecture("");
+      if (!id) { setLecture(null); return; }
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/articles?publie=eq.true&id=eq.${encodeURIComponent(id)}&select=*&limit=1`,
+          {headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
+        if (!r.ok) throw new Error("chargement");
+        const rows = await r.json();
+        if (!actif) return;
+        setLecture(rows[0]||null);
+        if (!rows[0]) setErreurLecture("Cet article n’est plus disponible. Découvrez les autres articles du Journal.");
+      } catch {
+        if (actif) setErreurLecture("Impossible de charger cet article pour le moment. Réessayez en rechargeant la page.");
+      }
+    };
+    ouvrirLien();
+    window.addEventListener("popstate", ouvrirLien);
+    return ()=>{actif=false;window.removeEventListener("popstate",ouvrirLien);};
+  },[]);
+  const ouvrirArticle = a => {
+    window.history.pushState({},"",`/?tab=guides&rub=actu&article=${encodeURIComponent(a.id)}`);
+    setErreurLecture(""); setLecture(a);
+  };
+  const fermerArticle = () => {
+    window.history.replaceState({},"","/?tab=guides&rub=actu");
+    setLecture(null);
+  };
 
   const charger = () => {
     setChargement(true);
@@ -1384,13 +1417,14 @@ function Actualite({ user }) {
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"14px",flexWrap:"wrap",marginBottom:"18px"}}>
         <p style={{margin:0,fontSize:"15px",color:C.sub,fontFamily:F,lineHeight:1.65,maxWidth:"620px"}}>
-          Ce qui bouge dans l'immobilier en Afrique de l'Ouest et Centrale : réformes foncières, prix, nouveaux quartiers, financement.
+          Le Journal Sokilé : histoires d’habitat, architecture et héritage, inspirations d’intérieurs et actualités immobilières en Afrique de l’Ouest et centrale.
         </p>
         {peutRediger(user)&&(
           <button onClick={()=>setEdition({})} style={{background:C.forest,color:C.white,border:"none",borderRadius:"10px",padding:"12px 18px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F,flexShrink:0}}>+ Écrire un article</button>
         )}
       </div>
 
+      {erreurLecture&&<p role="alert" style={{color:C.terra,fontFamily:F}}>{erreurLecture}</p>}
       {chargement ? (
         <p style={{color:C.sub,fontFamily:F,fontSize:"15px"}}>Chargement…</p>
       ) : articles.length===0 ? (
@@ -1402,13 +1436,13 @@ function Actualite({ user }) {
       ) : (
         <div className="sok-grid">
           {articles.map(a=>(
-            <article key={a.id} onClick={()=>setLecture(a)} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
+            <article key={a.id} onClick={()=>ouvrirArticle(a)} style={{background:C.white,border:`1px solid ${C.sand}`,borderRadius:"14px",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
               {a.image_url&&<div style={{height:170,backgroundImage:`url('${a.image_url}')`,backgroundSize:"cover",backgroundPosition:"center"}}/>}
               <div style={{padding:"18px",flex:1,display:"flex",flexDirection:"column"}}>
                 <div style={{fontSize:"11.5px",fontWeight:700,color:C.terra,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:F,marginBottom:"7px"}}>
                   {a.pays||"Afrique de l'Ouest & Centrale"} · {dateCourte(a.date_publication)}
                 </div>
-                <h3 style={{margin:"0 0 8px",fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,lineHeight:1.3}}>{a.titre}</h3>
+                <h3 style={{margin:"0 0 8px",fontFamily:FT,fontSize:"19px",fontWeight:500,color:C.dark,lineHeight:1.3}}><a href={`/?tab=guides&rub=actu&article=${encodeURIComponent(a.id)}`} onClick={e=>{if(e.button===0&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey){e.preventDefault();e.stopPropagation();ouvrirArticle(a);}}} style={{color:"inherit",textDecoration:"none"}}>{a.titre}</a></h3>
                 <p style={{margin:0,fontSize:"14.5px",color:C.sub,fontFamily:F,lineHeight:1.6,flex:1}}>{a.chapo}</p>
                 {peutRediger(user)&&(
                   <button onClick={e=>{e.stopPropagation();setEdition(a);}} style={{alignSelf:"flex-start",marginTop:"12px",background:"transparent",border:`1px solid ${C.sand}`,color:C.sub,borderRadius:"8px",padding:"7px 13px",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:F}}>Modifier</button>
@@ -1419,13 +1453,19 @@ function Actualite({ user }) {
         </div>
       )}
 
-      {lecture&&<LectureArticle a={lecture} onClose={()=>setLecture(null)}/>}
+      {lecture&&<LectureArticle a={lecture} onClose={fermerArticle}/>}
       {edition&&<EditeurArticle article={edition} user={user} onClose={()=>setEdition(null)} onEnregistre={()=>{setEdition(null);charger();}}/>}
     </div>
   );
 }
 
 function LectureArticle({ a, onClose }) {
+  const [copie, setCopie] = useState("");
+  const lien = `${window.location.origin}/?tab=guides&rub=actu&article=${encodeURIComponent(a.id)}`;
+  const copierLien = async () => {
+    try { await navigator.clipboard.writeText(lien); setCopie("Lien copié"); }
+    catch { setCopie("Copiez l’adresse de cette page dans votre navigateur."); }
+  };
   return (
     <div style={{position:"fixed",inset:0,zIndex:2500,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"720px",width:"100%",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
@@ -1437,6 +1477,7 @@ function LectureArticle({ a, onClose }) {
           </div>
           <h1 style={{margin:"0 0 12px",fontFamily:FT,fontSize:"clamp(23px,3.2vw,32px)",fontWeight:500,color:C.dark,lineHeight:1.25}}>{a.titre}</h1>
           <p style={{margin:"0 0 18px",fontSize:"17px",color:C.sub,fontFamily:F,lineHeight:1.65,fontWeight:500}}>{a.chapo}</p>
+          <div style={{marginBottom:18,fontFamily:F,fontSize:13}}><button onClick={copierLien} style={{border:`1px solid ${C.sand}`,background:C.white,borderRadius:8,padding:"8px 12px",cursor:"pointer",color:C.forest}}>Copier le lien de l’article</button><span role="status" style={{marginLeft:10}}>{copie}</span></div>
           <div style={{fontSize:"16px",color:C.dark,fontFamily:F,lineHeight:1.75,whiteSpace:"pre-line"}}>{a.contenu}</div>
           {a.source_url&&(
             <p style={{marginTop:"20px",paddingTop:"14px",borderTop:`1px solid ${C.sand}`,fontSize:"14px",fontFamily:F}}>
@@ -1480,7 +1521,7 @@ function EditeurArticle({ article, user, onClose, onEnregistre }) {
   };
 
   return (
-    <ModalShell title={nouveau?"Écrire un article":"Modifier l'article"} subtitle="Actualité immobilière" onClose={onClose}>
+    <ModalShell title={nouveau?"Écrire un article":"Modifier l'article"} subtitle="Le Journal Sokilé" onClose={onClose}>
       <div style={{marginBottom:"12px"}}><label style={lbl}>Titre *</label>
         <input style={inp} value={f.titre} onChange={e=>set("titre",e.target.value)} placeholder="Ex : Le Sénégal réforme le cadastre"/></div>
       <div style={{marginBottom:"12px"}}><label style={lbl}>Chapô *</label>
@@ -2955,7 +2996,7 @@ function SokileApp() {
   const [user, setUser] = useState(() => lireLocal(CLE_SESSION, null));
   const [selectedProp, setSelectedProp] = useState(null);
   const [route, setRoute] = useState(lireRoute);
-  const [sousOnglet, setSousOnglet] = useState("guides");
+  const [sousOnglet, setSousOnglet] = useState(()=>new URLSearchParams(window.location.search).get("rub")==="actu"?"actu":"guides");
   useEffect(() => {
     const name = route.nom !== "accueil" ? route.nom : tab === "guides" ? sousOnglet : tab;
     window.sokileAnalytics?.page(name, route.id);
@@ -3060,7 +3101,13 @@ function SokileApp() {
 
   // Le bouton Retour du navigateur ramène à la liste
   useEffect(()=>{
-    const onPop = () => setRoute(lireRoute());
+    const onPop = () => {
+      setRoute(lireRoute());
+      const params = new URLSearchParams(window.location.search);
+      if(params.get("tab")==="guides"&&params.get("rub")==="actu") {
+        setTab("guides"); setSousOnglet("actu");
+      }
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -3138,6 +3185,9 @@ function SokileApp() {
     if (typeof window!=="undefined" && window.location.pathname!=="/") {
       window.history.pushState({}, "", "/");
       setRoute({nom:"accueil"});
+    }
+    if (t!=="guides" && new URLSearchParams(window.location.search).has("article")) {
+      window.history.replaceState({}, "", `/?tab=${encodeURIComponent(t)}`);
     }
     setAnimIn(false); setTimeout(()=>{setTab(t);setAnimIn(true);},150);
   };
@@ -3515,9 +3565,9 @@ button,input,select,textarea{font-size:inherit}
                 </button>
                 <button onClick={()=>{setSousOnglet("actu");switchTab("guides");}} style={{border:`1px solid ${C.sand}`,borderRadius:14,padding:22,textAlign:"left",cursor:"pointer",background:C.white,color:C.dark,fontFamily:F,boxShadow:"0 8px 20px rgba(28,26,23,.05)"}}>
                   <span style={{fontSize:28,display:"block",marginBottom:22}}>◎</span>
-                  <strong style={{display:"block",fontFamily:FT,fontSize:21,fontWeight:500,marginBottom:7}}>Actualités</strong>
-                  <span style={{display:"block",fontSize:13.5,lineHeight:1.55,color:C.sub}}>Foncier, financement et évolutions du marché.</span>
-                  <span style={{display:"block",marginTop:18,fontSize:13,fontWeight:800,color:C.terra}}>Voir le fil →</span>
+                  <strong style={{display:"block",fontFamily:FT,fontSize:21,fontWeight:500,marginBottom:7}}>Le Journal Sokilé</strong>
+                  <span style={{display:"block",fontSize:13.5,lineHeight:1.55,color:C.sub}}>Habitat, architecture, inspirations et actualités.</span>
+                  <span style={{display:"block",marginTop:18,fontSize:13,fontWeight:800,color:C.terra}}>Lire le Journal →</span>
                 </button>
               </div>
             </section>
@@ -3729,7 +3779,7 @@ button,input,select,textarea{font-size:inherit}
             </div>
             {/* Sous-rubriques */}
             <div style={{display:"flex",gap:"8px",overflowX:"auto",padding:"18px 0 4px"}}>
-              {[["guides","Guides"],["outils","Simulateurs"],["docs","À télécharger"],["actu","Actualités"]].map(([id,lbl])=>(
+              {[["guides","Guides"],["outils","Simulateurs"],["docs","À télécharger"],["actu","Le Journal"]].map(([id,lbl])=>(
                 <button key={id} onClick={()=>setSousOnglet(id)} style={{flexShrink:0,background:sousOnglet===id?C.forest:C.white,color:sousOnglet===id?C.white:C.dark,border:`1px solid ${sousOnglet===id?C.forest:C.sand}`,borderRadius:"22px",padding:"10px 18px",fontSize:"14.5px",fontWeight:sousOnglet===id?700:500,cursor:"pointer",fontFamily:F}}>{lbl}</button>
               ))}
             </div>
