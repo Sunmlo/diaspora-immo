@@ -1,0 +1,10 @@
+.sok-video{margin:12px 0;font-family:'DM Sans',sans-serif;color:#1C1A17;min-width:0}
+.sok-video button{background:#1A3C2E;color:white;border:0;border-radius:8px;padding:11px 16px;font:600 14px 'DM Sans',sans-serif;cursor:pointer}
+.sok-video button:disabled{opacity:.55;cursor:wait}
+.sok-video button:focus-visible,.sok-video input:focus-visible{outline:3px solid #B85C3A;outline-offset:3px}
+.sok-video video{display:block;width:100%;max-height:65vh;object-fit:contain;background:#1A3C2E;border-radius:10px;margin-bottom:8px}
+.sok-video-editor{border:1px solid #E8DFD0;padding:14px;border-radius:10px;background:#F5F0E8}
+.sok-video label{display:block;font-weight:700;font-size:14px}
+.sok-video input{display:block;max-width:100%;margin-top:10px;font-size:14px}
+.sok-video p{font-size:13px;line-height:1.6;margin:8px 0}
+.sok-video [role=alert]{color:#a32d24}
