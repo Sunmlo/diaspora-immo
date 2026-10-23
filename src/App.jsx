@@ -1,3 +1,5 @@
+import {ListingVideo, ListingVideoEditor} from './listing-video.jsx';
+import {listingVideoApi} from './listing-video.mjs';
 import {TrustCommitment} from './trust-commitment.jsx';
 import {SocialLinks} from './social-links.jsx';
 import {DirectoryProof,DirectoryReview} from './directory-review.jsx';
@@ -48,6 +50,7 @@ const FT = "'Fraunces', serif";
 
 const SUPABASE_URL = "https://nhyejaubfxjmmuvetayw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWVqYXViZnhqbW11dmV0YXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDIzODgsImV4cCI6MjA5NjQxODM4OH0.yIaB8nBbnBVufudtt-FsmoWPlSqOU2uYzLLQjtiTdR4";
+const videoApi=listingVideoApi(SUPABASE_URL,SUPABASE_KEY);
 const giftsApi=giftApi(SUPABASE_URL,SUPABASE_KEY);
 
 const proVerificationApi = verificationApi(SUPABASE_URL,SUPABASE_KEY);
@@ -598,6 +601,8 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   const [savedProperty,setSavedProperty]=useState(null);
   const [professionalActivity,setProfessionalActivity]=useState(existing?.professional_activity||"agence");
   const [photos, setPhotos] = useState(() => (Array.isArray(existing?.photos)?existing.photos:[]).map(url=>({url,apercu:url})));
+  const [video,setVideo]=useState(existing?.video_path?{path:existing.video_path}:null);
+  const [videoChecking,setVideoChecking]=useState(false);
   const [envoiPhoto, setEnvoiPhoto] = useState("");
   const [photoErr, setPhotoErr] = useState("");
   const [sent, setSent] = useState(false);
@@ -668,6 +673,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   };
 
   const handleSubmit = async () => {
+    if(loading||videoChecking)return;
     setErreur("");
     if (!user?.id || !user?.token) {
       setErreur("Votre session a expiré. Reconnectez-vous avant de publier l'annonce.");
@@ -694,7 +700,15 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
     try { toutesPhotos = photoUrlsInOrder(photos, urlsPhotos); }
     catch(e) { setLoading(false); setErreur(e.message); return; }
 
+    setPhotos(toutesPhotos.map(url=>({url,apercu:url})));
+    let videoPath=video?.path||null;
+    if(video?.file){
+      try{videoPath=await videoApi.upload(video.file,user,n=>setEnvoiPhoto(`Envoi de la vidéo… ${n} %`));setVideo({path:videoPath});}
+      catch(e){setEnvoiPhoto("");setLoading(false);setErreur(e.message);return;}
+      setEnvoiPhoto("");
+    }
     const payload = {
+      video_path:videoPath,
       owner_id:user.id,
       user_email:normalizeEmail(form.email), user_name:form.name.trim(), user_phone:normalizePhone(form.phoneCode,form.phone),
       title:form.title,
@@ -726,10 +740,10 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
   };
 
   return (
-    <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
+    <div style={{position:"fixed",inset:0,zIndex:3000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={()=>{if(!loading&&!videoChecking)onClose();}}>
       <div data-modal-scroll style={{background:C.white,borderRadius:"16px",maxWidth:"480px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:C.terra,padding:"20px",borderRadius:"16px 16px 0 0",position:"relative"}}>
-          <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
+          <button onClick={()=>{if(!loading&&!videoChecking)onClose();}} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
           <h2 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"21px"}}>{existing?"Modifier mon annonce":"Publier une annonce"}{type==="pro"?" · Professionnel":type==="particulier"?" · Particulier":""}</h2>
           <p style={{margin:0,color:"rgba(255,255,255,0.75)",fontSize:"13px",fontFamily:F}}>Gratuit · Afrique de l'Ouest & Centrale</p>
         </div>
@@ -738,7 +752,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
             <div style={{fontSize:"42px",marginBottom:"10px"}}>🎉</div>
             <h3 style={{margin:"0 0 6px",color:C.dark,fontFamily:FT,fontSize:"18px"}}>{existing?"Modification envoyée !":"Demande envoyée !"}</h3>
             <p style={{color:C.sub,fontSize:"14px",fontFamily:F}}>Votre annonce est enregistrée. Sa publication attend la validation de Sokilé.</p>{type!=="pro"&&savedProperty&&<IndividualPanel api={individualVerificationApi} user={user} property={savedProperty}/>}
-            <button onClick={onClose} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
+            <button onClick={()=>{if(!loading&&!videoChecking)onClose();}} style={{marginTop:"14px",background:C.terra,color:C.white,border:"none",borderRadius:"8px",padding:"9px 20px",fontWeight:700,cursor:"pointer",fontFamily:F}}>Fermer</button>
           </div>):!type?(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
               {[{id:"particulier",title:"Particulier",desc:"Je vends ou loue mon bien"},{id:"pro",title:"Professionnel",desc:"Agent ou promoteur"}].map(t=>(
@@ -754,7 +768,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
           ):(
             <>
               {!(defaultType||user?.account_type)&&<button onClick={()=>setType(null)} style={{background:"transparent",border:"none",color:C.sub,cursor:"pointer",fontSize:"14px",marginBottom:"14px",fontFamily:F,padding:0}}>← Retour</button>}
-<p style={{fontFamily:F,fontSize:14,color:C.sub,marginBottom:18}}>Complétez les rubriques ci-dessous. Les champs marqués * sont obligatoires.</p><fieldset style={sectionStyle}><legend style={legendStyle}>1. Votre projet</legend>              {/* Vendre ou louer */}
+<p style={{fontFamily:F,fontSize:14,color:C.sub,marginBottom:18}}>Complétez les rubriques ci-dessous. Les champs marqués * sont obligatoires.</p><fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>1. Votre projet</legend>              {/* Vendre ou louer */}
               <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"6px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Vous souhaitez *</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
@@ -783,7 +797,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 ))}
               </div>
 </fieldset>
-{form.transaction&&form.nature&&<> <fieldset style={sectionStyle}><legend style={legendStyle}>2. Localisation du bien</legend>              <div style={{marginBottom:"10px"}}>
+{form.transaction&&form.nature&&<> <fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>2. Localisation du bien</legend>              <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Pays *</label>
                 <select value={form.country} onChange={e=>set("country",e.target.value)} style={{...champ("country")}}>
                   {COUNTRIES_ANNONCES.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
@@ -801,7 +815,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 </div>
               </div>
 {renderFields(CHAMPS_SECTEUR)}</fieldset>
-<fieldset style={sectionStyle}><legend style={legendStyle}>3. Description et caractéristiques</legend>              {/* Titre */}
+<fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>3. Description et caractéristiques</legend>              {/* Titre */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Titre de l'annonce *</label>
                 <input placeholder={form.nature==="terrain"?"Ex : Parcelle de 500 m² à vendre":form.nature==="agricole"?"Ex : Terrain agricole de 5 hectares":form.nature==="ferme"?"Ex : Plantation de cacao de 10 hectares":"Ex : Villa 4 pièces avec piscine à Cocody"} value={form.title||""} onChange={e=>set("title",e.target.value)} style={champ("title")}/>
@@ -827,7 +841,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 <textarea placeholder={form.transaction==="location"?"Présentez les pièces, le mobilier, les équipements et les conditions de séjour. Décrivez ensuite le quartier et les accès.":"Présentez les espaces, l’état du bien, ses atouts et les éventuels travaux. Précisez le terrain et les documents disponibles."} value={form.description||""} onChange={e=>set("description",e.target.value)} rows={4} style={{...champ("description"),resize:"vertical"}}/>
               </div>
 </fieldset>
-<fieldset style={sectionStyle}><legend style={legendStyle}>{form.transaction==="location"?"4. Loyer et conditions de location":"4. Prix et conditions de vente"}</legend>              {/* Prix */}
+<fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>{form.transaction==="location"?"4. Loyer et conditions de location":"4. Prix et conditions de vente"}</legend>              {/* Prix */}
               <div style={{marginBottom:"10px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>{form.transaction==="location"?"Loyer mensuel":"Prix de vente"}</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
@@ -843,7 +857,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 {form.price_eur&&<div style={{fontSize:"12px",color:C.terra,marginTop:"4px",fontFamily:F}}>≈ {new Intl.NumberFormat("fr-FR").format(Math.round(form.price_eur*655.957))} FCFA · {new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(form.price_eur)}</div>}
               </div>
 {renderFields(form.transaction==="location"?CHAMPS_LOCATION.filter(c=>c.k!=="meuble"||!landForm):CHAMPS_VENTE)}</fieldset>
-<fieldset style={sectionStyle}><legend style={legendStyle}>5. Vous et vos coordonnées</legend>{renderFields(champsDe(form.nature,form.transaction).filter(c=>c.k==="advertiser_role"))}              {type==="pro"&&(
+<fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>5. Vous et vos coordonnées</legend>{renderFields(champsDe(form.nature,form.transaction).filter(c=>c.k==="advertiser_role"))}              {type==="pro"&&(
                 <div style={{marginBottom:"10px"}}>
                   <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nom de l'agence *</label>
                   <input placeholder="Ex : Teranga Immobilier" value={form.agency||""} onChange={e=>set("agency",e.target.value)} style={champ("agency")}/>
@@ -865,7 +879,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 </div>
               </div>
 </fieldset>
-<fieldset style={sectionStyle}><legend style={legendStyle}>6. Photos et confirmation</legend>              <div style={{marginBottom:"14px"}}>
+<fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>6. Photos et confirmation</legend>              <div style={{marginBottom:"14px"}}>
                 <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
 
                 {photos.length>0&&(
@@ -892,6 +906,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
                 {photoErr&&<div style={{marginTop:"6px",fontSize:"13px",color:C.terra,fontWeight:600,fontFamily:F}}>{photoErr}</div>}
                 {envoiPhoto&&<div style={{marginTop:"6px",fontSize:"13px",color:C.forest,fontWeight:700,fontFamily:F}}>{envoiPhoto}</div>}
               </div>
+              <ListingVideoEditor value={video} onChange={setVideo} disabled={loading} api={videoApi} token={user?.token} onBusy={setVideoChecking}/>
               {type==="pro"&&<><label style={{display:"block",fontFamily:F,fontSize:14,fontWeight:700}}>Votre activité pour cette annonce<select style={inputStyle} value={professionalActivity} onChange={e=>setProfessionalActivity(e.target.value)}><option value="agence">Agence / agent immobilier</option><option value="courtier">Courtier immobilier</option><option value="promoteur">Promoteur immobilier</option></select></label><VerificationPanel api={proVerificationApi} user={user} country={form.country} activity={professionalActivity} businessName={form.agency}/></>}
             <label style={{display:"flex",gap:10,alignItems:"flex-start",padding:12,marginBottom:12,borderRadius:8,border:`1px solid ${manquants.includes("authority")?"#C0392B":C.sand}`,fontFamily:F,fontSize:14,lineHeight:1.5}}>
                 <input type="checkbox" checked={authorityAccepted} onChange={e=>setAuthorityAccepted(e.target.checked)} style={{marginTop:4,flexShrink:0}}/>
@@ -899,7 +914,7 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               </label>
 </fieldset>
 </>}               <BandeauErreur texte={erreur} onRetry={erreur&&!manquants.length?handleSubmit:null}/>
-              <button onClick={handleSubmit} disabled={loading||!form.transaction||!form.nature} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
+              <button onClick={handleSubmit} disabled={loading||videoChecking||!form.transaction||!form.nature} style={{width:"100%",background:loading?"#bbb":C.terra,color:C.white,border:"none",borderRadius:"9px",padding:"15px",fontWeight:700,fontSize:"16px",cursor:loading?"default":"pointer",fontFamily:F}}>
                 {loading?(envoiPhoto||"Envoi en cours…"):(existing?"Envoyer mes modifications":type==="particulier"?"Enregistrer et ajouter mes justificatifs":"Publier mon annonce")}
               </button>
               <p style={{margin:"10px 0 0",fontSize:"12.5px",color:C.sub,fontFamily:F,textAlign:"center",lineHeight:1.5}}>
@@ -1720,6 +1735,9 @@ function AdminModeration({ user }) {
   const [motif, setMotif] = useState("");
   const [enregistrement,setEnregistrement]=useState(false);
   const [erreurDecision,setErreurDecision]=useState("");
+  const [videoPlayed,setVideoPlayed]=useState(false);
+  const [videoReviewed,setVideoReviewed]=useState(false);
+  useEffect(()=>{setVideoPlayed(false);setVideoReviewed(false);},[ouvert?.id,ouvert?.video_path]);
 
   const charger = () => {
     setChargement(true); setErreur("");
@@ -1731,10 +1749,13 @@ function AdminModeration({ user }) {
 
   const decider = async (p, nouveau, motifRejet) => {
     if(enregistrement)return;
+    if(nouveau==="validee"&&p.video_path&&(!videoReviewed||ouvert?.id!==p.id)){
+      setOuvert(p);setErreurDecision("Lisez la vidéo et confirmez son contrôle avant de publier.");return;
+    }
     const invalide=validateModerationResponse(nouveau,motifRejet);
     if(invalide){setErreurDecision(invalide);return;}
     setErreurDecision("");setEnregistrement(true);
-    const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, motif_rejet:motifRejet?.trim()||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
+    const r = await ecrireAuth(`properties?id=eq.${p.id}`, {status:nouveau, ...(nouveau==="validee"&&p.video_path?{video_reviewed_path:p.video_path}:{}), motif_rejet:motifRejet?.trim()||null, modere_le:new Date().toISOString()}, user.token, "PATCH")
       .catch(e=>({ok:false,statut:0}));
     setEnregistrement(false);
     if (!r.ok) { setErreurDecision(r.motif||"La décision n'a pas pu être enregistrée. Vérifiez le dossier dans Vérifications pro, puis réessayez."); setErreur("La décision n'a pas pu être enregistrée."); return; }
@@ -1765,7 +1786,7 @@ function AdminModeration({ user }) {
                   {libelleTransaction(p)} · {libelleNature(p)} · {p.city}, {p.country} · {dateCourte(p.created_at)}
                 </div>
                 <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"5px"}}>{p.title}</div>
-                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""} · {p.photos?.length||0} photo(s)</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""} · {p.photos?.length||0} photo(s){p.video_path?" · 1 vidéo":""}</div>
                 <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>
                   {p.user_name} · {p.user_email} · {p.user_phone}
                 </div>
@@ -1788,6 +1809,10 @@ function AdminModeration({ user }) {
               {ouvert.photos.map((u,i)=><div key={i} style={{width:110,height:82,flexShrink:0,borderRadius:"8px",backgroundImage:`url('${u}')`,backgroundSize:"cover",backgroundPosition:"center"}}/>)}
             </div>
           )}
+          {ouvert.video_path&&<>
+            <ListingVideo key={ouvert.video_path} path={ouvert.video_path} api={videoApi} token={user.token} onPlayed={()=>setVideoPlayed(true)}/>
+            <label style={{display:"flex",gap:8,fontFamily:F,fontSize:14,marginBottom:14}}><input type="checkbox" checked={videoReviewed} disabled={!videoPlayed||enregistrement} onChange={e=>setVideoReviewed(e.target.checked)}/>J’ai visionné la vidéo et vérifié qu’elle correspond au bien et peut être publiée.</label>
+          </>}
           <div style={{fontSize:"14.5px",color:C.dark,fontFamily:F,lineHeight:1.7,whiteSpace:"pre-line",marginBottom:"14px"}}>{ouvert.description}</div>
           {ouvert.advertiser_type!=="pro"&&<IndividualPanel key={ouvert.id} api={individualVerificationApi} user={user} property={ouvert} admin/>}
           <p style={{fontFamily:F,fontSize:14,background:C.cream,padding:12,borderRadius:8}}><strong>Autorisation déclarée :</strong> {ouvert.details?.publication_authorized===true?"Attestation confirmée par l’annonceur":"Non renseignée (annonce antérieure ou à compléter)"}. Cette déclaration ne prouve pas la propriété du bien.</p>
@@ -1801,7 +1826,7 @@ function AdminModeration({ user }) {
           </div>
           <div style={{display:"grid",gap:"9px"}}>
             <p style={{fontFamily:F,fontSize:14,lineHeight:1.6,background:C.cream,padding:12,borderRadius:8}}>{ouvert.status==="validee"?`Expiration : ${dateCourte(ouvert.expires_at)}. ${isExpired(ouvert)?"Le propriétaire doit confirmer la disponibilité et soumettre à nouveau son annonce.":""}`:`Durée de publication : ${publicationMonths(ouvert)===6?"6 mois":"1 an"} à partir de votre validation. Si vous validez aujourd’hui : jusqu’au ${dateCourte(addCalendarMonths(new Date(),publicationMonths(ouvert)))}.`}</p>
-          <button disabled={enregistrement||ouvert.status==="validee"} onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
+          <button disabled={enregistrement||ouvert.status==="validee"||(!!ouvert.video_path&&!videoReviewed)} onClick={()=>decider(ouvert,"validee")} style={{background:C.success,color:C.white,border:"none",borderRadius:"9px",padding:"13px",fontWeight:700,fontSize:"14.5px",cursor:"pointer",fontFamily:F}}>Publier</button>
           </div>
           <ReponseModeration key={ouvert.id} table="properties" dossier={ouvert} value={motif} onChange={v=>{setMotif(v);setErreurDecision("");}} onRefuse={()=>decider(ouvert,"rejetee",motif)} busy={enregistrement} error={erreurDecision}/>
         </ModalShell>
@@ -2242,6 +2267,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
           </div>
         )}
         <div style={{padding:"18px"}}>
+          {p.video_path&&<ListingVideo key={p.video_path} path={p.video_path} api={videoApi} poster={p.photos?.[0]}/>}
           {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"13px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
           <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark}}>{p.title}</h2>
           <p style={{margin:"0 0 12px",color:C.sub,fontSize:"13px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
@@ -2401,6 +2427,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
               <div style={{position:"absolute",bottom:12,right:14,background:"rgba(0,0,0,0.62)",color:C.white,fontSize:"13px",fontWeight:600,padding:"4px 12px",borderRadius:"20px",fontFamily:F}}>{img+1} / {photos.length}</div>
             </>)}
           </div>
+          {p.video_path&&<ListingVideo key={p.video_path} path={p.video_path} api={videoApi} poster={photos[0]}/>}
           {photos.length>1&&(
             <div style={{display:"flex",gap:"8px",overflowX:"auto",marginTop:"10px",paddingBottom:"4px"}}>
               {photos.map((u,i)=>(

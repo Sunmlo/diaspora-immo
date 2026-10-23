@@ -1,0 +1,55 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+
+test('video lifecycle: private upload, moderation, public read, immutable objects and replacement',async()=>{
+ const db=new PGlite();
+ const owner='10000000-0000-4000-8000-000000000001',other='10000000-0000-4000-8000-000000000002',admin='10000000-0000-4000-8000-000000000003';
+ const path=`${owner}/20000000-0000-4000-8000-000000000001.mp4`,replacement=`${owner}/20000000-0000-4000-8000-000000000002.mp4`;
+ const query=async(sql,args=[]) => (await db.query(sql,args)).rows;
+ const as=async(id,fn)=>{await db.exec(`set role ${id?'authenticated':'anon'};select set_config('request.jwt.claim.sub','${id||''}',false);`);try{return await fn();}finally{await db.exec('reset role');}};
+ try{
+ await db.exec(`create role anon;create role authenticated;create schema auth;create schema sokile_private;grant usage on schema auth,sokile_private to authenticated,anon;
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function sokile_is_admin() returns boolean language sql stable as $$select coalesce(auth.uid()='${admin}'::uuid,false)$$;
+ create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);alter table storage.objects enable row level security;
+ grant usage on schema storage to authenticated,anon;grant select,insert,update,delete on storage.objects to authenticated;grant select on storage.objects to anon;
+ create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;
+ create table properties(id bigint generated always as identity primary key,owner_id uuid,title text,status text default 'en_attente',active boolean default false,verified boolean default false,validated_at timestamptz,expires_at timestamptz default now()+interval '1 year');
+ alter table properties enable row level security;
+ create policy owner_access on properties to authenticated using(owner_id=auth.uid() or sokile_is_admin()) with check(owner_id=auth.uid() or sokile_is_admin());
+ grant select,insert,update,delete on properties to authenticated;grant usage on all sequences in schema public to authenticated;
+ create view public_properties with(security_barrier=true) as select id,title from properties where status='validee' and active and expires_at>now();grant select on public_properties to anon,authenticated;
+ create function existing_workflow() returns trigger language plpgsql as $$begin if not sokile_is_admin() then new.status:='en_attente';new.active:=false;new.verified:=false;elsif new.status='validee' then new.active:=true;new.verified:=true;end if;return new;end$$;
+ create trigger sokile_property_workflow before insert or update on properties for each row execute function existing_workflow();`);
+ await db.exec(await readFile(new URL('../supabase/migrations/20261023062518_listing_video.sql',import.meta.url),'utf8'));
+ const upload=path=>as(owner,()=>query("insert into storage.objects(bucket_id,name,metadata) values('listing-videos',$1,$2)",[path,{size:1024,mimetype:'video/mp4'}]));
+ await upload(path);await upload(replacement);
+ await assert.rejects(as(other,()=>query("insert into storage.objects(bucket_id,name) values('listing-videos',$1)",[path])));
+ assert.equal((await as(null,()=>query('select * from storage.objects'))).length,0);
+ assert.equal((await as(other,()=>query('select * from storage.objects'))).length,0);
+ assert.equal((await as(admin,()=>query('select * from storage.objects'))).length,2);
+ const [p]=await as(owner,()=>query('insert into properties(owner_id,title,video_path,video_reviewed_path,status) values($1,$2,$3,$3,$4) returning *',[owner,'Test',path,'validee']));
+ assert.equal(p.status,'en_attente');assert.equal(p.video_reviewed_path,null);
+ await assert.rejects(as(other,()=>query('insert into properties(owner_id,video_path) values($1,$2)',[other,path])));
+ await assert.rejects(as(owner,()=>query('insert into properties(owner_id,video_path) values($1,$2)',[owner,`${owner}/20000000-0000-4000-8000-000000000099.mp4`])));
+ await assert.rejects(as(admin,()=>query("update properties set status='validee' where id=$1",[p.id])),/validez/);
+ await as(owner,()=>query("update properties set video_reviewed_path=video_path,status='validee' where id=$1",[p.id]));
+ assert.equal((await query('select video_reviewed_path from properties where id=$1',[p.id]))[0].video_reviewed_path,null);
+ await as(admin,()=>query("update properties set video_reviewed_path=video_path,status='validee' where id=$1",[p.id]));
+ assert.equal((await as(null,()=>query('select * from storage.objects'))).length,1);
+ assert.equal((await as(null,()=>query('select video_path from public_properties')))[0].video_path,path);
+ assert.equal((await as(owner,()=>query("update storage.objects set metadata='{}' returning *"))).length,0);
+ assert.equal((await as(owner,()=>query('delete from storage.objects where name=$1 returning *',[path]))).length,0);
+ await as(admin,()=>query("update properties set expires_at=now()-interval '1 day' where id=$1",[p.id]));
+ assert.equal((await as(null,()=>query('select * from storage.objects'))).length,0);
+ await as(owner,()=>query('update properties set video_path=$1 where id=$2',[replacement,p.id]));
+ const [changed]=await query('select * from properties where id=$1',[p.id]);
+ assert.equal(changed.status,'en_attente');assert.equal(changed.video_reviewed_path,null);assert.equal(changed.active,false);
+ assert.equal((await as(owner,()=>query('delete from storage.objects where name=$1 returning *',[path]))).length,1);
+ await as(owner,()=>query('update properties set video_path=null where id=$1',[p.id]));
+ assert.equal((await query('select video_path from properties where id=$1',[p.id]))[0].video_path,null);
+ }finally{await db.close();}
+});
