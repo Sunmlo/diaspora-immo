@@ -6,7 +6,7 @@ import {listingPrice} from '../src/assisted-listings.mjs';
 
 test('prices preserve unknown periods and starting prices',()=>{
  assert.match(listingPrice({type:'Location',price:900000,details:{price_from:true}},'XOF'),/^À partir de .*FCFA \/ mois$/);
- assert.match(listingPrice({transaction:'location',details:{rent_period:'a_confirmer'}}),/périodicité à confirmer$/);
+ assert.doesNotMatch(listingPrice({transaction:'location',details:{rent_period:'a_confirmer'}}),/mois|confirmer/);
  assert.doesNotMatch(listingPrice({type:'Vente',details:{rent_period:'a_confirmer'}}),/mois|confirmer/);
 });
 

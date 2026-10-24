@@ -2201,7 +2201,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       <div className="sok-card-img" style={{backgroundColor:C.forest,backgroundImage:photo?`url('${photo}')`:`radial-gradient(circle at 80% 18%,rgba(201,168,76,.28),transparent 24%),linear-gradient(145deg,${C.forestMid},${C.forestDark})`,backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
         {!photo&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",color:"rgba(255,255,255,.78)",fontFamily:F}}>
           <span style={{display:"flex",transform:"scale(1.55)",opacity:.72}}>{Icon.home}</span>
-          <span style={{fontSize:"12px",fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Photos à venir</span>
+          <span style={{fontSize:"12px",fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Photos non communiquées</span>
         </div>}
         {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
@@ -2218,7 +2218,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         </div>
       </div>
       <div style={{padding:"16px 16px 18px"}}>
-        <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"5px"}}>{p.neighborhood}, {p.city} · <Flag name={p.country} size={15}/>{p.country}</div>
+        <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"5px"}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</div>
         {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
         <div style={{fontSize:"19px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"9px",lineHeight:1.28}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"center"}}>
@@ -2359,8 +2359,9 @@ function ListingConditions({p}) {
   const rental=transactionDe(p)==="location";
   const fields=rental?CHAMPS_LOCATION:CHAMPS_VENTE;
   const rows=fields.filter(c=>p.details?.[c.k]!==undefined&&p.details?.[c.k]!==null&&String(p.details[c.k]).trim()!=="");
+  const unknownPeriod=rental&&p.details?.rent_period==="a_confirmer";
   return <section className="sok-listing-section"><h2>{rental?"Conditions de location":"Conditions de vente"}</h2>
-    {rows.length?<dl>{rows.map(c=><div key={c.k}><dt>{c.l}</dt><dd>{p.details[c.k]}</dd></div>)}</dl>:<p>Les conditions détaillées sont à préciser avec l’annonceur.</p>}
+    {rows.length||unknownPeriod?<dl>{unknownPeriod&&<div><dt>Périodicité du loyer</dt><dd>Non communiquée</dd></div>}{rows.map(c=><div key={c.k}><dt>{c.l}</dt><dd>{p.details[c.k]}</dd></div>)}</dl>:<p>Non communiquées.</p>}
     {!rental&&p.details?.documents_vente&&<small>Documents déclarés par le vendeur. Leur validité reste à vérifier auprès d’un professionnel compétent.</small>}
   </section>;
 }
@@ -2422,7 +2423,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           {/* Galerie */}
           <div className="sok-annonce-photo" style={{position:"relative",borderRadius:"14px",overflow:"hidden",backgroundColor:C.forest,backgroundImage:photos[img]?`url('${photos[img]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center"}}>
             {photos.length>0&&<button className="sok-open-gallery" onClick={()=>setGallery(true)}>Voir les {photos.length} photo{photos.length>1?"s":""}</button>}
-            {!photos.length&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.5)",fontFamily:F,fontSize:"15px"}}>Pas de photo</div>}
+            {!photos.length&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.5)",fontFamily:F,fontSize:"15px"}}>Photos non communiquées</div>}
             <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
               <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
               {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}
