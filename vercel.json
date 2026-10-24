@@ -14,6 +14,10 @@
   ],
   "rewrites": [
     {
+      "source": "/agence/:slug",
+      "destination": "/index.html"
+    },
+    {
       "source": "/validation/locadakar",
       "destination": "/validation/locadakar/index.html"
     },

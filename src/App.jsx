@@ -1,3 +1,5 @@
+import {AssistedAgenciesAdmin,AgencyPage} from './assisted-agencies.jsx';
+import {listingPrice} from './assisted-listings.mjs';
 import {ListingVideo, ListingVideoEditor} from './listing-video.jsx';
 import {listingVideoApi} from './listing-video.mjs';
 import {TrustCommitment} from './trust-commitment.jsx';
@@ -458,7 +460,7 @@ async function updatePassword(accessToken, password) {
   return readAuthResponse(res);
 }
 // ─── LOGIN MODAL ──────────────────────────────────
-function LoginModal({ onClose, onLogin, initialMode="login", giftProject=null }) {
+function LoginModal({ onClose, onLogin, initialMode="login", initialAccountType="particulier", initialAgency="", giftProject=null }) {
   const [callback] = useState(() => authCallbackState(window.location.hash));
   const recoveryToken = callback?.token || "";
   const [mode, setMode] = useState(callback?.mode || initialMode);
@@ -467,8 +469,8 @@ function LoginModal({ onClose, onLogin, initialMode="login", giftProject=null })
   const [name, setName] = useState("");
   const [phoneCode, setPhoneCode] = useState("+33");
   const [phone, setPhone] = useState("");
-  const [accountType, setAccountType] = useState("particulier");
-  const [agency, setAgency] = useState("");
+  const [accountType, setAccountType] = useState(initialAccountType);
+  const [agency, setAgency] = useState(initialAgency);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(callback?.error || "");
@@ -1168,6 +1170,8 @@ function lireRoute() {
   if(window.location.pathname==="/programmes-neufs") return {nom:"programmes"};
   const programme=window.location.pathname.match(/^\/programme\/([0-9a-f-]+)\/?$/i);
   if(programme) return {nom:"programme",id:programme[1]};
+  const agence=window.location.pathname.match(/^\/agence\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/);
+  if(agence)return {nom:"agence",id:agence[1]};
   const annonce = window.location.pathname.match(/^\/annonce\/([^/?#]+)/);
   if (annonce) return { nom:"annonce", id:decodeURIComponent(annonce[1]) };
   const guide = window.location.pathname.match(/^\/guide\/([^/?#]+)/);
@@ -1605,6 +1609,7 @@ const RUBRIQUES_ADMIN = [
   {id:"demandes",     label:"Demandes"},
   {id:"publicites",   label:"Publicités"},
   {id:"paiements",    label:"Paiements"},
+  {id:"agences",label:"Agences accompagnées"},
   {id:"verifications",label:"Vérifications pro"},
   {id:"prestataires", label:"Prestataires"},
   {id:"actualites",   label:"Actualités"},
@@ -1628,6 +1633,7 @@ function EspaceAdmin({ user, onApercu, apercu, programRefresh }) {
           <button key={r.id} onClick={()=>setRub(r.id)} style={{flexShrink:0,background:rub===r.id?C.forest:C.white,color:rub===r.id?C.white:C.dark,border:`1px solid ${rub===r.id?C.forest:C.sand}`,borderRadius:"22px",padding:"10px 18px",fontSize:"14.5px",fontWeight:rub===r.id?700:500,cursor:"pointer",fontFamily:F}}>{r.label}</button>
         ))}
       </div>
+      {rub==="agences"&&<AssistedAgenciesAdmin user={user} load={lireAuth} write={ecrireAuth}/>}
       {rub==="moderation"&&<AdminModeration user={user}/>}
       {rub==="programmes"&&<ProgramManager api={programApi} user={user} admin refreshKey={programRefresh}/>}
       {rub==="demandes"&&<AdminDemandes user={user}/>}
@@ -1786,7 +1792,7 @@ function AdminModeration({ user }) {
                   {libelleTransaction(p)} · {libelleNature(p)} · {p.city}, {p.country} · {dateCourte(p.created_at)}
                 </div>
                 <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"5px"}}>{p.title}</div>
-                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""} · {p.photos?.length||0} photo(s){p.video_path?" · 1 vidéo":""}</div>
+                <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F,marginBottom:"8px"}}>{listingPrice(p)} · {p.photos?.length||0} photo(s){p.video_path?" · 1 vidéo":""}</div>
                 <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"10px"}}>
                   {p.user_name} · {p.user_email} · {p.user_phone}
                 </div>
@@ -2155,7 +2161,7 @@ function telPropre(brut) {
 }
 function lienWhatsApp(p) {
   const n = telPropre(p.user_phone).replace(/^\+/, "");
-  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}).`;
+  const txt = `Bonjour, je vous contacte au sujet de votre annonce sur Sokilé : ${p.title} — ${p.city}, ${p.country} (${listingPrice(p)}).`;
   return n ? `https://wa.me/${n}?text=${encodeURIComponent(txt)}` : null;
 }
 function lienAppel(p) {
@@ -2164,7 +2170,7 @@ function lienAppel(p) {
 }
 function lienMailSokile(p) {
   const sujet = `Demande de contact — annonce ${p.title} (${p.city})`;
-  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nMerci,\n`;
+  const corps = `Bonjour,\n\nJe souhaite être mis en relation avec l'annonceur du bien suivant :\n\n${p.title}\n${p.neighborhood ? p.neighborhood + ", " : ""}${p.city}, ${p.country}\n${listingPrice(p)}\n\nMerci,\n`;
   return `mailto:${CONTACT_MAIL}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
 }
 
@@ -2174,7 +2180,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   const photo = p.photos?.[0];
   const shareWA = (e) => {
     e && e.stopPropagation();
-    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${listingPrice(p)}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   if (compact) return (
@@ -2184,7 +2190,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
       <div style={{padding:"10px 12px",flex:1,minWidth:0}}>
         <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
         <div style={{fontSize:"14px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
-        <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+        <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{listingPrice(p)}</div>
       </div>
     </div>
   );
@@ -2223,8 +2229,8 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
           ))}
         </div>
         <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"11px"}}>
-          <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
-          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</div>
+          <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{listingPrice(p)}</div>
+          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{listingPrice(p,"XOF")}</div>
         </div>
       </div>
     </div>
@@ -2238,7 +2244,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
   useEffect(()=>{ setImg(0); }, [p?.id]);
   if (!p) return null;
   const shareWA = () => {
-    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}\n\nVu sur Sokilé — https://www.sokile.com`;
+    const txt = `${p.title}\n${p.neighborhood ? p.neighborhood+", " : ""}${p.city}, ${p.country}\n${listingPrice(p)}\n\nVu sur Sokilé — https://www.sokile.com`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
   };
   return (
@@ -2287,8 +2293,8 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
             </div>
           </div>}
           <div style={{background:C.cream,borderRadius:"8px",padding:"12px",marginBottom:"14px",borderLeft:`3px solid ${C.terra}`}}>
-            <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
-            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</div>
+            <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{listingPrice(p)}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{listingPrice(p,"XOF")}</div>
           </div>
           <div style={{background:C.cream,borderRadius:"8px",padding:"10px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"10px"}}>
             <div style={{width:34,height:34,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:700,fontSize:"14px",fontFamily:F}}>
@@ -2387,7 +2393,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
 
   const partager = async () => {
     const url = urlAnnonce(p);
-    const texte = `${p.title} — ${p.city}, ${p.country}\n${fmtEUR(p.price_eur)}${transactionDe(p)==="location"?" / mois":""}`;
+    const texte = `${p.title} — ${p.city}, ${p.country}\n${listingPrice(p)}`;
     if (navigator.share) { try { await navigator.share({title:p.title, text:texte, url}); return; } catch(e) {} }
     try { await navigator.clipboard.writeText(url); setCopie(true); setTimeout(()=>setCopie(false), 2500); }
     catch(e) { window.open(`https://wa.me/?text=${encodeURIComponent(texte+"\n"+url)}`,"_blank"); }
@@ -2440,8 +2446,8 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           <h1 style={{margin:"20px 0 6px",fontFamily:FT,fontSize:"clamp(24px,3.4vw,34px)",fontWeight:500,color:C.dark,lineHeight:1.22}}>{p.title}</h1>
           <p style={{margin:"0 0 14px",color:C.sub,fontSize:"15px",fontFamily:F}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</p>
           <div style={{display:"flex",alignItems:"baseline",gap:"12px",flexWrap:"wrap",marginBottom:"18px"}}>
-            <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</span>
-            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{fmtXOF(p.price)}{transactionDe(p)==="location"?" / mois":""}</span>
+            <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{listingPrice(p)}</span>
+            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{listingPrice(p,"XOF")}</span>
           </div>
 
           {/* Caractéristiques */}
@@ -2488,6 +2494,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
             ) : (<>
               <div style={{fontSize:"11.5px",fontWeight:700,color:C.sub,fontFamily:F,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:"4px"}}>Contacter l'annonceur</div>
               <div style={{fontSize:"17px",fontWeight:700,color:C.dark,fontFamily:F,marginBottom:"14px"}}>{p.agency_name||p.user_name||"Particulier"}</div>
+              {p.agency_slug&&<a href={`/agence/${p.agency_slug}`} style={{display:"block",marginBottom:14,color:C.forest,fontFamily:F}}>Toutes les annonces de cette agence</a>}
               {(wa||tel) ? (<>
                 {wa&&<a href={wa} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",background:"#25D366",color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none",marginBottom:"8px"}}>{Icon.wa}WhatsApp</a>}
                 {tel&&<a href={tel} style={{display:"block",textAlign:"center",background:C.terra,color:C.white,borderRadius:"10px",padding:"14px",fontWeight:700,fontSize:"15px",fontFamily:F,textDecoration:"none",marginBottom:"8px"}}>Appeler</a>}
@@ -2507,7 +2514,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
         </aside>
       </div>
 
-      {!p.demo&&!gallery&&<div className="sok-listing-contact"><strong>{fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</strong>{tel&&<a href={tel}>Appeler</a>}{wa&&<a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>}{!tel&&!wa&&<a href={lienMailSokile(p)}>Contacter</a>}</div>}
+      {!p.demo&&!gallery&&<div className="sok-listing-contact"><strong>{listingPrice(p)}</strong>{tel&&<a href={tel}>Appeler</a>}{wa&&<a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>}{!tel&&!wa&&<a href={lienMailSokile(p)}>Contacter</a>}</div>}
       {/* Biens similaires */}
       {similaires?.length>0&&(
         <div style={{marginTop:"34px"}}>
@@ -3063,7 +3070,7 @@ function SokileApp() {
   const [showBulkImport,setShowBulkImport]=useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [giftSignup,setGiftSignup]=useState(null);
-  const [showLogin, setShowLogin] = useState(() => Boolean(authCallbackState(window.location.hash)));
+  const [showLogin, setShowLogin] = useState(() => new URLSearchParams(window.location.search).get("inscription")==="pro" ? "signup" : Boolean(authCallbackState(window.location.hash)));
   const [partnerType, setPartnerType] = useState(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [savedProps, setSavedProps] = useState(() => lireLocal(CLE_FAVORIS, []));
@@ -3483,6 +3490,7 @@ button,input,select,textarea{font-size:inherit}
         {route.nom==="recherche"&&<SearchRequestPage user={apercu?null:user} rpc={alertRpc} onLogin={()=>setShowLogin(true)} onSaved={()=>setAlertsRefresh(x=>x+1)}/>}
         {route.nom==="cadeau"&&<GiftPage user={apercu?null:user} api={giftsApi} onSignup={answers=>{setGiftSignup(answers);setShowLogin("signup")}} onFindPro={country=>openAnnuaire("Notaire",country)}/>}
         {route.nom==="verification"&&<VerificationPage/>}
+        {route.nom==="agence"&&<AgencyPage slug={route.id} load={lire} listings={ALL_PROPS.filter(p=>p.agency_slug===route.id)} loading={propsLoading} listingsError={propsError} renderCard={p=><PropertyCard key={p.id} p={p} onClick={ouvrirAnnonce} onSave={handleSave} saved={savedProps.some(s=>s.id===p.id)}/>}/>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsLoading&&<p role="status" style={{fontFamily:F,color:C.sub}}>Chargement des annonces…</p>}
         {route.nom==="accueil"&&(tab==="accueil"||tab==="biens")&&propsError&&<p role="alert" style={{fontFamily:F,color:C.terra}}>Les annonces ne peuvent pas être chargées pour le moment. Réessayez dans quelques instants.</p>}
         {adPreview&&<AdPreviewNotice offer={adPreview}/>}
@@ -3958,7 +3966,7 @@ button,input,select,textarea{font-size:inherit}
                               <div style={{width:40,height:40,borderRadius:"6px",background:p.bg,flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</div>
-                                <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.city} · {fmtEUR(p.price_eur)}{transactionDe(p)==="location"?" / mois":""}</div>
+                                <div style={{fontSize:"12px",color:C.sub,fontFamily:F}}>{p.city} · {listingPrice(p)}</div>
                               </div>
                               <span onClick={e=>{e.stopPropagation();handleSave(p);}} style={{fontSize:"16px",cursor:"pointer"}}>❤️</span>
                             </div>
@@ -4013,7 +4021,7 @@ button,input,select,textarea{font-size:inherit}
 
       {/* MODALS */}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
-      {showLogin&&<LoginModal giftProject={giftSignup} initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>{setShowLogin(false);setGiftSignup(null)}} onLogin={u=>setUser(u)}/>}
+      {showLogin&&<LoginModal initialAccountType={new URLSearchParams(window.location.search).get("inscription")==="pro"?"pro":"particulier"} initialAgency={new URLSearchParams(window.location.search).get("agence")||""} giftProject={giftSignup} initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>{setShowLogin(false);setGiftSignup(null)}} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:false}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
       {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos,verification:proVerificationApi}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
