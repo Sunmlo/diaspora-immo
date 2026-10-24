@@ -2191,6 +2191,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
         <div style={{fontSize:"14px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
         <div style={{fontSize:"15px",fontWeight:700,color:C.terra,fontFamily:F}}>{listingPrice(p)}</div>
+        <div style={{fontSize:"12px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{listingPrice(p,"EUR")}</div>
       </div>
     </div>
   );
@@ -2230,7 +2231,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         </div>
         <div style={{borderTop:`1px solid ${C.sand}`,paddingTop:"11px"}}>
           <div style={{fontSize:"22px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.01em"}}>{listingPrice(p)}</div>
-          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{listingPrice(p,"XOF")}</div>
+          <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginTop:"2px"}}>{listingPrice(p,"EUR")}</div>
         </div>
       </div>
     </div>
@@ -2294,7 +2295,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
           </div>}
           <div style={{background:C.cream,borderRadius:"8px",padding:"12px",marginBottom:"14px",borderLeft:`3px solid ${C.terra}`}}>
             <div style={{fontSize:"21px",fontWeight:700,color:C.terra,fontFamily:F}}>{listingPrice(p)}</div>
-            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{listingPrice(p,"XOF")}</div>
+            <div style={{fontSize:"13px",color:C.sub,fontFamily:F}}>{listingPrice(p,"EUR")}</div>
           </div>
           <div style={{background:C.cream,borderRadius:"8px",padding:"10px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"10px"}}>
             <div style={{width:34,height:34,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:700,fontSize:"14px",fontFamily:F}}>
@@ -2445,9 +2446,9 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           {/* Titre et prix */}
           <h1 style={{margin:"20px 0 6px",fontFamily:FT,fontSize:"clamp(24px,3.4vw,34px)",fontWeight:500,color:C.dark,lineHeight:1.22}}>{p.title}</h1>
           <p style={{margin:"0 0 14px",color:C.sub,fontSize:"15px",fontFamily:F}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</p>
-          <div style={{display:"flex",alignItems:"baseline",gap:"12px",flexWrap:"wrap",marginBottom:"18px"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:"4px",marginBottom:"18px"}}>
             <span style={{fontSize:"32px",fontWeight:700,color:C.terra,fontFamily:F,letterSpacing:"-0.02em"}}>{listingPrice(p)}</span>
-            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{listingPrice(p,"XOF")}</span>
+            <span style={{fontSize:"16px",color:C.sub,fontFamily:F}}>{listingPrice(p,"EUR")}</span>
           </div>
 
           {/* Caractéristiques */}
