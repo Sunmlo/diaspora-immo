@@ -14,6 +14,14 @@
   ],
   "rewrites": [
     {
+      "source": "/validation/locadakar",
+      "destination": "/validation/locadakar/index.html"
+    },
+    {
+      "source": "/validation/locadakar/",
+      "destination": "/validation/locadakar/index.html"
+    },
+    {
       "source": "/programmes-neufs",
       "destination": "/index.html"
     },
@@ -48,6 +56,29 @@
     {
       "source": "/recherche/",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/validation/locadakar/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><title>Vos annonces à valider · Locadakar | Sokilé</title>
+<style>body{margin:0;background:#F8F4EB;color:#073D33;font:17px/1.7 system-ui,sans-serif}main{max-width:680px;margin:12vh auto;padding:32px}h1{font:38px/1.2 Georgia,serif}small{letter-spacing:3px}#status{padding:22px 0}a{color:inherit}</style></head><body><main><small>SOKILÉ · LOCADAKAR</small><h1>Vos annonces à valider</h1><p id="status" role="status">Ouverture de votre dossier…</p><noscript>Activez JavaScript pour consulter les fiches et compléter le formulaire.</noscript></main>
+<script type="module">
+const status=document.querySelector('#status');
+const endpoint='https://nhyejaubfxjmmuvetayw.supabase.co/functions/v1/agency-listing-review';
+try{
+ const token=new URLSearchParams(location.hash.slice(1)).get('cle');
+ if(!token||!/^[A-Za-z0-9_-]{43}$/.test(token))throw new Error('Ouvrez le lien complet transmis par Sokilé dans votre conversation. Aucun compte ChatGPT n’est nécessaire.');
+ const access=await fetch(endpoint+'?asset=dossier',{headers:{'X-Review-Token':token},cache:'no-store',referrerPolicy:'no-referrer'});
+ if(!access.ok){let message='L’accès n’a pas pu être vérifié. Réessayez dans quelques instants.';try{message=(await access.json()).error||message;}catch{}throw new Error(message);}
+ const asset=await access.json();
+ const assetUrl=new URL(asset.url);
+ if(assetUrl.origin!=='https://nhyejaubfxjmmuvetayw.supabase.co'||!assetUrl.pathname.startsWith('/storage/v1/object/sign/agency-review-assets/'))throw new Error('Le lien du dossier est invalide.');
+ const response=await fetch(assetUrl,{cache:'no-store',referrerPolicy:'no-referrer'});
+ if(!response.ok)throw new Error('Le dossier n’a pas pu être chargé. Réessayez dans quelques instants.');
+ const packed=new Uint8Array(await response.arrayBuffer());
+ const bytes=Uint8Array.from(atob(token.replace(/-/g,'+').replace(/_/g,'/')+'='),c=>c.charCodeAt(0));
+ const key=await crypto.subtle.importKey('raw',bytes,'AES-GCM',false,['decrypt']);
+ const html=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:packed.slice(0,12),additionalData:new TextEncoder().encode('sokile-locadakar-v1')},key,packed.slice(12)));
+ window.sokileReviewKey=token;
+ document.open();document.write(html);document.close();
+}catch(error){status.textContent=error.name==='OperationError'?'Ce lien privé est invalide. Utilisez le lien complet transmis par Sokilé.':error.message||'La connexion a été interrompue. Rechargez la page pour réessayer.';}
+</script></body></html>
