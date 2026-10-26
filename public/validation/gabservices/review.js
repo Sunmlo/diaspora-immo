@@ -1,0 +1,39 @@
+const endpoint='https://nhyejaubfxjmmuvetayw.supabase.co/functions/v1/gabservices-listing-review';
+const token=new URLSearchParams(location.hash.slice(1)).get('cle')||'';
+const $=s=>document.querySelector(s),form=$('#form'),cards=$('#cards'),result=$('#result');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const labels={approved:'Disponible — je valide cette fiche',corrections:'Disponible — à corriger avant publication',unavailable:'Indisponible — ne pas publier',pending:'À vérifier de notre côté'};
+let listings=[],version='',requestId=null,lastBody=null;
+const storageKey='sokile-gab-draft-'+token.slice(-12);
+const field=(i,k)=>form.elements.namedItem(i+'-'+k);
+const input=(i,k,label,value,type='text',extra='')=>`<label for="${i}-${k}">${label}<input id="${i}-${k}" name="${i}-${k}" type="${type}" value="${esc(value)}" ${extra}></label>`;
+const select=(i,k,label,items,value)=>`<label for="${i}-${k}">${label}<select id="${i}-${k}" name="${i}-${k}" required>${items.map(([v,t])=>`<option value="${esc(v)}" ${v===value?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+const area=(i,k,label,value,max=3000)=>`<label class="full" for="${i}-${k}">${label}<textarea id="${i}-${k}" name="${i}-${k}" maxlength="${max}">${esc(value)}</textarea></label>`;
+const check=(i,k,label)=>`<label class="check"><input type="checkbox" name="${i}-${k}">${label}</label>`;
+function serialize(){return Object.fromEntries([...form.elements].filter(e=>e.name).map(e=>[e.name,e.type==='checkbox'?e.checked:e.value]));}
+function update(){
+ $('#progress').textContent=listings.filter((_,i)=>field(i,'status').value).length+' / 6 fiches vérifiées';
+ listings.forEach((_,i)=>{const approve=field(i,'status').value==='approved';['surfaceChecked','roomsChecked','mediaConfirmed'].forEach(k=>field(i,k).required=approve);field(i,'price').required=approve;});
+ requestId=null;lastBody=null;result.textContent='';try{localStorage.setItem(storageKey,JSON.stringify(serialize()));}catch{}
+}
+try{
+ if(!/^[A-Za-z0-9_-]{43}$/.test(token))throw Error('Ouvrez le lien complet transmis par Sokilé. Aucun compte ChatGPT n’est nécessaire.');
+ const r=await fetch(endpoint,{headers:{'X-Review-Token':token},cache:'no-store'});const data=await r.json();if(!r.ok)throw Error(data.error||'Dossier momentanément indisponible.');
+ listings=data.listings;version=data.version;if(!Array.isArray(listings)||listings.length!==6)throw Error('Dossier incomplet. Contactez Sokilé.');
+ listings.forEach((d,i)=>{
+ const article=document.createElement('article');article.className='card';article.innerHTML=`<div class="head"><div class="eyebrow">Fiche ${d.number} / 06 · Mali · ${esc(d.transaction)}</div><h2>${esc(d.title)}</h2><div class="price">${d.price.toLocaleString('fr-FR')} FCFA${d.transaction==='Location'?' / mois':''}</div><div class="euro">≈ ${Math.round(d.price/655.957).toLocaleString('fr-FR')} €${d.transaction==='Location'?' / mois':''} · prix source à vérifier ci-dessous</div></div><div class="body"><p class="photo-placeholder">Photos du bien à ajouter : indiquez un lien vers vos photos ci-dessous, ou transmettez-les dans notre échange avec la référence <b>GAB-${d.number}</b>.</p><a class="source" href="${esc(d.source_url)}" target="_blank" rel="noopener noreferrer">Voir la fiche sur votre site ↗</a><p class="notice">${esc(d.reviewNote)}</p><div class="fields">${input(i,'title','Titre de l’annonce',d.title,'text','required maxlength="250"')}${input(i,'location','Ville et quartier',d.location,'text','required maxlength="250"')}${select(i,'transaction','Transaction',[['Vente','Vente'],['Location','Location']],d.transaction)}${select(i,'period','Périodicité du prix',['Prix de vente','Par mois','Par jour','À préciser'].map(x=>[x,x]),d.period)}${input(i,'price','Prix en FCFA (XOF)',d.price,'number','min="1" max="1000000000000" step="1"')}${input(i,'area','Surface en m² — à préciser',d.area,'number','min="0" max="1000000000" step="any"')}${input(i,'bedrooms','Nombre de chambres / salles',d.bedrooms,'number','min="0" max="1000" step="1"')}${input(i,'bathrooms','Salles de bain',d.bathrooms,'number','min="0" max="1000" step="1"')}${area(i,'description','Description — vous pouvez la compléter',d.description,6000)}${area(i,'notes','Précisions : surface habitable ou terrain, conditions, charges, équipements…','')}${area(i,'mediaLinks','Liens des vraies photos — un lien HTTPS par ligne (album, publication ou dossier partagé)','',12000)}${input(i,'videoLink','Lien d’une vidéo du bien (facultatif)','','url','maxlength="2000" placeholder="https://…"')}${select(i,'status','Votre choix pour cette fiche',[['','Choisir un statut'],...Object.entries(labels)],'')}</div><div class="checks">${check(i,'surfaceChecked','J’ai vérifié la surface et précisé sa nature dans les renseignements ci-dessus (ou laissé vide si non communiquée).')}${check(i,'roomsChecked','J’ai vérifié le nombre de chambres / salles et les autres caractéristiques.')}${check(i,'mediaConfirmed','J’ai fourni les vraies photos de ce bien par lien ou dans notre échange, et j’autorise leur utilisation.')}</div></div>`;cards.append(article);
+ });
+ try{const draft=JSON.parse(localStorage.getItem(storageKey)||'null');if(draft)for(const [k,v] of Object.entries(draft)){const el=form.elements.namedItem(k);if(el){if(el.type==='checkbox')el.checked=v===true;else el.value=String(v);}}}catch{}
+ $('#loading').hidden=true;form.hidden=false;$('#sticky').hidden=false;form.addEventListener('input',update);update();
+}catch(e){$('#loading').textContent=e.message||'Connexion interrompue. Rechargez la page.';}
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();$(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});}));
+form.addEventListener('submit',async e=>{
+ e.preventDefault();if(!form.reportValidity())return;
+ const entries=listings.map((d,i)=>{const out={id:d.id};for(const k of ['title','location','transaction','period','description','notes','videoLink','status'])out[k]=field(i,k).value.trim();for(const k of ['price','area','bedrooms','bathrooms'])out[k]=field(i,k).value===''?null:Number(field(i,k).value);for(const k of ['surfaceChecked','roomsChecked','mediaConfirmed'])out[k]=field(i,k).checked;out.mediaLinks=field(i,'mediaLinks').value.split(/\n/).map(s=>s.trim()).filter(Boolean);return out;});
+ const payload={version,consent:$('#consent').checked,contact:{name:form.elements.contactName.value.trim(),email:form.elements.contactEmail.value.trim(),phone:form.elements.contactPhone.value.trim()},entries};
+ const body=JSON.stringify(payload);if(body!==lastBody){requestId=crypto.randomUUID();lastBody=body;}
+ $('#send').disabled=true;result.textContent='Enregistrement de vos vérifications…';
+ try{const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Review-Token':token},body:JSON.stringify({id:requestId,...payload})});const d=await r.json();if(!r.ok||!d.saved)throw Error(d.error||'Enregistrement non confirmé.');result.textContent='Merci ! Vos vérifications ont bien été enregistrées. Référence : '+d.reference+'. Sokilé vérifiera les informations et photos avant publication. Conservez cette référence.';try{localStorage.removeItem(storageKey);}catch{}}
+ catch(e){result.textContent=e.message+' Vos réponses restent affichées ; vous pouvez réessayer.';}
+ finally{$('#send').disabled=false;}
+});
