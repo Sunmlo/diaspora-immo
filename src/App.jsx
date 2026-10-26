@@ -15,6 +15,7 @@ import "./brand.css";
 import {VerificationPage, VerificationPanel, VerificationWorkspace, VerificationAdmin, VerificationAdminHint, VerificationBadge} from './pro-verification.jsx';
 import {verificationApi} from './pro-verification-api.mjs';
 import {specialtyActivity} from './pro-regulations.mjs';
+import {linkImportApi} from "./link-import.mjs";
 import { BulkImport } from "./bulk-import.jsx";
 import { CORE_COLUMNS } from "./bulk-import.mjs";
 import "./listing-details.css";
@@ -4025,7 +4026,7 @@ button,input,select,textarea{font-size:inherit}
       <PropertyModal onBudget={openBudget} p={selectedProp} onClose={()=>setSelectedProp(null)} onSaveFromModal={handleSave} onVerify={p=>openAnnuaire("Vérification terrain",p.country)}/>
       {showLogin&&<LoginModal initialAccountType={new URLSearchParams(window.location.search).get("inscription")==="pro"?"pro":"particulier"} initialAgency={new URLSearchParams(window.location.search).get("agence")||""} giftProject={giftSignup} initialMode={showLogin==="signup"?"signup":"login"} onClose={()=>{setShowLogin(false);setGiftSignup(null)}} onLogin={u=>setUser(u)}/>}
       {showAlert&&<AlertModal onClose={()=>setShowAlert(false)} filters={{country:filterCountry,region:filterRegion,transaction:filterTransaction,nature:filterNature,natureLabel:filterNature!=="Tous"?(NATURES[filterNature]?.label||filterNature):"",search,priceMin:filterPriceMin,priceMax:filterPriceMax,surfaceMin:filterSurfaceMin,surfaceMax:filterSurfaceMax,rooms:filterRooms,equipements:filterEquipements,verified:false}} user={vu} rpc={alertRpc} onCreated={()=>setAlertsRefresh(v=>v+1)}/>}
-      {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos,verification:proVerificationApi}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
+      {showBulkImport&&programPublisher&&<BulkImport user={vu} schema={BULK_SCHEMA} api={{read:lire,write:ecrire,upload:envoyerPhotos,verification:proVerificationApi,link:linkImportApi(SUPABASE_URL,SUPABASE_KEY)}} onClose={()=>setShowBulkImport(false)} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>}
       {showPartner&&<PartnerModal onClose={()=>setShowPartner(false)} user={vu} defaultType={partnerType} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {editingProp&&<PartnerModal onClose={()=>setEditingProp(null)} user={vu} existing={editingProp} onSaved={()=>setMyPropsRefresh(x=>x+1)}/>} 
       {(showServiceForm||editingService)&&vu&&<ServiceFormModal onClose={()=>{setShowServiceForm(false);setEditingService(null);}} user={vu} existing={editingService} onSaved={()=>setProRefresh(x=>x+1)}/>}
