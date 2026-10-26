@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+<title id="title">Photo non disponible</title><desc id="desc">Visuel neutre Sokilé : aucune photo de ce bien n’a été communiquée.</desc>
+<rect width="800" height="500" fill="#f3eee4"/>
+<rect x="18" y="18" width="764" height="464" rx="18" fill="none" stroke="#d9cdb8"/>
+<g fill="none" stroke="#ae8646" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><rect x="348" y="142" width="104" height="80" rx="12"/><path d="m365 142 10-16h50l10 16"/><circle cx="400" cy="182" r="21"/><path d="m346 231 108-108" stroke="#f3eee4" stroke-width="12"/><path d="m346 231 108-108"/></g>
+<text x="400" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#123e34">Photo non disponible</text>
+<text x="400" y="328" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#637166">Contactez l’annonceur pour en savoir plus</text>
+<text x="400" y="414" text-anchor="middle" font-family="Georgia, serif" font-size="25" fill="#123e34">Sokilé</text>
+</svg>

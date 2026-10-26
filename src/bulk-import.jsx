@@ -35,12 +35,12 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
   const setRow=(index,change)=>{uploaded.current.delete(index);setRows(old=>old.map((r,i)=>i===index?{...r,...change}:r));};
   const inspect=async file=>{
     if(!file||lock.current)return;setBusy(true);lock.current=true;setError('');
-    try{const parsed=await readImportFile(file,schema.columns);const current=await ownListings(api.read,user);setExisting(current);setRows(parsed.map(data=>({data,photos:[],selected:true})));setAuthorityAccepted(false);setSent([]);uploaded.current.clear();setProgress('Fichier lu. Vérifiez les annonces et ajoutez leurs photos.');}
+    try{const parsed=await readImportFile(file,schema.columns);const current=await ownListings(api.read,user);setExisting(current);setRows(parsed.map(data=>({data,photos:[],selected:true})));setAuthorityAccepted(false);setSent([]);uploaded.current.clear();setProgress('Fichier lu. Vérifiez les annonces et ajoutez des photos si vous en avez.');}
     catch(e){setError(e.message||'Impossible de lire ce fichier.');}finally{setBusy(false);lock.current=false;}
   };
   const errorsFor=(r,current=existing)=>validateRow(r.data,schema,rows.filter(x=>x.selected).map(x=>x.data),current||[]);
   const selected=rows.map((r,index)=>({...r,index})).filter(r=>r.selected&&!sent.includes(r.index));
-  const invalid=selected.some(r=>errorsFor(r).length||!photoCount(r));
+  const invalid=selected.some(r=>errorsFor(r).length);
   const send=async()=>{
     if(lock.current||!selected.length)return;
     if(!authorityAccepted){setError("Confirmez être propriétaire ou autorisé à proposer chacun des biens sélectionnés.");return;}
@@ -50,12 +50,12 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
     lock.current=true;setBusy(true);setError('');
     try{
       const current=await ownListings(api.read,user);setExisting(current);
-      if(selected.some(r=>errorsFor(r,current).length||!photoCount(r)))throw Error('Certaines annonces nécessitent une correction. Vérifiez les lignes signalées.');
+      if(selected.some(r=>errorsFor(r,current).length))throw Error('Certaines annonces nécessitent une correction. Vérifiez les lignes signalées.');
       const payload=[];
       for(let i=0;i<selected.length;i++){
         const r=selected[i];setProgress(`Préparation des photos : annonce ${i+1}/${selected.length}`);
         let urls=uploaded.current.get(r.index);
-        if(!urls){const remote=[];for(const url of r.remotePhotos||[])remote.push(await api.link.photo(url,user));urls=await api.upload([...remote,...r.photos],user);if(urls.length!==photoCount(r))throw Error(`Photos incomplètes pour ${r.data.reference}. Réessayez : aucune annonce de ce lot n’a été envoyée.`);uploaded.current.set(r.index,urls);}
+        if(!urls){const remote=[];for(const url of r.remotePhotos||[])remote.push(await api.link.photo(url,user));urls=photoCount(r)?await api.upload([...remote,...r.photos],user):[];if(urls.length!==photoCount(r))throw Error(`Photos incomplètes pour ${r.data.reference}. Réessayez : aucune annonce de ce lot n’a été envoyée.`);uploaded.current.set(r.index,urls);}
         const listing=rowPayload(r.data,{...user,...contact,phone},urls,schema);
         listing.professional_activity=activity;
         listing.details={...listing.details,publication_authorized:true,publication_authorized_at:new Date().toISOString(),publication_authorization_version:1,...(r.sourceUrl?{import_source_url:r.sourceUrl,import_method:'website'}:{})};
@@ -102,12 +102,12 @@ export function BulkImport({user,schema,api,onClose,onSaved}){
           <p>{done?'Envoyée en validation':`${r.data.transaction==='location'?'Location':'Vente'} · ${r.data.ville} · ${r.data.prix_fcfa} FCFA${r.data.transaction==='location'?' / mois':''}`}</p>
           {!done&&errors.length>0&&<ul className="sok-bulk-error">{errors.map((e,i)=><li key={i}>{e}</li>)}</ul>}
           {!done&&<><details open={errors.length>0}><summary>Vérifier ou corriger les informations</summary><fieldset disabled={busy}><div className="sok-bulk-grid">{[...CORE_COLUMNS,...schema.fields(r.data.nature,r.data.transaction).map(c=>c.k)].filter((k,i,all)=>all.indexOf(k)===i).map(k=>{const c=schema.fields(r.data.nature,r.data.transaction).find(c=>c.k===k);const options=k==='transaction'?['vente','location']:k==='nature'?schema.natures:k==='pays'?schema.countries:c?.options;return <label key={k}>{c?.l||schema.labels[k]||k}{options?<select value={r.data[k]||''} onChange={e=>setRow(index,{data:{...r.data,[k]:e.target.value}})}><option value="">Choisir</option>{options.map(v=><option key={v}>{v}</option>)}</select>:k==='description'?<textarea rows={4} value={r.data[k]||''} onChange={e=>setRow(index,{data:{...r.data,[k]:e.target.value}})}/>:<input value={r.data[k]||''} onChange={e=>setRow(index,{data:{...r.data,[k]:e.target.value}})}/>}</label>;})}</div></fieldset></details>
-          <label>Photos du bien (1 à 20, 8 Mo maximum chacune)<input disabled={busy} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>{const files=[...e.target.files];if(files.reduce((sum,f)=>sum+f.size,0)+rows.reduce((sum,r)=>sum+r.photos.reduce((n,f)=>n+f.size,0),0)>200*1024*1024){setError("Limite de 200 Mo de photos par lot. Importez moins de biens à la fois.");}else if(files.length+photoCount(r)>20||files.some(f=>f.size>8*1024*1024||!['image/jpeg','image/png','image/webp'].includes(f.type))){setError('Choisissez au maximum 20 photos JPG, PNG ou WebP de moins de 8 Mo pour ce bien.');}else{setError('');setRow(index,{photos:[...r.photos,...files]});}e.target.value='';}}/></label>
-          {!photoCount(r)&&<p>Ajoutez au moins une photo avant l’envoi.</p>}
+          <label>Photos du bien (facultatives, jusqu’à 20, 8 Mo maximum chacune)<input disabled={busy} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>{const files=[...e.target.files];if(files.reduce((sum,f)=>sum+f.size,0)+rows.reduce((sum,r)=>sum+r.photos.reduce((n,f)=>n+f.size,0),0)>200*1024*1024){setError("Limite de 200 Mo de photos par lot. Importez moins de biens à la fois.");}else if(files.length+photoCount(r)>20||files.some(f=>f.size>8*1024*1024||!['image/jpeg','image/png','image/webp'].includes(f.type))){setError('Choisissez au maximum 20 photos JPG, PNG ou WebP de moins de 8 Mo pour ce bien.');}else{setError('');setRow(index,{photos:[...r.photos,...files]});}e.target.value='';}}/></label>
+          {!photoCount(r)&&<div><img src="/images/photo-non-disponible.svg" alt="Photo non disponible" style={{maxWidth:260,width:"100%"}}/><p>Vous pouvez envoyer cette annonce sans photo. Ce visuel sera affiché ; vous pourrez ajouter des photos plus tard.</p></div>}
           <div className="sok-bulk-photos">{(r.remotePhotos||[]).map((url,i)=><div key={url}><img src={url} alt={`Photo importée ${i+1}`} referrerPolicy="no-referrer"/><small>{i===0?'Couverture':`Photo ${i+1}`}</small><button disabled={busy} onClick={()=>setRow(index,{remotePhotos:r.remotePhotos.filter((_,n)=>n!==i)})}>Retirer</button>{i>0&&<button disabled={busy} onClick={()=>setRow(index,{remotePhotos:[url,...r.remotePhotos.filter((_,n)=>n!==i)]})}>Couverture</button>}</div>)}{r.photos.map((file,i)=><div key={i}><Photo file={file}/><small>{i===0&&!r.remotePhotos?.length?'Couverture':`Photo ${(r.remotePhotos?.length||0)+i+1}`}</small><button disabled={busy} onClick={()=>setRow(index,{photos:r.photos.filter((_,n)=>i!==n)})} aria-label={`Retirer la photo ${i+1} de ${r.data.reference}`}>Retirer</button>{i>0&&!r.remotePhotos?.length&&<button disabled={busy} onClick={()=>setRow(index,{photos:[file,...r.photos.filter((_,n)=>n!==i)]})}>Couverture</button>}</div>)}</div></>}
         </article>;})}
         <label style={{display:"flex",gap:10,alignItems:"flex-start",margin:"16px 0"}}><input type="checkbox" disabled={busy} checked={authorityAccepted} onChange={e=>setAuthorityAccepted(e.target.checked)}/><span>Je confirme être propriétaire de chacun des biens sélectionnés ou autorisé à les proposer à la vente ou à la location. *</span></label>
-        <div className="sok-bulk-submit"><p>Les annonces sélectionnées seront soumises à Sokilé. Leurs photos importées seront contrôlées par IA. Elles deviendront publiques après validation par Sokilé.</p><button disabled={busy||invalid||!authorityAccepted||!selected.length||existing===null} onClick={send}>{busy?'Traitement en cours…':`Envoyer ${selected.length} annonce(s) en validation`}</button>{invalid&&<small>Corrigez les erreurs et ajoutez les photos, ou décochez les lignes à traiter plus tard.</small>}</div>
+        <div className="sok-bulk-submit"><p>Les annonces sélectionnées seront soumises à Sokilé. Leurs photos importées seront contrôlées par IA. Elles deviendront publiques après validation par Sokilé.</p><button disabled={busy||invalid||!authorityAccepted||!selected.length||existing===null} onClick={send}>{busy?'Traitement en cours…':`Envoyer ${selected.length} annonce(s) en validation`}</button>{invalid&&<small>Corrigez les erreurs ou décochez les lignes à traiter plus tard. Les photos sont facultatives.</small>}</div>
       </>}
     </div>
   </dialog>;

@@ -671,7 +671,6 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
       if(value!==undefined && value!=="" && (!Number.isFinite(Number(value)) || Number(value)<0)) vides.push({k:"d_"+c.k,l:c.l+" (nombre positif ou nul)"});
     });
     if (!authorityAccepted) vides.push({k:"authority",l:"Confirmation de votre autorisation à publier"});
-    if (!(photos.length)) vides.push({k:"photos",l:"Au moins une photo"});
     return vides;
   };
 
@@ -883,8 +882,9 @@ function PartnerModal({ onClose, user, defaultType, existing=null, onSaved }) {
               </div>
 </fieldset>
 <fieldset disabled={loading||videoChecking} style={sectionStyle}><legend style={legendStyle}>6. Photos et confirmation</legend>              <div style={{marginBottom:"14px"}}>
-                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos * <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
+                <label style={{fontSize:"13px",fontWeight:700,color:C.dark,display:"block",marginBottom:"4px",fontFamily:F,textTransform:"uppercase",letterSpacing:"0.05em"}}>Photos (facultatives) <span style={{color:C.sub,fontWeight:500,textTransform:"none",letterSpacing:0}}>· {photos.length}/{MAX_PHOTOS}</span></label>
 
+                {!photos.length&&<p style={{fontSize:13,color:C.sub,fontFamily:F}}>Sans photo, votre annonce affichera le visuel « Photo non disponible ». Vous pourrez ajouter vos photos plus tard.</p>}
                 {photos.length>0&&(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:"8px",marginBottom:"10px"}}>
                     {photos.map((ph,i)=>(
@@ -2187,7 +2187,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
   if (compact) return (
     <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:C.white,borderRadius:"10px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,transition:"all 0.2s",display:"flex"}}>
-      <div style={{width:72,flexShrink:0,background:p.bg}}/>
+      <img src={photo||"/images/photo-non-disponible.svg"} alt={photo?"":"Photo non disponible"} style={{width:100,flexShrink:0,objectFit:photo?"cover":"contain",background:"#f3eee4"}}/>
       <div style={{padding:"10px 12px",flex:1,minWidth:0}}>
         <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"2px"}}>{p.city}, <Flag name={p.country} size={14}/>{p.country}</div>
         <div style={{fontSize:"14px",fontWeight:700,color:C.dark,marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:F}}>{p.title}</div>
@@ -2200,10 +2200,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
     <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:C.white,borderRadius:"14px",overflow:"hidden",cursor:"pointer",border:`1px solid ${hov?C.terra:C.sand}`,boxShadow:hov?"0 8px 24px rgba(26,60,46,0.13)":"0 1px 4px rgba(26,60,46,0.05)",transform:hov?"translateY(-3px)":"none",transition:"all 0.22s ease"}}>
       <div className="sok-card-img" style={{backgroundColor:C.forest,backgroundImage:photo?`url('${photo}')`:`radial-gradient(circle at 80% 18%,rgba(201,168,76,.28),transparent 24%),linear-gradient(145deg,${C.forestMid},${C.forestDark})`,backgroundSize:"cover",backgroundPosition:"center",position:"relative",display:"flex",alignItems:"flex-end",padding:"10px"}}>
-        {!photo&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",color:"rgba(255,255,255,.78)",fontFamily:F}}>
-          <span style={{display:"flex",transform:"scale(1.55)",opacity:.72}}>{Icon.home}</span>
-          <span style={{fontSize:"12px",fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Photos non communiquées</span>
-        </div>}
+        {!photo&&<img src="/images/photo-non-disponible.svg" alt="Photo non disponible" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",background:"#f3eee4"}}/>}
         {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
         {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
@@ -2255,6 +2252,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
     <div style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
       <div style={{background:C.white,borderRadius:"16px",maxWidth:"500px",width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{height:260,background:p.bg,backgroundImage:p.photos?.[img]?`url('${p.photos[img]}')`:undefined,backgroundSize:"cover",backgroundPosition:"center",borderRadius:"16px 16px 0 0",position:"relative",display:"flex",alignItems:"flex-end",padding:"14px"}}>
+          {!p.photos?.length&&<img src="/images/photo-non-disponible.svg" alt="Photo non disponible" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",background:"#f3eee4"}}/>}
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 30%,rgba(0,0,0,0.6) 100%)",borderRadius:"16px 16px 0 0"}}/>
           {p.photos?.length>1&&(<>
             <button onClick={e=>{e.stopPropagation();setImg(i=>(i-1+p.photos.length)%p.photos.length);}} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"17px",zIndex:2}}>‹</button>
@@ -2424,7 +2422,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           {/* Galerie */}
           <div className="sok-annonce-photo" style={{position:"relative",borderRadius:"14px",overflow:"hidden",backgroundColor:C.forest,backgroundImage:photos[img]?`url('${photos[img]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center"}}>
             {photos.length>0&&<button className="sok-open-gallery" onClick={()=>setGallery(true)}>Voir les {photos.length} photo{photos.length>1?"s":""}</button>}
-            {!photos.length&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.5)",fontFamily:F,fontSize:"15px"}}>Photos non communiquées</div>}
+            {!photos.length&&<img src="/images/photo-non-disponible.svg" alt="Photo non disponible" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",background:"#f3eee4"}}/>}
             <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
               <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
               {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}

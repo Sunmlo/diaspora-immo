@@ -28,7 +28,7 @@ export function createReviewHandler({env,send=fetch,digest=async text=>Array.fro
    if(running.has(String(p.id)))return json({error:'Review in progress'},409);lock=String(p.id);running.add(lock);
    let checked=0,flagged=0,pending=0;
    const photos=Array.isArray(p.photos)?p.photos:[];
-   if(!photos.length||photos.length>20)return json({error:'Invalid photos'},422);
+   if(photos.length>20)return json({error:'Invalid photos'},422);
    const apiUser=env('SIGHTENGINE_API_USER'),apiSecret=env('SIGHTENGINE_API_SECRET');
    for(const [photoIndex,photo] of photos.entries()){
     // Only process this owner's uploaded photos, never arbitrary URLs submitted to the endpoint.
@@ -43,11 +43,11 @@ export function createReviewHandler({env,send=fetch,digest=async text=>Array.fro
      if(verdict==='checked')checked++;else if(verdict==='flagged')flagged++;else {pending+=photos.length-photoIndex;break;}
     }catch{pending+=photos.length-photoIndex;break;}
    }
-   const note=`Contrôle IA des photos importées : ${checked}/${photos.length} contrôlée(s) sans signalement, ${flagged} à examiner, ${pending} contrôle(s) indisponible(s). Vérification humaine du bien, du texte et du professionnel requise avant publication.\n[${pending?'import-ia-pending':'import-ia'}:${fingerprint}]`;
+   const note=photos.length?`Contrôle IA des photos importées : ${checked}/${photos.length} contrôlée(s) sans signalement, ${flagged} à examiner, ${pending} contrôle(s) indisponible(s). Vérification humaine du bien, du texte et du professionnel requise avant publication.\n[${pending?'import-ia-pending':'import-ia'}:${fingerprint}]`:`Annonce sans photo : visuel « Photo non disponible ». Aucun contrôle d’image à effectuer. Vérification du bien, du texte et du professionnel requise avant publication.\n[import-ia:${fingerprint}]`;
    // Do not overwrite an administrator's concurrent decision or an edited listing.
    const saved=await send(path+'&status=eq.en_attente&updated_at=eq.'+encodeURIComponent(p.updated_at),{method:'PATCH',headers:{...headers,Prefer:'return=representation'},body:JSON.stringify({moderation_note:note}),signal:AbortSignal.timeout(10000)});
    const changed=await saved.json().catch(()=>[]);if(!saved.ok||!changed.length)return json({error:'Listing changed during review'},409);
-   return json({status:pending?'manual_review':flagged?'flagged':'checked',checked,flagged,pending});
+   return json({status:!photos.length?'no_photos':pending?'manual_review':flagged?'flagged':'checked',checked,flagged,pending});
   }catch{return json({error:'Contrôle indisponible. L’annonce reste en attente de vérification.'},503);}finally{if(lock)running.delete(lock);}
  };
 }

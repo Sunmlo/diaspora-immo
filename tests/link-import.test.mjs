@@ -38,3 +38,16 @@ test('review outage stays pending, stops provider retries and permits a later re
  }});
  const r=await handler(new Request('https://test',{method:'POST',headers:{authorization:'Bearer token'},body:'{"id":1}'}));assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'manual_review',checked:0,flagged:0,pending:2});assert.equal(calls,1);assert.match(saved.moderation_note,/import-ia-pending:hash/);
 });
+test('photo-free import skips image provider and remains pending human validation',async()=>{
+ let saved;
+ const handler=createReviewHandler({env:k=>k==='SUPABASE_URL'?'https://project.example':'',digest:async()=> 'no-photo-hash',send:async(url,opts)=>{
+  assert.ok(!url.includes('sightengine'));
+  if(url.endsWith('/auth/v1/user'))return Response.json({id:'owner'});
+  if(opts.method==='PATCH'){assert.match(url,/status=eq.en_attente/);saved=JSON.parse(opts.body);return Response.json([{id:1}]);}
+  return Response.json([{id:1,status:'en_attente',details:{import_method:'website'},photos:[],updated_at:'2026-10-26T00:00:00Z'}]);
+ }});
+ const r=await handler(new Request('https://test',{method:'POST',headers:{authorization:'Bearer token'},body:'{"id":1}'}));
+ assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'no_photos',checked:0,flagged:0,pending:0});
+ assert.deepEqual(Object.keys(saved),['moderation_note']);
+ assert.match(saved.moderation_note,/Photo non disponible/);assert.match(saved.moderation_note,/requise avant publication/);
+});
