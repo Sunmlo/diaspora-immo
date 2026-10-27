@@ -12,7 +12,7 @@ import {giftApi,cleanGift} from './gift.mjs';
 import {IndividualPanel} from './individual-verification.jsx';
 import {individualApi} from './individual-verification.mjs';
 import "./brand.css";
-import {VerificationPage, VerificationPanel, VerificationWorkspace, VerificationAdmin, VerificationAdminHint, VerificationBadge} from './pro-verification.jsx';
+import {VerificationPage, VerificationPanel, VerificationWorkspace, VerificationAdmin, VerificationAdminHint} from './pro-verification.jsx';
 import {verificationApi} from './pro-verification-api.mjs';
 import {specialtyActivity} from './pro-regulations.mjs';
 import {linkImportApi} from "./link-import.mjs";
@@ -2205,12 +2205,7 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         {!photo&&<img src="/images/photo-non-disponible.svg" alt="Photo non disponible" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",background:"#f3eee4"}}/>}
         {p.photos?.length>1&&<div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 9px",borderRadius:"20px",fontFamily:F,zIndex:1}}>1/{p.photos.length}</div>}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)"}}/>
-        {p.demo&&<div style={{position:"absolute",top:7,left:7,background:"rgba(0,0,0,0.35)",color:"rgba(255,255,255,0.75)",fontSize:"11px",padding:"2px 6px",borderRadius:"3px",fontFamily:F}}>Démo</div>}
-        {p.verified&&<div style={{position:"absolute",top:7,right:7,background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</div>}
-        {p.professional_verified&&<div style={{position:"absolute",bottom:8,left:8}} onClick={e=>e.stopPropagation()}><VerificationBadge valid/></div>}
         <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:"6px",width:"100%"}}>
-          <span style={{background:transactionDe(p)==="location"?C.forest:C.terra,color:C.white,fontSize:"11px",fontWeight:700,padding:"3px 9px",borderRadius:"4px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{transactionDe(p)==="location"?"À louer":"À vendre"}</span>
-          <span style={{background:"rgba(255,255,255,0.92)",color:C.dark,fontSize:"11px",fontWeight:600,padding:"3px 9px",borderRadius:"4px",fontFamily:F}}>{libelleNature(p)}</span>
           <div style={{marginLeft:"auto",display:"flex",gap:"5px"}}>
             <span onClick={e=>{e.stopPropagation();onSave&&onSave(p);}} style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:"15px"}}>{saved?"❤️":"🤍"}</span>
             <span style={{background:"rgba(255,255,255,0.9)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={shareWA}>{Icon.wa}</span>
@@ -2218,8 +2213,9 @@ function PropertyCard({ p, onClick, compact, onSave, saved }) {
         </div>
       </div>
       <div style={{padding:"16px 16px 18px"}}>
+        <div style={{fontSize:"12px",color:C.sub,fontFamily:F,marginBottom:"6px"}}>{transactionDe(p)==="location"?"À louer":"À vendre"} · {libelleNature(p)}{p.demo?" · Annonce de démonstration":""}</div>
         <div style={{fontSize:"13px",color:C.sub,fontFamily:F,marginBottom:"5px"}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</div>
-        {p.advertiser_type==="pro"&&<div style={{display:"inline-block",background:C.forest,color:C.white,fontSize:"11px",fontWeight:700,padding:"2px 7px",borderRadius:"3px",fontFamily:F,marginBottom:"4px"}}>Pro{p.agency_name?` · ${p.agency_name}`:""}</div>}
+        {p.advertiser_type==="pro"&&<div style={{color:C.sub,fontSize:"12px",fontFamily:F,marginBottom:"4px"}}>{p.agency_name||"Professionnel"}</div>}
         <div style={{fontSize:"19px",fontWeight:500,color:C.dark,fontFamily:FT,marginBottom:"9px",lineHeight:1.28}}>{p.title}</div>
         <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"center"}}>
           {resumeBien(p).map((x,i)=>(
@@ -2262,10 +2258,6 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
             <div style={{position:"absolute",bottom:12,right:14,background:"rgba(0,0,0,0.6)",color:C.white,fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",fontFamily:F,zIndex:2}}>{img+1}/{p.photos.length}</div>
           </>)}
           <button onClick={onClose} style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,0.15)",border:"none",color:C.white,width:30,height:30,borderRadius:"50%",cursor:"pointer",fontSize:"15px"}}>✕</button>
-          <div style={{position:"relative",zIndex:1}}>
-            <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"3px 9px",borderRadius:"3px",textTransform:"uppercase",fontFamily:F,letterSpacing:"0.06em"}}>{p.type}</span>
-            {p.verified&&<span style={{marginLeft:"6px",background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}<VerificationBadge valid={p.professional_verified}/>
-          </div>
         </div>
         {p.photos?.length>1&&(
           <div style={{display:"flex",gap:"7px",overflowX:"auto",padding:"10px 18px 0"}}>
@@ -2277,6 +2269,7 @@ function PropertyModal({ p, onClose, onSaveFromModal, onVerify, onBudget }) {
         <div style={{padding:"18px"}}>
           {p.video_path&&<ListingVideo key={p.video_path} path={p.video_path} api={videoApi} poster={p.photos?.[0]}/>}
           {p.demo&&<div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:"7px",padding:"7px 11px",marginBottom:"12px",fontSize:"13px",color:"#5D4037",fontFamily:F}}>Annonce de démonstration — publiez la vôtre gratuitement</div>}
+          <p style={{color:C.sub,fontSize:"13px",fontFamily:F}}>{transactionDe(p)==="location"?"À louer":"À vendre"} · {libelleNature(p)}</p>
           <h2 style={{margin:"0 0 4px",fontFamily:FT,fontSize:"21px",fontWeight:500,color:C.dark}}>{p.title}</h2>
           <p style={{margin:"0 0 12px",color:C.sub,fontSize:"13px",fontFamily:F}}>{p.neighborhood}, {p.city} — <Flag name={p.country} size={14}/>{p.country}</p>
           <p style={{margin:"0 0 14px",color:C.dark,fontSize:"14px",lineHeight:1.6,fontFamily:F}}>{p.description}</p>
@@ -2425,11 +2418,6 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           <div className="sok-annonce-photo" style={{position:"relative",borderRadius:"14px",overflow:"hidden",backgroundColor:C.forest,backgroundImage:photos[img]?`url('${photos[img]}')`:(p.bg||undefined),backgroundSize:"cover",backgroundPosition:"center"}}>
             {photos.length>0&&<button className="sok-open-gallery" onClick={()=>setGallery(true)}>Voir les {photos.length} photo{photos.length>1?"s":""}</button>}
             {!photos.length&&<img src="/images/photo-non-disponible.svg" alt="Photo non disponible" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain",background:"#f3eee4"}}/>}
-            <div style={{position:"absolute",top:12,left:12,display:"flex",gap:"7px"}}>
-              <span style={{background:typeColor(p.type),color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"5px",textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F}}>{p.type}</span>
-              {p.demo&&<span style={{background:"rgba(0,0,0,0.55)",color:C.white,fontSize:"12px",padding:"5px 10px",borderRadius:"5px",fontFamily:F}}>Démo</span>}
-              {p.verified&&<span style={{background:"rgba(23,56,44,0.92)",color:C.white,fontSize:"12px",fontWeight:700,padding:"5px 11px",borderRadius:"20px",fontFamily:F}}>Annonce modérée</span>}<VerificationBadge valid={p.professional_verified}/>
-            </div>
             {photos.length>1&&(<>
               <button onClick={()=>setImg(i=>(i-1+photos.length)%photos.length)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>‹</button>
               <button onClick={()=>setImg(i=>(i+1)%photos.length)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",color:C.white,border:"none",width:42,height:42,borderRadius:"50%",cursor:"pointer",fontSize:"20px"}}>›</button>
@@ -2446,6 +2434,7 @@ function AnnoncePage({ p, onRetour, onSave, saved, onVerify, onVoir, similaires,
           )}
 
           {/* Titre et prix */}
+          <p style={{margin:"20px 0 0",color:C.sub,fontSize:"13px",fontFamily:F}}>{transactionDe(p)==="location"?"À louer":"À vendre"} · {libelleNature(p)}</p>
           <h1 style={{margin:"20px 0 6px",fontFamily:FT,fontSize:"clamp(24px,3.4vw,34px)",fontWeight:500,color:C.dark,lineHeight:1.22}}>{p.title}</h1>
           <p style={{margin:"0 0 14px",color:C.sub,fontSize:"15px",fontFamily:F}}>{p.neighborhood?p.neighborhood+", ":""}{p.city} · <Flag name={p.country} size={15}/>{p.country}</p>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:"4px",marginBottom:"18px"}}>
