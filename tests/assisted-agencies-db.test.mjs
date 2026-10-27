@@ -10,6 +10,10 @@ test('prices preserve unknown periods and starting prices',()=>{
  assert.doesNotMatch(listingPrice({type:'Vente',details:{rent_period:'a_confirmer'}}),/mois|confirmer/);
 });
 
+test('nightly and daily rents retain their units',()=>{
+ for(const period of ['nuit','jour','semaine','mois']) assert.ok(listingPrice({transaction:'location',price:25000,details:{rent_period:period}}).endsWith(' / '+period));
+});
+
 test('assisted publication and admin-only claim preserve listings without granting verification',async()=>{
  const db=new PGlite();const owner='10000000-0000-4000-8000-000000000001',other='10000000-0000-4000-8000-000000000002',admin='10000000-0000-4000-8000-000000000003';
  const q=async(s,a=[]) => (await db.query(s,a)).rows;

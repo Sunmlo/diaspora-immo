@@ -12,6 +12,7 @@ test('video lifecycle: private upload, moderation, public read, immutable object
  try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create schema sokile_private;grant usage on schema auth,sokile_private to authenticated,anon;
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function auth.role() returns text language sql stable as $$select current_user::text$$;
  create function sokile_is_admin() returns boolean language sql stable as $$select coalesce(auth.uid()='${admin}'::uuid,false)$$;
  create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);alter table storage.objects enable row level security;
@@ -25,6 +26,8 @@ test('video lifecycle: private upload, moderation, public read, immutable object
  create function existing_workflow() returns trigger language plpgsql as $$begin if not sokile_is_admin() then new.status:='en_attente';new.active:=false;new.verified:=false;elsif new.status='validee' then new.active:=true;new.verified:=true;end if;return new;end$$;
  create trigger sokile_property_workflow before insert or update on properties for each row execute function existing_workflow();`);
  await db.exec(await readFile(new URL('../supabase/migrations/20261023062518_listing_video.sql',import.meta.url),'utf8'));
+ await db.exec('alter table properties add column assisted_agency_id uuid');
+ await db.exec(await readFile(new URL('../supabase/migrations/20261027144403_assisted_agency_videos.sql',import.meta.url),'utf8'));
  const upload=path=>as(owner,()=>query("insert into storage.objects(bucket_id,name,metadata) values('listing-videos',$1,$2)",[path,{size:1024,mimetype:'video/mp4'}]));
  await upload(path);await upload(replacement);
  await assert.rejects(as(other,()=>query("insert into storage.objects(bucket_id,name) values('listing-videos',$1)",[path])));
@@ -51,5 +54,14 @@ test('video lifecycle: private upload, moderation, public read, immutable object
  assert.equal((await as(owner,()=>query('delete from storage.objects where name=$1 returning *',[path]))).length,1);
  await as(owner,()=>query('update properties set video_path=null where id=$1',[p.id]));
  assert.equal((await query('select video_path from properties where id=$1',[p.id]))[0].video_path,null);
+ const agency='30000000-0000-4000-8000-000000000001',agencyVideo=`${agency}/40000000-0000-4000-8000-000000000001.mp4`;
+ await query("insert into storage.objects(bucket_id,name,metadata) values('listing-videos',$1,$2)",[agencyVideo,{size:1024,mimetype:'video/mp4'}]);
+ const [assisted]=await as(admin,()=>query('insert into properties(title,assisted_agency_id,video_path) values($1,$2,$3) returning *',['Agency listing',agency,agencyVideo]));
+ assert.equal(assisted.status,'en_attente');
+ assert.equal((await as(null,()=>query('select * from storage.objects where name=$1',[agencyVideo]))).length,0);
+ await assert.rejects(as(admin,()=>query('insert into properties(title,assisted_agency_id,video_path) values($1,$2,$3)',['Wrong agency',other,agencyVideo])));
+ await assert.rejects(as(admin,()=>query("update properties set status='validee' where id=$1",[assisted.id])),/validez/);
+ await as(admin,()=>query("update properties set video_reviewed_path=video_path,status='validee' where id=$1",[assisted.id]));
+ assert.equal((await as(null,()=>query('select * from storage.objects where name=$1',[agencyVideo]))).length,1);
  }finally{await db.close();}
 });
