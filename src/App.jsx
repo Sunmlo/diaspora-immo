@@ -32,6 +32,8 @@ import { ProgramHome, ProgramList, ProgramPage, ProgramEditor, ProgramManager } 
 import { AdPreviewNotice, AdPreviewSlot } from "./ad-preview.jsx";
 import { previewOffer } from "./ad-preview.mjs";
 import { HomeDiscovery } from "./home-discovery.jsx";
+import { CountryFilter } from "./country-filter.jsx";
+import { COUNTRY_ONLY_SEARCH, filterPropertiesByCountry } from "./property-search.mjs";
 import { DemoListings } from "./demo-listings.jsx";
 import { PaidOffers } from "./paid-offers.jsx";
 import { PaymentsAdmin } from "./payments.jsx";
@@ -2734,7 +2736,7 @@ const SLIDES = [
   {url:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80",label:"🏘️ Résidence moderne"},
 ];
 
-function HeroCarousel({ search, setSearch, onSearch }) {
+function HeroCarousel({ search, setSearch, country, onCountryChange, onSearch }) {
   const [current, setCurrent] = useState(0);
   const [fade, setFade] = useState(true);
 
@@ -2780,20 +2782,20 @@ function HeroCarousel({ search, setSearch, onSearch }) {
         <div className="sok-search" style={{background:C.light,borderRadius:"14px",boxShadow:"0 14px 40px rgba(0,0,0,0.34)",maxWidth:"760px",padding:"14px 14px 15px"}}>
           <div style={{fontSize:"13px",fontWeight:700,color:C.cacao,fontFamily:F,marginBottom:"9px",letterSpacing:"0.01em"}}>Où cherchez-vous un bien ?</div>
           <div className="sok-search-row" style={{display:"flex",gap:"10px"}}>
-            <div style={{flex:1,display:"flex",alignItems:"center",gap:"10px",background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"0 15px",minWidth:0}}>
+            {COUNTRY_ONLY_SEARCH ? <CountryFilter id="home-country" countries={COUNTRIES_ANNONCES} value={country} onChange={onCountryChange}/> : <div style={{flex:1,display:"flex",alignItems:"center",gap:"10px",background:C.cream,border:`1px solid ${C.sand}`,borderRadius:"10px",padding:"0 15px",minWidth:0}}>
               <span style={{color:C.terra,flexShrink:0,display:"flex"}}>{Icon.search}</span>
               <input type="text" placeholder="Dakar, Abidjan, Sénégal..." value={search} onChange={e=>setSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSearch()} style={{flex:1,border:"none",outline:"none",fontSize:"17px",fontWeight:500,color:C.dark,background:"transparent",fontFamily:F,padding:"16px 0",minWidth:0}}/>
-            </div>
+            </div>}
             <button onClick={onSearch} style={{background:C.terra,color:C.white,border:"none",borderRadius:"10px",padding:"0 30px",fontWeight:700,fontSize:"16px",cursor:"pointer",fontFamily:F,flexShrink:0,whiteSpace:"nowrap",display:"flex",alignItems:"center",justifyContent:"center",gap:"9px",boxShadow:"0 5px 16px rgba(200,102,66,0.32)",minHeight:"58px"}}>
               <span style={{display:"flex"}}>{Icon.searchSm}</span>Rechercher
             </button>
           </div>
-          <div className="sok-search-tags" style={{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap",alignItems:"center"}}>
+          {!COUNTRY_ONLY_SEARCH&&<div className="sok-search-tags" style={{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap",alignItems:"center"}}>
             <span style={{fontSize:"12.5px",color:C.sub,fontFamily:F}}>Populaire :</span>
             {["Dakar","Abidjan","Douala","Terrain"].map(v=>(
               <button key={v} onClick={()=>{setSearch(v);onSearch();}} style={{background:"transparent",border:`1px solid ${C.sand}`,borderRadius:"20px",padding:"5px 13px",fontSize:"12.5px",fontWeight:600,color:C.forest,cursor:"pointer",fontFamily:F}}>{v}</button>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
     </div>
@@ -3184,12 +3186,13 @@ function SokileApp() {
 
   const toggleEquipement = eq => setFilterEquipements(prev=>prev.includes(eq)?prev.filter(e=>e!==eq):[...prev,eq]);
   const resetFilters = () => { setFilterCountry("Tous"); setFilterTransaction("tous"); setFilterNature("Tous"); setFilterRegion("Tous"); setFilterPriceMin(""); setFilterPriceMax(""); setFilterSurfaceMin(""); setFilterSurfaceMax(""); setFilterRooms("Tous"); setFilterEquipements([]); setSortBy("recent"); setSearch(""); };
+  const chooseCountry = country => { resetFilters(); setShowFilters(false); setFilterCountry(country); };
 
   const activeFiltersCount = [filterCountry!=="Tous",filterTransaction!=="tous",filterNature!=="Tous",filterRegion!=="Tous",filterPriceMin,filterPriceMax,filterSurfaceMin,filterSurfaceMax,filterRooms!=="Tous",filterEquipements.length>0].filter(Boolean).length;
   const filteredCountries = filterRegion==="Tous"?COUNTRIES_ANNONCES:COUNTRIES_ANNONCES.filter(c=>c.region===(filterRegion==="Afrique de l'Ouest"?"Ouest":"Centrale"));
   const paysActifs = filteredCountries.filter(c=>comptesPays[c.name]>0);
 
-  let filtered = ALL_PROPS.filter(p=>{
+  let filtered = COUNTRY_ONLY_SEARCH ? filterPropertiesByCountry(ALL_PROPS, filterCountry) : ALL_PROPS.filter(p=>{
     const mc=filterCountry==="Tous"||p.country===filterCountry;
     const mr=filterRegion==="Tous"||filteredCountries.map(c=>c.name).includes(p.country);
     const mt=filterNature==="Tous"||natureDe(p)===filterNature;
@@ -3208,10 +3211,10 @@ function SokileApp() {
   const quand = (x) => x.created_at ? new Date(x.created_at).getTime() : 0;
   const estReelle = (x) => !x.demo;
   filtered=[...filtered].sort((a,b)=>{
-    if (sortBy==="price_asc")    return (a.price_eur||0)-(b.price_eur||0);
-    if (sortBy==="price_desc")   return (b.price_eur||0)-(a.price_eur||0);
-    if (sortBy==="surface_asc")  return (a.surface||0)-(b.surface||0);
-    if (sortBy==="surface_desc") return (b.surface||0)-(a.surface||0);
+    if (!COUNTRY_ONLY_SEARCH&&sortBy==="price_asc")    return (a.price_eur||0)-(b.price_eur||0);
+    if (!COUNTRY_ONLY_SEARCH&&sortBy==="price_desc")   return (b.price_eur||0)-(a.price_eur||0);
+    if (!COUNTRY_ONLY_SEARCH&&sortBy==="surface_asc")  return (a.surface||0)-(b.surface||0);
+    if (!COUNTRY_ONLY_SEARCH&&sortBy==="surface_desc") return (b.surface||0)-(a.surface||0);
     if (estReelle(a)!==estReelle(b)) return estReelle(a) ? -1 : 1;
     return quand(b)-quand(a);
   });
@@ -3531,7 +3534,7 @@ button,input,select,textarea{font-size:inherit}
         {route.nom==="accueil"&&tab==="accueil"&&(
           <div>
             {/* Hero Carrousel */}
-            <HeroCarousel search={search} setSearch={setSearch} onSearch={()=>switchTab("biens")}/>
+            <HeroCarousel search={search} setSearch={setSearch} country={filterCountry} onCountryChange={chooseCountry} onSearch={()=>switchTab("biens")}/>
             <TrustCommitment/>
             <SearchRequestBanner/>
             <GiftBanner/>
@@ -3539,6 +3542,7 @@ button,input,select,textarea{font-size:inherit}
             {adPreview==="reach"&&<AdPreviewSlot placement="banner"/>}
 
             <HomeDiscovery
+              countryOnly={COUNTRY_ONLY_SEARCH}
               onBrowse={(transaction,nature)=>{resetFilters();setFilterTransaction(transaction);setFilterNature(nature);switchTab("biens");}}
               onPrograms={openPrograms}
               onProfessionals={()=>openAnnuaire()}
@@ -3622,7 +3626,7 @@ button,input,select,textarea{font-size:inherit}
                     <div style={{fontSize:"11px",fontWeight:700,color:"rgba(212,160,23,0.8)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px",paddingBottom:"6px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontFamily:F}}>{region} <span style={{color:"rgba(255,255,255,0.35)",fontWeight:600}}>· {devise}</span></div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"7px"}}>
                       {pays.map(p=>(
-                        <button key={p.name} onClick={()=>{setFilterCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"8px",padding:"8px 13px",fontSize:"14px",fontWeight:600,color:"rgba(255,255,255,0.82)",cursor:"pointer",fontFamily:F}}>
+                        <button key={p.name} onClick={()=>{chooseCountry(p.name);switchTab("biens");}} style={{display:"flex",alignItems:"center",gap:"5px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"8px",padding:"8px 13px",fontSize:"14px",fontWeight:600,color:"rgba(255,255,255,0.82)",cursor:"pointer",fontFamily:F}}>
                           <Flag flag={p.flag}/>{p.name}
                         </button>
                       ))}
@@ -3658,6 +3662,7 @@ button,input,select,textarea{font-size:inherit}
 
             {/* ── LA BARRE DE RECHERCHE ── */}
             <div className="sok-recherche">
+              {COUNTRY_ONLY_SEARCH ? <CountryFilter id="listings-country" countries={COUNTRIES_ANNONCES} value={filterCountry} onChange={chooseCountry}/> : <>
               <div className="sok-rech-haut">
                 <div className="sok-segment">
                   {[["tous","Tout"],["vente","Acheter"],["location","Louer"]].map(([k,l])=>(
@@ -3692,10 +3697,11 @@ button,input,select,textarea{font-size:inherit}
                   <button className="tout" onClick={resetFilters}>Tout effacer</button>
                 </div>
               )}
+              </>}
             </div>
 
             {/* ── LE PANNEAU DES FILTRES ── */}
-            {showFilters&&(
+            {!COUNTRY_ONLY_SEARCH&&showFilters&&(
               <div className="sok-panneau">
                 <div className="bloc">
                   <h4>Nature du bien</h4>
@@ -3763,13 +3769,13 @@ button,input,select,textarea{font-size:inherit}
 
             {/* ── RÉSULTATS ── */}
             <div className="sok-compte">
-              <p className="n"><b>{filtered.length}</b> bien{filtered.length>1?"s":""} {filterTransaction==="location"?"à louer":filterTransaction==="vente"?"à vendre":"trouvé"}{filtered.length>1&&filterTransaction==="tous"?"s":""}{filterCountry!=="Tous"?` · ${filterCountry}`:""}</p>
-              <div className="sok-tri">
+              <p className="n" role="status" aria-live="polite"><b>{filtered.length}</b> bien{filtered.length>1?"s":""} {COUNTRY_ONLY_SEARCH?"trouvé":filterTransaction==="location"?"à louer":filterTransaction==="vente"?"à vendre":"trouvé"}{filtered.length>1&&(COUNTRY_ONLY_SEARCH||filterTransaction==="tous")?"s":""}{filterCountry!=="Tous"?` · ${filterCountry}`:""}</p>
+              {!COUNTRY_ONLY_SEARCH&&<div className="sok-tri">
                 <label htmlFor="sok-tri">Trier par</label>
                 <select id="sok-tri" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
                   {sorts.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
-              </div>
+              </div>}
             </div>
 
             <div className="sok-biens">
