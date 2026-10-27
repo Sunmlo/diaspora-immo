@@ -16,15 +16,17 @@ function DiscoveryIcon({kind}){
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
 }
 
-export function HomeDiscovery({onBrowse,onPrograms,onProfessionals,onGuides}){
-  const choices=[
+export function HomeDiscovery({onBrowse,onPrograms,onProfessionals,onGuides,countryOnly=false}){
+  const choices=countryOnly?[
+    ['buy','Voir les biens','tous','Tous'],['new','Programmes neufs'],
+  ]:[
     ['buy','Acheter','vente','Tous'],['rent','Louer','location','Tous'],
     ['land','Terrains et parcelles','tous','terrain'],['agriculture','Terrains agricoles','tous','agricole'],['farm','Fermes et plantations','tous','ferme'],['building','Immeubles','tous','immeuble'],
     ['shop','Locaux pro','tous','commerce'],['new','Programmes neufs'],
   ];
-  return <section className="home-discovery" aria-label="Explorer Sokilé">
+  return <section className={`home-discovery${countryOnly?' country-only':''}`} aria-label="Explorer Sokilé">
     <div className="discovery-heading"><h2>Quel est votre projet ?</h2><span>Les bons accès pour avancer</span></div>
-    <nav className="discovery-categories" aria-label="Rechercher par type de projet">{choices.map(([kind,label,transaction,nature])=><button type="button" key={kind} onClick={()=>kind==='new'?onPrograms():onBrowse(transaction,nature)}><span className="discovery-icon"><DiscoveryIcon kind={kind}/></span><span>{label}</span><span className="discovery-arrow" aria-hidden="true">↗</span></button>)}</nav>
+    <nav className="discovery-categories" aria-label={countryOnly?'Explorer les biens':'Rechercher par type de projet'}>{choices.map(([kind,label,transaction,nature])=><button type="button" key={kind} onClick={()=>kind==='new'?onPrograms():onBrowse(transaction,nature)}><span className="discovery-icon"><DiscoveryIcon kind={kind}/></span><span>{label}</span><span className="discovery-arrow" aria-hidden="true">↗</span></button>)}</nav>
     <div className="discovery-support">
       <button type="button" onClick={onProfessionals}><span className="discovery-support-icon"><DiscoveryIcon kind="pro"/></span><span><strong>Trouvez le bon professionnel</strong><small>Agences, notaires, architectes… près de votre projet.</small></span><span aria-hidden="true">→</span></button>
       <button type="button" onClick={onGuides}><span className="discovery-support-icon"><DiscoveryIcon kind="guide"/></span><span><strong>Préparez votre projet</strong><small>Des guides pratiques pour faire les bons choix.</small></span><span aria-hidden="true">→</span></button>
