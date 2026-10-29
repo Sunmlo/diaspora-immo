@@ -20,7 +20,9 @@ Le manifeste web, les icônes et une page sans connexion sont préparés. Le ser
 
 Cette branche prépare l'application ; elle ne la publie pas. Aucune clé privée, compte développeur ou attestation d'identité n'est créé. Le site en production n'est pas modifié tant que cette branche n'est pas intégrée.
 
-La compilation Gradle locale est bloquée par l'accès réseau aux dépendances Android. Le workflow de contrôle compile sur un runner standard et ne publie rien. Son résultat doit être vérifié séparément. Un contrôle de compilation ne remplace pas un essai sur téléphone Android.
+La compilation du site et les 198 tests (194 existants, 4 nouveaux) ont réussi. La compilation Android `assembleDebug` et `bundleRelease` a également réussi sur le runner standard GitHub : https://github.com/Sunmlo/diaspora-immo/actions/runs/40836132587 . Aucun APK ou bundle n'est stocké par ce workflow ; il confirme la reproductibilité de la compilation sans engager de stockage facturable.
+
+Le navigateur local n'a pas pu être installé et aucun essai sur téléphone Android n'a été effectué. La signature de publication et l'association du domaine restent à finaliser. La réussite de la compilation ne vaut donc ni validation complète de l'expérience utilisateur ni acceptation par Google Play.
 
 ## Génération et compilation
 
