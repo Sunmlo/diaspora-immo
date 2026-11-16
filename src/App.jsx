@@ -3560,7 +3560,7 @@ button,input,select,textarea{font-size:inherit}
               <div>
                 <h3 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publiez votre bien gratuitement</h3>
                 <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
-                <p style={{margin:"12px 0 0",fontFamily:F,fontSize:"14px",lineHeight:1.6,color:C.white}}>Besoin d’aide pour publier ?<br/><a href={SOKILE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",padding:"8px 0",color:C.white,fontWeight:700,textUnderlineOffset:"3px"}}>Écrivez-nous sur WhatsApp ↗</a></p>
+                <p style={{margin:"12px 0 0",fontFamily:F,fontSize:"14px",lineHeight:1.6,color:C.white}}>Besoin d’aide pour publier ?<br/><a href={SOKILE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",padding:"8px 0",color:C.white,fontWeight:700,textUnderlineOffset:"3px"}}>Écrivez-nous sur WhatsApp</a></p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
                 <button onClick={()=>{setPartnerType("particulier");vu?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
