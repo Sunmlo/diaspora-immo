@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { SOKILE_WHATSAPP_URL, SOKILE_WHATSAPP_LABEL } from '../src/contact.mjs';
 
 export const origin = 'https://www.sokile.com';
 export const pages = [
@@ -57,14 +58,14 @@ export function renderPage(p) {
 <main id="contenu"><section class="hero"><div class="eyebrow">Agences immobilières · ${escape(p.country)}</div><h1>${escape(p.heading)}</h1><p class="intro">${escape(p.intro)}</p><div class="actions"><a class="button" href="/?tab=compte">Créer mon espace professionnel</a><a class="secondary" href="#premier-import">Préparer mon premier import</a></div><p class="note">Sur la page suivante, créez un compte et choisissez « Professionnel ». Déjà inscrit ? Connectez-vous.</p></section>
 <div class="content">${p.sections.map(([h,t],i)=>`<section class="section"><span class="number">0${i+1}</span><div><h2>${escape(h)}</h2><p>${escape(t)}</p></div></section>`).join('')}
 <aside><h2>À préparer avant de publier</h2><p>${escape(p.tip)}</p></aside>
-<section id="premier-import"><div class="eyebrow">Un démarrage accompagné</div><h2>Votre premier import, avec notre équipe.</h2><p>Vous conservez la maîtrise de vos annonces. Transmettez uniquement les textes et les photos que vous êtes autorisé à utiliser ; nous pouvons vous accompagner dans leur préparation et leur premier import. Vous validez leur présentation avant leur soumission à la modération.</p><a class="button" href="mailto:contact@sokile.com?subject=${encodeURIComponent('Premier import — '+p.country)}">Demander un accompagnement</a></section>
+<section id="premier-import"><div class="eyebrow">Un démarrage accompagné</div><h2>Votre premier import, avec notre équipe.</h2><p>Vous conservez la maîtrise de vos annonces. Transmettez uniquement les textes et les photos que vous êtes autorisé à utiliser ; nous pouvons vous accompagner dans leur préparation et leur premier import. Vous validez leur présentation avant leur soumission à la modération.</p><a class="button" href="mailto:contact@sokile.com?subject=${encodeURIComponent('Premier import — '+p.country)}">Demander un accompagnement</a><p><a class="secondary" href="${SOKILE_WHATSAPP_URL}" target="_blank" rel="noopener noreferrer">Écrivez-nous sur WhatsApp : ${SOKILE_WHATSAPP_LABEL}</a></p></section>
 <section class="faq"><h2>Questions pratiques</h2>
 <details><summary>La publication est-elle gratuite ?</summary><p>La publication des annonces est gratuite au lancement. Les prestations publicitaires et les mises en avant payantes sont distinctes ; leurs conditions sont présentées avant toute souscription.</p></details>
 <details><summary>Mes annonces sont-elles publiées immédiatement ?</summary><p>Non. Les annonces sont soumises à modération. Les informations et justificatifs demandés dans le parcours doivent être fournis. L’examen d’un dossier ne constitue pas une garantie juridique du bien ou de la transaction.</p></details>
 <details><summary>Sokilé apporte-t-il des clients garantis ?</summary><p>Non. Sokilé est en phase de lancement. La plateforme vise les recherches locales et celles de la diaspora, sans garantir une audience, un nombre de contacts ou la réalisation d’une transaction.</p></details>
 <details><summary>Qui répond aux personnes intéressées ?</summary><p>Votre agence répond directement aux demandes et organise les visites. Sokilé met en relation ; les négociations et les transactions restent entre les parties.</p></details></section>
 <nav class="countries" aria-label="Pages professionnelles par pays">${links}</nav></div></main>
-<footer><p>Sokilé — Présentez vos biens, gardez la relation.</p><nav aria-label="Informations"><a href="/about.html">Qui sommes-nous</a><a href="/verification-professionnels">Vérifications professionnelles</a><a href="/cgu.html">Conditions d’utilisation</a><a href="/confidentialites.html">Confidentialité</a><a href="mailto:contact@sokile.com">Contact</a></nav><button type="button" data-sokile-cookies>Gérer les cookies</button></footer>
+<footer><p>Sokilé — Présentez vos biens, gardez la relation.</p><nav aria-label="Informations"><a href="/about.html">Qui sommes-nous</a><a href="/verification-professionnels">Vérifications professionnelles</a><a href="/cgu.html">Conditions d’utilisation</a><a href="/confidentialites.html">Confidentialité</a><a href="mailto:contact@sokile.com">Contact</a><a href="${SOKILE_WHATSAPP_URL}" target="_blank" rel="noopener noreferrer">WhatsApp : ${SOKILE_WHATSAPP_LABEL}</a></nav><button type="button" data-sokile-cookies>Gérer les cookies</button></footer>
 <script src="/sokile-analytics.js"></script><script src="/professionnels/seo.js"></script></body></html>`;
 }
 export async function buildSeo(out='dist') {

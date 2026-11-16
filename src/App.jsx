@@ -4,6 +4,7 @@ import {ListingVideo, ListingVideoEditor} from './listing-video.jsx';
 import {listingVideoApi} from './listing-video.mjs';
 import {TrustCommitment} from './trust-commitment.jsx';
 import {SocialLinks} from './social-links.jsx';
+import {SOKILE_WHATSAPP_URL,SOKILE_WHATSAPP_LABEL} from './contact.mjs';
 import {DirectoryProof,DirectoryReview} from './directory-review.jsx';
 import {directoryError,directoryReviewError,needsTitleReview} from './directory-review.mjs';
 import {GiftPage,GiftBanner} from './gift.jsx';
@@ -2920,6 +2921,7 @@ function SiteFooter({ onNav, onPub }) {
         </div>
         <div style={{flex:"0 1 200px"}}>
           <div style={{fontSize:"11.5px",fontWeight:700,color:C.gold,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:F,marginBottom:"10px"}}>Nous contacter</div>
+          <a href={SOKILE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" style={{...link,color:"#E8A07E",fontWeight:600}}>WhatsApp : {SOKILE_WHATSAPP_LABEL}</a>
           <a href={`mailto:${CONTACT_MAIL}`} style={{...link,color:"#E8A07E",fontWeight:600,wordBreak:"break-word"}}>{CONTACT_MAIL}</a>
           <a href="https://www.sokile.com" style={link}>www.sokile.com</a>
           <p style={{fontSize:"14px",lineHeight:1.6,color:"rgba(255,255,255,0.85)",fontFamily:F,margin:"14px 0 8px"}}>Un problème technique ou une suggestion pour améliorer Sokilé ? Faites-nous-en part par email.</p>
@@ -3558,6 +3560,7 @@ button,input,select,textarea{font-size:inherit}
               <div>
                 <h3 style={{margin:"0 0 4px",color:C.white,fontFamily:FT,fontSize:"18px"}}>Publiez votre bien gratuitement</h3>
                 <p style={{margin:0,color:"rgba(255,255,255,0.6)",fontSize:"13px",fontFamily:F}}>Particulier ou professionnel · Afrique de l'Ouest & Centrale</p>
+                <p style={{margin:"12px 0 0",fontFamily:F,fontSize:"14px",lineHeight:1.6,color:C.white}}>Besoin d’aide pour publier ?<br/><a href={SOKILE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",padding:"8px 0",color:C.white,fontWeight:700,textUnderlineOffset:"3px"}}>Écrivez-nous sur WhatsApp ↗</a></p>
               </div>
               <div style={{display:"flex",gap:"7px",flexShrink:0}}>
                 <button onClick={()=>{setPartnerType("particulier");vu?setShowPartner(true):setShowLogin(true);}} style={{background:C.terra,color:C.white,border:"none",borderRadius:"7px",padding:"9px 16px",fontWeight:700,fontSize:"14px",cursor:"pointer",fontFamily:F}}>Particulier</button>
@@ -3975,6 +3978,7 @@ button,input,select,textarea{font-size:inherit}
                     {/* Contact / Support */}
                     <div style={{background:C.white,borderRadius:"8px",padding:"14px",border:`1px solid ${C.sand}`}}>
                       <div style={{fontSize:"14px",fontWeight:600,color:C.dark,fontFamily:F,marginBottom:"10px"}}>Contact & Support</div>
+                      <a href={SOKILE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" style={{display:"block",marginBottom:"14px",padding:"8px 0",color:C.terra,fontFamily:F,fontSize:"14px",fontWeight:600}}>WhatsApp : {SOKILE_WHATSAPP_LABEL}</a>
                       <a href="mailto:contact@sokile.com" style={{display:"flex",alignItems:"center",gap:"8px",textDecoration:"none"}}>
                         <div style={{width:32,height:32,borderRadius:"6px",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}}>✉️</div>
                         <div>
