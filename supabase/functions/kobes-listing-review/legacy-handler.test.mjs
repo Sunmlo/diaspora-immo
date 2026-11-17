@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {createHandler} from './handler.mjs';
+import {createHandler} from './legacy-handler.mjs';
 const listings=Array.from({length:10},(_,i)=>({id:'TRUST-'+String(i+1).padStart(2,'0'),title:'Fixture de test',location:'Ville de test',description:'Bien synthétique pour tests',area:100,bedrooms:2,bathrooms:1,images:i===0?['/fixture.webp']:[]})),token='a'.repeat(43),tokenHash=createHash('sha256').update(token).digest('hex');
 function setup(){const rows=new Map();const store={get:async id=>rows.get(id),countSince:async()=>rows.size,insert:async row=>{if(!rows.has(row.id))rows.set(row.id,JSON.parse(JSON.stringify(row)));}};const handler=createHandler({tokenHash,listings,store,now:()=>new Date('2026-10-26')});return {rows,handler};}
 const valid=()=>({id:crypto.randomUUID(),version:'kobes-20261117-v2',consent:true,contact:{name:'TEST TECHNIQUE',email:'test@example.invalid',phone:'TEST'},entries:listings.map((d,i)=>({id:d.id,title:d.title,location:d.location,description:d.description,notes:'',mediaLinks:'',videoLink:'',status:i===0?'approved':'pending',mediaChoice:d.images.length?'confirmed':'none',price:100000,priceType:'exact',composition:'',delivery:'',landArea:null,area:d.area,bedrooms:d.bedrooms,bathrooms:d.bathrooms}))});
