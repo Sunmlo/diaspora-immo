@@ -2,7 +2,7 @@
 -- Private invitation storage: no browser-side access and no public RLS policies.
 create table if not exists public.professional_review_invites (
   id uuid primary key default gen_random_uuid(),
-  agency_id uuid not null references public.assisted_agencies(id) on delete cascade,
+  agency_id uuid references public.assisted_agencies(id) on delete set null,
   token_hash text not null unique,
   recipient_email text not null,
   draft jsonb not null,
