@@ -1,0 +1,40 @@
+name: Check Android preparation
+on:
+  push:
+    branches: [codex/sokile-android-preparation]
+    paths:
+      - 'tools/android/**'
+      - 'public/icons/**'
+      - 'public/manifest.webmanifest'
+      - '.github/workflows/android-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compile:
+    # This repository is public. Standard hosted runner minutes are free.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate Android source from the checked-in site manifest
+        run: |
+          npm ci --prefix tools/android --no-audit --no-fund
+          npm run generate --prefix tools/android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile a test APK and unsigned release bundle
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleDebug :app:bundleRelease
+      # Deliberately no cache or uploaded artifacts: no paid storage, no signing key.
+      # Compilation is not device QA, signing, Digital Asset Links verification or publication.
