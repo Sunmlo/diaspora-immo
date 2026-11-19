@@ -38,8 +38,10 @@ export default async function handler(req,res) {
  if(!secret)return fail(res,503,'Configuration de validation indisponible.');
  const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim();
  if(limited(ip))return fail(res,429,'Trop de tentatives. Réessayez plus tard.');
- const data=typeof req.body==='string'?JSON.parse(req.body):req.body;
- const action=data?.action;
+ let data;
+ try{data=typeof req.body==='string'?JSON.parse(req.body):req.body;}catch{return fail(res,400,'Requête invalide.');}
+ if(!data||typeof data!=='object'||Array.isArray(data))return fail(res,400,'Requête invalide.');
+ const action=data.action;
  const db=createClient(base,secret,{auth:{autoRefreshToken:false,persistSession:false}});
  try {
   if(['create','list','revoke'].includes(action)){
