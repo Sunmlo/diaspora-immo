@@ -59,16 +59,26 @@ export default async function handler(req,res) {
     if(error)throw error;
     return res.status(200).json({ok:true});
    }
-   if(!isUuid(data.agencyId)||!EMAIL_PATTERN.test(String(data.recipientEmail||'')))return fail(res,400,'Agence ou email invalide.');
-   const {data:agency,error:ae}=await db.from('assisted_agencies')
-     .select('id,business_name,country,phone,website,description')
-     .eq('id',data.agencyId).single();
-   if(ae||!agency)return fail(res,404,'Agence accompagnée introuvable.');
-   const draft=cleanReviewDraft(agency);
+   if(!EMAIL_PATTERN.test(String(data.recipientEmail||'')))return fail(res,400,'Email invalide.');
+   let agencyId=null;
+   let draft;
+   if(data.agencyId){
+     if(!isUuid(data.agencyId))return fail(res,400,'Identifiant d’agence invalide.');
+     const {data:agency,error:ae}=await db.from('assisted_agencies')
+       .select('id,business_name,country,phone,website,description')
+       .eq('id',data.agencyId).single();
+     if(ae||!agency)return fail(res,404,'Agence accompagnée introuvable.');
+     agencyId=agency.id;
+     draft=cleanReviewDraft(agency);
+   }else{
+     // An unregistered agency can still receive a prefilled private review.
+     draft=cleanReviewDraft(data.draft);
+     if(!draft.business_name)return fail(res,422,'Indiquez au moins le nom de la structure.');
+   }
    const token=randomBytes(32).toString('hex');
    const expires_at=new Date(Date.now()+7*86400000).toISOString();
    const {data:created,error}=await db.from('professional_review_invites').insert({
-      agency_id:agency.id,token_hash:hash(token),
+      agency_id:agencyId,token_hash:hash(token),
       recipient_email:String(data.recipientEmail).trim().toLowerCase(),
       draft,original:draft,expires_at
    }).select('id,expires_at').single();
