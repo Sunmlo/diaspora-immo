@@ -1,4 +1,5 @@
 import {AssistedAgenciesAdmin,AgencyPage} from './assisted-agencies.jsx';
+import {ProfessionalReviewPage} from './pro-review.jsx';
 import {listingPrice} from './assisted-listings.mjs';
 import {ListingVideo, ListingVideoEditor} from './listing-video.jsx';
 import {listingVideoApi} from './listing-video.mjs';
@@ -3011,6 +3012,7 @@ function MesDemandesPro({user,refreshKey,onEditService,onEditPub,showEmpty=false
 
 export default function App() {
   const token=new URLSearchParams(window.location.search).get("annuler_alerte");
+  if(window.location.pathname.replace(/\/$/,'')==='/verification-agence')return <ProfessionalReviewPage/>;
   return token!==null?<CancelAlertPage token={token} rpc={alertRpc}/>:<SokileApp/>;
 }
 
