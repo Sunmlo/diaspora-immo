@@ -1,0 +1,25 @@
+name: Professional review checks
+on:
+  pull_request:
+    paths:
+      - 'src/pro-review.*'
+      - 'src/assisted-agencies.jsx'
+      - 'src/App.jsx'
+      - 'api/pro-review.mjs'
+      - 'tests/pro-review.test.mjs'
+      - 'package*.json'
+      - '.github/workflows/professional-review-checks.yml'
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
