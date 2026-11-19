@@ -28,7 +28,8 @@ async function verifiedAdmin(req) {
  return !!(user.id && user.email_confirmed_at && String(user.email).toLowerCase()===ADMIN_EMAIL);
 }
 function publicView(row) {
- return {status:invitationStatus(row),draft:row.draft,expires_at:row.expires_at,submitted_at:row.submitted_at};
+ const status=invitationStatus(row);
+ return {status,...(status==='pending'?{draft:row.draft}:{}),expires_at:row.expires_at,submitted_at:row.submitted_at};
 }
 export default async function handler(req,res) {
  res.setHeader('Cache-Control','no-store');
