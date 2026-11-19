@@ -24,6 +24,7 @@ export function ProfessionalReviewPage(){
    return()=>{active=false;meta.remove();};
  },[token]);
  const update=(field,value)=>{setSaved(false);setDraft(d=>({...d,[field]:value}));};
+ const updateListing=(index,field,value)=>{setSaved(false);setDraft(d=>({...d,listings:d.listings.map((row,i)=>i===index?{...row,[field]:value}:row)}));};
  const save=async(final=false)=>{
   if(busy||!draft)return;
   setBusy(true);setError('');
@@ -54,6 +55,37 @@ export function ProfessionalReviewPage(){
       {label}{['business_name','country','description'].includes(key)?' *':''}
       {key==='description'?<textarea rows={5} maxLength={2000} style={input} value={draft[key]||''} onChange={e=>update(key,e.target.value)}/>:<input style={input} maxLength={key==='website'?400:key==='phone'?40:key==='business_name'?180:100} value={draft[key]||''} onChange={e=>update(key,e.target.value)}/>}
     </label>)}
+    {draft.listings?.length>0&&<section style={{marginTop:28,borderTop:'2px solid #1A3C2E',paddingTop:20}}>
+      <h2 style={{fontSize:23,marginBottom:8}}>Vos {draft.listings.length} annonces à vérifier</h2>
+      <p style={{color:'#655e53',lineHeight:1.6}}>Pour chaque bien, choisissez sa disponibilité et corrigez uniquement les informations nécessaires. Les annonces ne seront pas publiées sans contrôle de Sokilé.</p>
+      {draft.listings.map((item,i)=><article key={item.reference} style={{border:'1px solid #D8CDBD',padding:16,borderRadius:12,margin:'14px 0',background:'#FCFAF7'}}>
+        <div style={{color:'#8B5E3C',fontSize:13,fontWeight:700}}>ANNONCE {i+1} / {draft.listings.length} · {item.reference}</div>
+        <h3 style={{fontSize:19,margin:'8px 0'}}>{item.title}</h3>
+        <p style={{margin:'3px 0 12px',fontSize:14,color:'#655e53'}}>{item.location} · {item.transaction}</p>
+        <label style={{fontWeight:700,display:'block',marginBottom:10}}>Disponibilité actuelle *
+         <select style={input} value={item.status} onChange={e=>updateListing(i,'status',e.target.value)}>
+           <option value="a_confirmer">À confirmer</option>
+           <option value="disponible">Toujours disponible</option>
+           <option value="indisponible">Indisponible / retiré</option>
+           <option value="a_corriger">À corriger / à préciser</option>
+         </select>
+        </label>
+        <details open={item.status==='a_corriger'}>
+         <summary style={{cursor:'pointer',fontWeight:700,padding:'8px 0'}}>Voir ou corriger les détails du bien</summary>
+         {([['title','Titre'],['location','Localisation'],['transaction','Transaction'],['price','Prix et unité'],['surface','Surface et pièces']]).map(([field,label])=><label key={field} style={{display:'block',margin:'10px 0',fontSize:14,fontWeight:600}}>{label}
+           <input style={input} maxLength={field==='title'?220:field==='location'?200:140} value={item[field]||''} onChange={e=>updateListing(i,field,e.target.value)}/>
+         </label>)}
+         <label style={{display:'block',margin:'10px 0',fontSize:14,fontWeight:600}}>Description
+          <textarea rows={3} maxLength={2500} style={input} value={item.description||''} onChange={e=>updateListing(i,'description',e.target.value)}/>
+         </label>
+         {item.questions&&<p style={{padding:10,background:'#FFF3DF',borderRadius:6,fontSize:13,lineHeight:1.6}}><strong>Points à vérifier :</strong> {item.questions}</p>}
+         {item.source_url&&<a target="_blank" rel="noopener noreferrer" href={item.source_url} style={{color:'#1A3C2E',fontSize:13}}>Voir l'annonce d'origine</a>}
+        </details>
+        <label style={{display:'block',fontSize:14,fontWeight:600,marginTop:14}}>Précisions ou corrections à transmettre
+          <textarea rows={2} maxLength={2000} style={input} placeholder="Facultatif, sauf si vous sélectionnez « À corriger »" value={item.comment||''} onChange={e=>updateListing(i,'comment',e.target.value)}/>
+        </label>
+      </article>)}
+    </section>}
     <label style={{display:'flex',gap:10,alignItems:'flex-start',lineHeight:1.5,marginTop:20}}>
       <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>
       Je confirme être autorisé à représenter cette structure et l'exactitude des informations soumises à Sokilé.
