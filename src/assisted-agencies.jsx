@@ -8,6 +8,18 @@ export function AssistedAgenciesAdmin({user,load,write}){
  useEffect(()=>{refresh().catch(e=>setError(e.message));},[user.token]);
  useEffect(()=>{loadReviews();},[user.token]);
  async function assign(event){event.preventDefault();if(busy)return;setBusy(true);setError('');setMessage('');try{const r=await write('rpc/assign_assisted_agency',{p_agency_id:selected,p_email:email.trim(),p_evidence:evidence.trim()},user.token);if(!r.ok)throw new Error(r.motif||'Rattachement impossible.');setMessage(`${r.data} annonce(s) rattachée(s) au compte. Leurs liens sont conservés.`);setSelected('');setEmail('');setEvidence('');await refresh();}catch(e){setError(e.message);}finally{setBusy(false);}}
+ async function reviewRequest(action,payload={}) {
+  const r=await fetch('/api/pro-review',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+user.token},body:JSON.stringify({action,...payload})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Opération impossible.');return d;
+ }
+ async function loadReviews(){try{const result=await reviewRequest('list');setReviewInvites(result.invites||[]);}catch(e){setError(e.message);}}
+ async function prepareReview(event){event.preventDefault();setBusy(true);setError('');setMessage('');setReviewLink('');try{
+  const result=await reviewRequest('create',{agencyId:reviewAgency,recipientEmail:reviewEmail});
+  setReviewLink(window.location.origin+'/verification-agence#'+result.token);
+  setMessage('Lien créé mais non envoyé. Copiez-le uniquement après vérification de son destinataire.');
+  await loadReviews();
+ }catch(e){setError(e.message);}finally{setBusy(false);}}
+ async function revokeReview(id){setBusy(true);setError('');try{await reviewRequest('revoke',{id});setReviewLink('');await loadReviews();}catch(e){setError(e.message);}finally{setBusy(false);}}
  return <section style={{fontFamily:'DM Sans, sans-serif'}}><h2>Agences accompagnées</h2><p>Les annonces peuvent être publiées avec l’accord de l’agence avant l’ouverture de son compte. Le rattachement ne délivre aucun badge de vérification.</p>{error&&<p role="alert">{error}</p>}{message&&<p role="status">{message}</p>}{!rows&&!error&&<p>Chargement…</p>}{rows?.length===0&&<p>Aucune agence accompagnée.</p>}{rows?.length>0&&<section style={{border:'1px solid #D8CDBD',padding:18,borderRadius:12,margin:'20px 0',background:'#fff'}}>
  <h3>Liens de vérification sans compte</h3><p>Préparez une invitation uniquement pour un interlocuteur dont l’adresse a été vérifiée. Aucun envoi automatique. Les corrections seront relues avant publication.</p>
  <form onSubmit={prepareReview}>
